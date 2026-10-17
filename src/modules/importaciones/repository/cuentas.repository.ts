@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { toCuentaDTO, type CuentaContableDTO, type RubroBaseSimple } from '../domain/types'
 
@@ -15,10 +16,7 @@ export async function asignarRubroCuenta(
   })
 }
 
-export async function asignarRubrosBulk(
-  cuentaIds: string[],
-  rubroBaseId: string,
-): Promise<void> {
+export async function asignarRubrosBulk(cuentaIds: string[], rubroBaseId: string): Promise<void> {
   await db.cuentaContable.updateMany({
     where: { id: { in: cuentaIds } },
     data: { rubroBaseId, clasificadaManual: true },
@@ -39,21 +37,27 @@ export async function deleteCuenta(cuentaId: string): Promise<void> {
 export async function replaceCuentas(
   ejercicioId: string,
   importacionId: string,
-  cuentas: { codigo: string; nombre: string; saldoDeudor: number; saldoAcreedor: number; saldoFinal: number }[],
+  cuentas: {
+    codigo: string
+    nombre: string
+    saldoDeudor: number
+    saldoAcreedor: number
+    saldoFinal: number
+  }[],
 ): Promise<number> {
+  // Tipado explícito: un campo mal escrito acá ahora es error de compilación.
+  const data: Prisma.CuentaContableCreateManyInput[] = cuentas.map((c) => ({
+    ejercicioId,
+    importacionExcelId: importacionId,
+    codigo: c.codigo,
+    nombre: c.nombre,
+    saldoDeudor: c.saldoDeudor,
+    saldoAcreedor: c.saldoAcreedor,
+    saldoFinal: c.saldoFinal,
+  }))
   return db.$transaction(async (tx) => {
     await tx.cuentaContable.deleteMany({ where: { ejercicioId } })
-    await tx.cuentaContable.createMany({
-      data: cuentas.map((c) => ({
-        ejercicioId,
-        importacionId,
-        codigo: c.codigo,
-        nombre: c.nombre,
-        saldoDeudor: c.saldoDeudor,
-        saldoAcreedor: c.saldoAcreedor,
-        saldoFinal: c.saldoFinal,
-      })),
-    })
+    await tx.cuentaContable.createMany({ data })
     return cuentas.length
   })
 }
@@ -85,11 +89,19 @@ export async function findRubrosBase(): Promise<RubroBaseSimple[]> {
       orden: true,
       generaNotaInformativa: true,
       textoNotaDefault: true,
-      rubroGrupo: { select: { nombre: true, estadoDestino: true, seccionSSP: true, seccionEERR: true, esGasto: true } },
+      rubroGrupo: {
+        select: {
+          nombre: true,
+          estadoDestino: true,
+          seccionSSP: true,
+          seccionEERR: true,
+          esGasto: true,
+        },
+      },
     },
     orderBy: { orden: 'asc' },
   })
-  return rows.map(r => ({
+  return rows.map((r) => ({
     id: r.id,
     codigo: r.codigo,
     nombre: r.nombre,

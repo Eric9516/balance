@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toastError, toastSuccess } from '@/modules/errores/components/Toast'
 import { confirmarImportacionEditada } from '../actions/importacion.actions'
 import { parsePreview, parseAllRows, type PreviewData, type EditableRow } from '../lib/excelParsing'
+import { importesDeFila, validarCuadre } from '../domain/importacion'
 import { PasoMapeo } from './PasoMapeo'
 import { PasoRevision } from './PasoRevision'
 
@@ -47,15 +48,11 @@ export function ImportarExcelForm({
   const [loadingRevision, setLoadingRevision] = useState(false)
 
   // ── Derivados para revisión ────────────────────────────────────────────────
-  const totalDeudor = useMemo(
-    () => filasEditadas.reduce((acc, r) => acc + (parseFloat(r.saldoDeudor) || 0), 0),
+  // Mismo cálculo de cuadre que valida el servidor (Decimal, tolerancia de centavos).
+  const { totalDeudor, totalAcreedor, cuadrado } = useMemo(
+    () => validarCuadre(filasEditadas.map(importesDeFila)),
     [filasEditadas],
   )
-  const totalAcreedor = useMemo(
-    () => filasEditadas.reduce((acc, r) => acc + (parseFloat(r.saldoAcreedor) || 0), 0),
-    [filasEditadas],
-  )
-  const cuadrado = Math.abs(totalDeudor - totalAcreedor) < 0.01
 
   // ── Handlers mapeo ─────────────────────────────────────────────────────────
 
@@ -118,17 +115,15 @@ export function ImportarExcelForm({
         parseInt(columnaAcreedor),
       )
       if (filas.length === 0) {
-        setParseError('No se encontraron filas con datos. Verificá el mapeo y las filas de encabezado.')
+        setParseError(
+          'No se encontraron filas con datos. Verificá el mapeo y las filas de encabezado.',
+        )
         return
       }
-      const activas = filas.filter(f => {
-        const saldo = (parseFloat(f.saldoDeudor) || 0) - (parseFloat(f.saldoAcreedor) || 0)
-        return saldo !== 0
-      })
-      const descartadas = filas.filter(f => {
-        const saldo = (parseFloat(f.saldoDeudor) || 0) - (parseFloat(f.saldoAcreedor) || 0)
-        return saldo === 0
-      })
+      // Cuentas con saldo 0 se proponen como descartadas (el usuario puede recuperarlas).
+      const activas: EditableRow[] = []
+      const descartadas: EditableRow[] = []
+      for (const f of filas) (importesDeFila(f).saldoFinal !== 0 ? activas : descartadas).push(f)
       setFilasEditadas(activas)
       setFilasDescartadas(descartadas)
       setSeleccionDescartadas(new Set())
@@ -145,9 +140,7 @@ export function ImportarExcelForm({
 
   const handleUpdate = useCallback(
     (key: string, field: keyof Omit<EditableRow, '_key'>, value: string) => {
-      setFilasEditadas((rows) =>
-        rows.map((r) => (r._key === key ? { ...r, [field]: value } : r)),
-      )
+      setFilasEditadas((rows) => rows.map((r) => (r._key === key ? { ...r, [field]: value } : r)))
     },
     [],
   )
@@ -157,14 +150,14 @@ export function ImportarExcelForm({
   }, [])
 
   function handleIncluirDescartadas() {
-    const aIncluir = filasDescartadas.filter(f => seleccionDescartadas.has(f._key))
-    setFilasEditadas(prev => [...prev, ...aIncluir])
-    setFilasDescartadas(prev => prev.filter(f => !seleccionDescartadas.has(f._key)))
+    const aIncluir = filasDescartadas.filter((f) => seleccionDescartadas.has(f._key))
+    setFilasEditadas((prev) => [...prev, ...aIncluir])
+    setFilasDescartadas((prev) => prev.filter((f) => !seleccionDescartadas.has(f._key)))
     setSeleccionDescartadas(new Set())
   }
 
   function toggleSeleccionDescartada(key: string) {
-    setSeleccionDescartadas(prev => {
+    setSeleccionDescartadas((prev) => {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
       else next.add(key)
@@ -176,7 +169,7 @@ export function ImportarExcelForm({
     if (seleccionDescartadas.size === filasDescartadas.length) {
       setSeleccionDescartadas(new Set())
     } else {
-      setSeleccionDescartadas(new Set(filasDescartadas.map(f => f._key)))
+      setSeleccionDescartadas(new Set(filasDescartadas.map((f) => f._key)))
     }
   }
 
@@ -193,11 +186,17 @@ export function ImportarExcelForm({
     startTransition(async () => {
       const fd = new FormData()
       fd.append('archivo', archivo)
-      fd.append('rowsJson', JSON.stringify(
-        filasEditadas.map(({ codigo, nombre, saldoDeudor, saldoAcreedor }) => ({
-          codigo, nombre, saldoDeudor, saldoAcreedor,
-        })),
-      ))
+      fd.append(
+        'rowsJson',
+        JSON.stringify(
+          filasEditadas.map(({ codigo, nombre, saldoDeudor, saldoAcreedor }) => ({
+            codigo,
+            nombre,
+            saldoDeudor,
+            saldoAcreedor,
+          })),
+        ),
+      )
 
       const result = await confirmarImportacionEditada(ejercicioId, sociedadId, fd)
 
@@ -217,7 +216,12 @@ export function ImportarExcelForm({
   }
 
   const canVerDatos =
-    !!archivo && !!preview && !!columnaCodigo && !!columnaNombre && !!columnaDeudor && !!columnaAcreedor
+    !!archivo &&
+    !!preview &&
+    !!columnaCodigo &&
+    !!columnaNombre &&
+    !!columnaDeudor &&
+    !!columnaAcreedor
 
   if (paso === 'revision') {
     return (
@@ -236,7 +240,7 @@ export function ImportarExcelForm({
         onIncluirDescartadas={handleIncluirDescartadas}
         onToggleSeleccionDescartada={toggleSeleccionDescartada}
         onToggleTodasDescartadas={toggleTodasDescartadas}
-        onToggleMostrarDescartadas={() => setMostrarDescartadas(v => !v)}
+        onToggleMostrarDescartadas={() => setMostrarDescartadas((v) => !v)}
         onAgregarFila={handleAgregarFila}
         onVolverMapeo={() => setPaso('mapeo')}
         onConfirmar={handleConfirmar}

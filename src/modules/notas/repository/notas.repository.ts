@@ -10,8 +10,8 @@ import type { CuentaContableDTO, RubroBaseSimple } from '@/modules/importaciones
 // Etiquetas para CriteriosBienesCambio
 const CRITERIO_LABEL: Record<string, string> = {
   COSTO_ADQUISICION: 'costo de adquisición',
-  ULTIMA_COMPRA:     'costo de la última compra',
-  COSTO_REPOSICION:  'costo de reposición',
+  ULTIMA_COMPRA: 'costo de la última compra',
+  COSTO_REPOSICION: 'costo de reposición',
 }
 
 // Detecta si un rubro es "bienes de cambio" por nombre (case-insensitive)
@@ -44,14 +44,14 @@ const TEXTO_CAMBIOS_CRITERIOS =
 // ─── Texto apertura para notas cuantitativas (PDF págs. 2-3) ──────────────────
 // Nota Nº 2: sin coma. Resto: con coma. (Exacto del PDF del estudio)
 
-const TEXTO_APERTURA_PRIMERA  = 'El saldo del rubro a fecha de cierre está compuesto por:'
+const TEXTO_APERTURA_PRIMERA = 'El saldo del rubro a fecha de cierre está compuesto por:'
 const TEXTO_APERTURA_ESTANDAR = 'El saldo del rubro a fecha de cierre, está compuesto por:'
 
 // ─── Títulos exactos para rubros EERR que sí generan nota ────────────────────
 // Según PDF pág. 3: Nota 9 y 10 tienen títulos distintos al nombre del rubro
 
 const TITULO_EERR: Partial<Record<string, string>> = {
-  INGRESOS:     'INGRESOS NETOS POR LA VENTA DE BIENES Y SERVICIOS',
+  INGRESOS: 'INGRESOS NETOS POR LA VENTA DE BIENES Y SERVICIOS',
   COSTO_VENTAS: 'COSTO DE LOS BIENES Y SERVICIOS VENDIDOS',
 }
 
@@ -176,9 +176,7 @@ export async function generarNotasDesdeRubros(
     include: { detalles: { orderBy: { orden: 'asc' } } },
     orderBy: { orden: 'asc' },
   })
-  const notasPorTitulo = new Map(
-    notasExistentes.map((n) => [n.titulo.trim().toUpperCase(), n]),
-  )
+  const notasPorTitulo = new Map(notasExistentes.map((n) => [n.titulo.trim().toUpperCase(), n]))
 
   // Agrupar cuentas por rubro, ordenadas por código
   const byRubro = new Map<string, CuentaContableDTO[]>()
@@ -191,11 +189,12 @@ export async function generarNotasDesdeRubros(
   // Solo los rubros que tienen cuentas, en el orden del PDF (por rubro.orden)
   // Excluir rubros de PN (no generan notas de composición)
   const rubrosConCuentas = rubros
-    .filter((r) =>
-      byRubro.has(r.id) &&
-      r.estadoDestino !== 'PN' &&
-      !r.rubroGrupoEsGasto &&
-      !(r.estadoDestino === 'EERR' && r.seccionEERR && EERR_SIN_NOTA.has(r.seccionEERR))
+    .filter(
+      (r) =>
+        byRubro.has(r.id) &&
+        r.estadoDestino !== 'PN' &&
+        !r.rubroGrupoEsGasto &&
+        !(r.estadoDestino === 'EERR' && r.seccionEERR && EERR_SIN_NOTA.has(r.seccionEERR)),
     )
     .sort((a, b) => a.orden - b.orden)
 
@@ -213,19 +212,23 @@ export async function generarNotasDesdeRubros(
     const tipo: TipoNota = esInformativa ? 'INFORMATIVA' : 'CUANTITATIVA'
 
     // Título: para EERR usar el título exacto del PDF; para el resto, nombre del rubro
-    const titulo = esEERR && rubro.seccionEERR && TITULO_EERR[rubro.seccionEERR]
-      ? TITULO_EERR[rubro.seccionEERR]!
-      : rubro.nombre.toUpperCase()
+    const titulo =
+      esEERR && rubro.seccionEERR && TITULO_EERR[rubro.seccionEERR]
+        ? TITULO_EERR[rubro.seccionEERR]!
+        : rubro.nombre.toUpperCase()
 
     // Criterio:
     // - Notas informativas (bienes de uso) y EERR: sin criterio en la línea
     // - Bienes de cambio: usa config del ejercicio (o 'costo de reposición' como fallback)
     // - Resto: 'valor nominal'
-    const criterioMedicion = esInformativa || esEERR
-      ? null
-      : esRubroBienDeCambio(rubro.nombre)
-        ? (config.criteriosBienesCambio ? (CRITERIO_LABEL[config.criteriosBienesCambio] ?? 'costo de reposición') : 'costo de reposición')
-        : 'valor nominal'
+    const criterioMedicion =
+      esInformativa || esEERR
+        ? null
+        : esRubroBienDeCambio(rubro.nombre)
+          ? config.criteriosBienesCambio
+            ? (CRITERIO_LABEL[config.criteriosBienesCambio] ?? 'costo de reposición')
+            : 'costo de reposición'
+          : 'valor nominal'
 
     // textoApertura: INFORMATIVA usa el texto del rubro (o fallback); Nota 2 sin coma; resto con coma
     const textoApertura = esInformativa
@@ -274,13 +277,10 @@ export async function generarNotasDesdeRubros(
       const cuentasKeys = new Set(cuentasRubro.map((c) => c.nombre.trim().toLowerCase()))
 
       const byConcepto = new Map(
-        existingDetalles
-          .filter((d) => !d.esTotal)
-          .map((d) => [d.concepto.trim().toLowerCase(), d]),
+        existingDetalles.filter((d) => !d.esTotal).map((d) => [d.concepto.trim().toLowerCase(), d]),
       )
-      const maxOrden = existingDetalles.length > 0
-        ? Math.max(...existingDetalles.map((d) => d.orden))
-        : 0
+      const maxOrden =
+        existingDetalles.length > 0 ? Math.max(...existingDetalles.map((d) => d.orden)) : 0
 
       // Eliminar filas de cuentas que ya no están clasificadas en este rubro
       const stalIds = existingDetalles
@@ -290,31 +290,32 @@ export async function generarNotasDesdeRubros(
         await db.detalleNota.deleteMany({ where: { id: { in: stalIds } } })
       }
 
-      for (let i = 0; i < cuentasRubro.length; i++) {
-        const c = cuentasRubro[i]
-        const key = c.nombre.trim().toLowerCase()
-        const existing = byConcepto.get(key)
-
+      // Un solo round-trip atómico en vez de una query por cuenta.
+      const actualizaciones = []
+      const nuevas = []
+      for (const [i, c] of cuentasRubro.entries()) {
+        const existing = byConcepto.get(c.nombre.trim().toLowerCase())
         if (existing) {
           // Ya existe: solo actualiza el importe actual (saldo puede haber cambiado)
-          await db.detalleNota.update({
-            where: { id: existing.id },
-            data: { importeActual: Math.abs(c.saldoFinal) },
-          })
+          actualizaciones.push(
+            db.detalleNota.update({
+              where: { id: existing.id },
+              data: { importeActual: Math.abs(c.saldoFinal) },
+            }),
+          )
         } else {
           // Cuenta nueva clasificada después de la última generación: agregar fila
-          await db.detalleNota.create({
-            data: {
-              notaEjercicioId: nota.id,
-              concepto: c.nombre,
-              importeActual: Math.abs(c.saldoFinal),
-              importeAnterior: 0,
-              esTotal: false,
-              orden: maxOrden + i + 1,
-            },
+          nuevas.push({
+            notaEjercicioId: nota.id,
+            concepto: c.nombre,
+            importeActual: Math.abs(c.saldoFinal),
+            importeAnterior: 0,
+            esTotal: false,
+            orden: maxOrden + i + 1,
           })
         }
       }
+      await db.$transaction([...actualizaciones, db.detalleNota.createMany({ data: nuevas })])
     }
 
     numeroNota++

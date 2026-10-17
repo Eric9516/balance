@@ -1,11 +1,13 @@
 import { z } from 'zod'
 
-export const MapeoSchema = z.object({
-  columnaCodigo: z.string().min(1, 'Seleccioná la columna de código'),
-  columnaNombre: z.string().min(1, 'Seleccioná la columna de nombre'),
-  columnaDeudor: z.string().min(1, 'Seleccioná la columna de debe'),
-  columnaAcreedor: z.string().min(1, 'Seleccioná la columna de haber'),
-  filasOmitir: z.string().optional(),
-})
+const importe = z.union([z.string(), z.number()])
 
-export type MapeoInput = z.infer<typeof MapeoSchema>
+/** Filas del balance de sumas y saldos enviadas por la UI (carga manual o Excel editado). */
+export const FilasImportacionSchema = z.array(
+  z.object({
+    codigo: z.string(),
+    nombre: z.string(),
+    saldoDeudor: importe,
+    saldoAcreedor: importe,
+  }),
+)

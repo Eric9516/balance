@@ -29,3 +29,10 @@ export function formatFecha(d: Date | string | null | undefined, fallback = '-')
     timeZone: 'UTC',
   })
 }
+
+/** Valor para `<input type="date">` (yyyy-mm-dd, UTC). '' si la fecha es null/undefined/inválida. */
+export function toDateInputValue(d: Date | string | null | undefined): string {
+  if (!d) return ''
+  const date = new Date(d)
+  return isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10)
+}

@@ -4,6 +4,8 @@ import { useState, useTransition } from 'react'
 import { toastError, toastSuccess } from '@/modules/errores/components/Toast'
 import { actualizarCuentaAction, eliminarCuentaAction } from '../actions/clasificacion.actions'
 import type { CuentaContableDTO } from '../domain/types'
+import { importesDeFila } from '../domain/importacion'
+import { importeEditable, parseImporte } from '@/lib/utils/parseImporte'
 
 export type DraftRow = {
   nombre: string
@@ -25,9 +27,9 @@ export function useFilaCuentaEdicion(ejercicioId: string, sociedadId: string) {
     setEditingRowId(c.id)
     setDraftRow({
       nombre: c.nombre,
-      saldoDeudor: c.saldoDeudor === 0 ? '' : String(c.saldoDeudor),
-      saldoAcreedor: c.saldoAcreedor === 0 ? '' : String(c.saldoAcreedor),
-      saldoFinal: c.saldoFinal === 0 ? '' : String(c.saldoFinal),
+      saldoDeudor: importeEditable(c.saldoDeudor),
+      saldoAcreedor: importeEditable(c.saldoAcreedor),
+      saldoFinal: importeEditable(c.saldoFinal),
     })
   }
 
@@ -36,21 +38,14 @@ export function useFilaCuentaEdicion(ejercicioId: string, sociedadId: string) {
     setDraftRow(null)
   }
 
-  // Al cambiar debe → recalcula saldo automáticamente
-  function handleDraftDeudorChange(v: string) {
+  /** Cambiar debe o haber recalcula el saldo automáticamente. */
+  function actualizarImporte(campo: 'saldoDeudor' | 'saldoAcreedor', v: string) {
     if (!draftRow) return
-    const d = parseFloat(v.replace(',', '.')) || 0
-    const a = parseFloat((draftRow.saldoAcreedor || '0').replace(',', '.')) || 0
-    setDraftRow({ ...draftRow, saldoDeudor: v, saldoFinal: String(d - a) })
+    const fila = { ...draftRow, [campo]: v }
+    setDraftRow({ ...fila, saldoFinal: importeEditable(importesDeFila(fila).saldoFinal) })
   }
-
-  // Al cambiar haber → recalcula saldo automáticamente
-  function handleDraftAcreedorChange(v: string) {
-    if (!draftRow) return
-    const d = parseFloat((draftRow.saldoDeudor || '0').replace(',', '.')) || 0
-    const a = parseFloat(v.replace(',', '.')) || 0
-    setDraftRow({ ...draftRow, saldoAcreedor: v, saldoFinal: String(d - a) })
-  }
+  const handleDraftDeudorChange = (v: string) => actualizarImporte('saldoDeudor', v)
+  const handleDraftAcreedorChange = (v: string) => actualizarImporte('saldoAcreedor', v)
 
   function setDraftField(field: 'nombre' | 'saldoFinal', value: string) {
     if (!draftRow) return
@@ -59,12 +54,13 @@ export function useFilaCuentaEdicion(ejercicioId: string, sociedadId: string) {
 
   function handleEditSave(cuentas: CuentaContableDTO[]) {
     if (!editingRowId || !draftRow) return
-    const c = cuentas.find((x) => x.id === editingRowId)!
+    const c = cuentas.find((x) => x.id === editingRowId)
+    if (!c) return
 
     const nombre = draftRow.nombre.trim() || c.nombre
-    const saldoDeudor = parseFloat(draftRow.saldoDeudor.replace(',', '.')) || 0
-    const saldoAcreedor = parseFloat(draftRow.saldoAcreedor.replace(',', '.')) || 0
-    const saldoFinal = parseFloat(draftRow.saldoFinal.replace(',', '.')) || 0
+    const saldoDeudor = parseImporte(draftRow.saldoDeudor)
+    const saldoAcreedor = parseImporte(draftRow.saldoAcreedor)
+    const saldoFinal = parseImporte(draftRow.saldoFinal)
 
     const data: Parameters<typeof actualizarCuentaAction>[1] = {}
     if (nombre !== c.nombre) data.nombre = nombre

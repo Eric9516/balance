@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { toastError, toastSuccess } from '@/modules/errores/components/Toast'
 import { asignarRubroAction, asignarRubrosBulkAction } from '../actions/clasificacion.actions'
 import type { CuentaContableDTO, RubroBaseSimple } from '../domain/types'
@@ -17,17 +17,35 @@ export function useClasificacionBulk(
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkRubroId, setBulkRubroId] = useState<string>('')
   const [isBulkPending, startBulkTransition] = useTransition()
+  const rubroOriginalPorCuenta = useMemo(
+    () => new Map(cuentas.map((c) => [c.id, c.rubroBaseId])),
+    [cuentas],
+  )
+
+  /** Rubro vigente de la cuenta: la asignación optimista local si existe, si no el persistido. */
+  function rubroEfectivo(cuentaId: string): string | null {
+    const asignado = asignaciones[cuentaId]
+    return asignado !== undefined ? asignado : (rubroOriginalPorCuenta.get(cuentaId) ?? null)
+  }
 
   function getEffectiveRubroId(c: CuentaContableDTO): string | null {
-    return c.id in asignaciones ? asignaciones[c.id] : c.rubroBaseId
+    return rubroEfectivo(c.id)
   }
 
   async function handleAsignar(cuentaId: string, nuevoRubroId: string | null) {
-    const prev = getEffectiveRubroId(cuentas.find((c) => c.id === cuentaId)!)
+    const prev = rubroEfectivo(cuentaId)
     setAsignaciones((a) => ({ ...a, [cuentaId]: nuevoRubroId }))
-    setSaving((s) => { const ns = new Set(s); ns.add(cuentaId); return ns })
+    setSaving((s) => {
+      const ns = new Set(s)
+      ns.add(cuentaId)
+      return ns
+    })
     const result = await asignarRubroAction(cuentaId, nuevoRubroId, ejercicioId, sociedadId)
-    setSaving((s) => { const ns = new Set(s); ns.delete(cuentaId); return ns })
+    setSaving((s) => {
+      const ns = new Set(s)
+      ns.delete(cuentaId)
+      return ns
+    })
     if (!result.ok) {
       toastError(result.error)
       setAsignaciones((a) => ({ ...a, [cuentaId]: prev }))
@@ -37,8 +55,7 @@ export function useClasificacionBulk(
   function handleBulkAsignar() {
     if (!bulkRubroId || selected.size === 0) return
     const ids = Array.from(selected)
-    const prevs: Record<string, string | null> = {}
-    for (const id of ids) prevs[id] = getEffectiveRubroId(cuentas.find((c) => c.id === id)!)
+    const prevs = new Map(ids.map((id) => [id, rubroEfectivo(id)]))
 
     setAsignaciones((a) => {
       const copy = { ...a }
@@ -52,7 +69,7 @@ export function useClasificacionBulk(
         toastError(result.error)
         setAsignaciones((a) => {
           const copy = { ...a }
-          for (const id of ids) copy[id] = prevs[id]
+          for (const [id, prev] of prevs) copy[id] = prev
           return copy
         })
       } else {

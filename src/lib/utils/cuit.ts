@@ -6,15 +6,12 @@ export function validarCuit(cuit: string): boolean {
 
   if (!/^\d{11}$/.test(digits)) return false
 
-  const suma = digits
-    .slice(0, 10)
-    .split('')
-    .reduce((acc, d, i) => acc + parseInt(d) * MULTIPLICADORES[i], 0)
+  const suma = MULTIPLICADORES.reduce((acc, m, i) => acc + Number(digits[i]) * m, 0)
 
   const resto = suma % 11
   const verificador = resto === 0 ? 0 : resto === 1 ? 9 : 11 - resto
 
-  return verificador === parseInt(digits[10])
+  return verificador === Number(digits[10])
 }
 
 export function formatCuit(cuit: string): string {

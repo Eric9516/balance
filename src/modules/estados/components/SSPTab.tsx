@@ -6,6 +6,7 @@ import type { RubroFila } from '../domain/types'
 import { calcularCuadreSP } from '../lib/cuadre'
 import { esRubroHuerfano } from '../lib/rubroHuerfano'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
+import { SECCION_SSP_LABELS } from '@/modules/rubros-base/domain/secciones'
 import {
   AgregarFilaAnterior,
   EliminarFilaAnterior,
@@ -31,14 +32,6 @@ const SSP_STRUCTURE = [
     totalLabel: 'TOTAL PATRIMONIO NETO',
   },
 ] as const
-
-const SECCION_SSP_LABELS: Record<string, string> = {
-  ACTIVO_CORRIENTE: 'Activo Corriente',
-  ACTIVO_NO_CORRIENTE: 'Activo No Corriente',
-  PASIVO_CORRIENTE: 'Pasivo Corriente',
-  PASIVO_NO_CORRIENTE: 'Pasivo No Corriente',
-  PATRIMONIO_NETO: 'Patrimonio Neto',
-}
 
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
 
@@ -81,12 +74,8 @@ function TotalRow({
       </td>
       <td
         className={cn(
-          'px-4 py-2 text-right font-mono text-sm tabular-nums font-semibold',
-          variant === 'final'
-            ? 'text-white'
-            : isNegative
-              ? 'text-red-600'
-              : 'text-slate-900',
+          'px-4 py-2 text-right font-mono text-sm font-semibold tabular-nums',
+          variant === 'final' ? 'text-white' : isNegative ? 'text-red-600' : 'text-slate-900',
         )}
       >
         {formatCurrency(value)}
@@ -94,7 +83,7 @@ function TotalRow({
       {mostrarAnterior && (
         <td
           className={cn(
-            'px-4 py-2 text-right font-mono text-sm tabular-nums font-semibold',
+            'px-4 py-2 text-right font-mono text-sm font-semibold tabular-nums',
             variant === 'final'
               ? 'text-slate-200'
               : antNegative
@@ -142,13 +131,13 @@ function RubroExpandableRow({
       <tr className="border-b border-slate-100 hover:bg-slate-50/60">
         <td className="px-4 py-2.5">
           <div className="flex items-center gap-2">
-            <span className="inline-block rounded bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-600">
+            <span className="inline-block rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-amber-600 uppercase">
               solo anterior
             </span>
             <span className="text-sm text-slate-700">{rubro.nombre}</span>
           </div>
         </td>
-        <td className="px-4 py-2.5 text-right font-mono text-sm tabular-nums text-slate-300">—</td>
+        <td className="px-4 py-2.5 text-right font-mono text-sm text-slate-300 tabular-nums">—</td>
         {mostrarAnterior && (
           <td className="px-2 py-2 text-right">
             {editarAnterior && ejercicioId && sociedadId && comparativo ? (
@@ -169,7 +158,7 @@ function RubroExpandableRow({
                 />
               </div>
             ) : (
-              <span className="font-mono text-sm tabular-nums text-slate-500">
+              <span className="font-mono text-sm text-slate-500 tabular-nums">
                 {formatCurrency(rubro.displayValueAnt)}
               </span>
             )}
@@ -181,12 +170,10 @@ function RubroExpandableRow({
 
   return (
     <>
-      <tr
-        className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors"
-      >
-        <td className="px-4 py-2.5 cursor-pointer" onClick={onToggle}>
+      <tr className="border-b border-slate-100 transition-colors hover:bg-slate-50/60">
+        <td className="cursor-pointer px-4 py-2.5" onClick={onToggle}>
           <div className="flex items-center gap-1.5">
-            <span className="text-slate-400 flex-shrink-0">
+            <span className="flex-shrink-0 text-slate-400">
               {expanded ? (
                 <ChevronDown className="h-3.5 w-3.5" />
               ) : (
@@ -194,12 +181,12 @@ function RubroExpandableRow({
               )}
             </span>
             <span className="text-sm text-slate-700">{rubro.nombre}</span>
-            <span className="text-xs text-slate-400 font-mono">({rubro.cuentas.length})</span>
+            <span className="font-mono text-xs text-slate-400">({rubro.cuentas.length})</span>
           </div>
         </td>
         <td
           className={cn(
-            'px-4 py-2.5 text-right font-mono text-sm tabular-nums cursor-pointer',
+            'cursor-pointer px-4 py-2.5 text-right font-mono text-sm tabular-nums',
             isNegative ? 'text-red-600' : 'text-slate-700',
           )}
           onClick={onToggle}
@@ -209,7 +196,7 @@ function RubroExpandableRow({
         {mostrarAnterior && (
           <td className="px-2 py-2 text-right">
             {editarAnterior && ejercicioId && sociedadId && comparativo ? (
-              <div className="w-36 ml-auto">
+              <div className="ml-auto w-36">
                 <CeldaNumero
                   value={comparativo.entradas.get(rubro.id)?.valor ?? rubro.displayValueAnt}
                   editando
@@ -217,7 +204,7 @@ function RubroExpandableRow({
                 />
               </div>
             ) : (
-              <span className="font-mono text-sm tabular-nums text-slate-500">
+              <span className="font-mono text-sm text-slate-500 tabular-nums">
                 {formatCurrency(rubro.displayValueAnt)}
               </span>
             )}
@@ -228,7 +215,7 @@ function RubroExpandableRow({
         <>
           {rubro.cuentas.map((c) => (
             <tr key={c.id} className="border-b border-slate-50 bg-slate-50/40">
-              <td className="pl-10 pr-4 py-1.5">
+              <td className="py-1.5 pr-4 pl-10">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-[11px] text-slate-400">{c.codigo}</span>
                   <span className="text-xs text-slate-500">{c.nombre}</span>
@@ -298,7 +285,10 @@ export function SSPTab({
   const totalPNAnt = patrimonioNetoFinalAnt ?? bloqueTotalAnt(['PATRIMONIO_NETO'])
   const totalPasivoPN = totalPasivo + totalPN
   const totalPasivoPNAnt = totalPasivoAnt + totalPNAnt
-  const { diferencia: diferenciaCuadre, cuadrado } = calcularCuadreSP(sspRubros, patrimonioNetoFinal)
+  const { diferencia: diferenciaCuadre, cuadrado } = calcularCuadreSP(
+    sspRubros,
+    patrimonioNetoFinal,
+  )
 
   const colSpan = mostrarAnterior ? 3 : 2
 
@@ -309,14 +299,14 @@ export function SSPTab({
         className={cn(
           'mb-4 flex items-center gap-3 rounded-lg px-4 py-3 text-sm',
           cuadrado
-            ? 'bg-emerald-50 border border-emerald-200'
-            : 'bg-amber-50 border border-amber-200',
+            ? 'border border-emerald-200 bg-emerald-50'
+            : 'border border-amber-200 bg-amber-50',
         )}
       >
         {cuadrado ? (
-          <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+          <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-600" />
         ) : (
-          <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+          <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-600" />
         )}
         <span className={cuadrado ? 'text-emerald-700' : 'text-amber-700'}>
           {cuadrado
@@ -337,14 +327,14 @@ export function SSPTab({
         <table className="w-full">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50">
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                 Concepto
               </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 w-44">
+              <th className="w-44 px-4 py-3 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
                 Importe
               </th>
               {mostrarAnterior && (
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 w-44">
+                <th className="w-44 px-4 py-3 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Ej. Anterior
                 </th>
               )}
@@ -352,9 +342,10 @@ export function SSPTab({
           </thead>
           <tbody>
             {SSP_STRUCTURE.map(({ bloque, sections, totalLabel }) => {
-              const bloqueHasData = editarAnterior
-                || sections.some((s) => getSeccionRubros(s).length > 0)
-                || (bloque === 'PATRIMONIO NETO' && patrimonioNetoFinal !== null)
+              const bloqueHasData =
+                editarAnterior ||
+                sections.some((s) => getSeccionRubros(s).length > 0) ||
+                (bloque === 'PATRIMONIO NETO' && patrimonioNetoFinal !== null)
               if (!bloqueHasData) return null
               const esPN = bloque === 'PATRIMONIO NETO'
 
@@ -364,71 +355,81 @@ export function SSPTab({
                   <tr className="border-b border-slate-200 bg-slate-800">
                     <td
                       colSpan={colSpan}
-                      className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-300"
+                      className="px-4 py-2 text-xs font-bold tracking-widest text-slate-300 uppercase"
                     >
                       {bloque}
                     </td>
                   </tr>
 
                   {/* Regla: PN no muestra rubros individuales — el detalle va en el E.E.P.N. */}
-                  {!esPN && sections.map((secKey) => {
-                    const rubros = getSeccionRubros(secKey)
-                    // En modo edición mostramos la sección aunque esté vacía (para agregar).
-                    if (rubros.length === 0 && !editarAnterior) return null
-                    const showSubHeader = sections.length > 1
+                  {!esPN &&
+                    sections.map((secKey) => {
+                      const rubros = getSeccionRubros(secKey)
+                      // En modo edición mostramos la sección aunque esté vacía (para agregar).
+                      if (rubros.length === 0 && !editarAnterior) return null
+                      const showSubHeader = sections.length > 1
 
-                    return (
-                      <React.Fragment key={secKey}>
-                        {showSubHeader && (
-                          <tr className="border-b border-slate-100 bg-slate-50">
-                            <td
-                              colSpan={colSpan}
-                              className="px-4 py-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wide"
-                            >
-                              {SECCION_SSP_LABELS[secKey]}
-                            </td>
-                          </tr>
-                        )}
-                        {rubros.map((r) => (
-                          <RubroExpandableRow
-                            key={r.id}
-                            rubro={r}
-                            expanded={expanded.has(r.id)}
-                            onToggle={() => onToggle(r.id)}
-                            mostrarAnterior={mostrarAnterior}
-                            editarAnterior={editarAnterior}
-                            comparativo={comparativo}
-                            ejercicioId={ejercicioId}
-                            sociedadId={sociedadId}
-                          />
-                        ))}
-                        {editarAnterior && (
-                          <tr>
-                            <td colSpan={colSpan} className="px-4 py-2">
-                              <AgregarFilaAnterior
-                                ejercicioId={ejercicioId}
-                                sociedadId={sociedadId}
-                                modulo="SSP"
-                                seccion={secKey}
-                                ordenBase={rubros.length}
-                                texto={`Agregar rubro a ${SECCION_SSP_LABELS[secKey]}`}
-                                onAdded={(dto) => comparativo.agregar({ modulo: dto.modulo, clave: dto.clave, label: dto.label, valor: dto.valor, esHuerfano: true, orden: dto.orden })}
-                              />
-                            </td>
-                          </tr>
-                        )}
-                        {showSubHeader && rubros.length > 0 && (
-                          <TotalRow
-                            label={`Subtotal ${SECCION_SSP_LABELS[secKey]}`}
-                            value={seccionTotal(secKey)}
-                            valueAnt={seccionTotalAnt(secKey)}
-                            mostrarAnterior={mostrarAnterior}
-                            variant="section"
-                          />
-                        )}
-                      </React.Fragment>
-                    )
-                  })}
+                      return (
+                        <React.Fragment key={secKey}>
+                          {showSubHeader && (
+                            <tr className="border-b border-slate-100 bg-slate-50">
+                              <td
+                                colSpan={colSpan}
+                                className="px-4 py-1.5 text-xs font-semibold tracking-wide text-slate-500 uppercase"
+                              >
+                                {SECCION_SSP_LABELS[secKey]}
+                              </td>
+                            </tr>
+                          )}
+                          {rubros.map((r) => (
+                            <RubroExpandableRow
+                              key={r.id}
+                              rubro={r}
+                              expanded={expanded.has(r.id)}
+                              onToggle={() => onToggle(r.id)}
+                              mostrarAnterior={mostrarAnterior}
+                              editarAnterior={editarAnterior}
+                              comparativo={comparativo}
+                              ejercicioId={ejercicioId}
+                              sociedadId={sociedadId}
+                            />
+                          ))}
+                          {editarAnterior && (
+                            <tr>
+                              <td colSpan={colSpan} className="px-4 py-2">
+                                <AgregarFilaAnterior
+                                  ejercicioId={ejercicioId}
+                                  sociedadId={sociedadId}
+                                  modulo="SSP"
+                                  seccion={secKey}
+                                  ordenBase={rubros.length}
+                                  texto={`Agregar rubro a ${SECCION_SSP_LABELS[secKey]}`}
+                                  onAdded={(dto) =>
+                                    comparativo.agregar({
+                                      modulo: dto.modulo,
+                                      clave: dto.clave,
+                                      label: dto.label,
+                                      valor: dto.valor,
+                                      esHuerfano: true,
+                                      orden: dto.orden,
+                                    })
+                                  }
+                                />
+                              </td>
+                            </tr>
+                          )}
+                          {showSubHeader && rubros.length > 0 && (
+                            <TotalRow
+                              label={`Subtotal ${SECCION_SSP_LABELS[secKey]}`}
+                              value={seccionTotal(secKey)}
+                              valueAnt={seccionTotalAnt(secKey)}
+                              mostrarAnterior={mostrarAnterior}
+                              variant="section"
+                            />
+                          )}
+                        </React.Fragment>
+                      )
+                    })}
 
                   {/* Para PN: una sola línea con el total y referencia al E.E.P.N. */}
                   {esPN && (
@@ -437,11 +438,11 @@ export function SSPTab({
                         Patrimonio Neto
                         <span className="ml-2 text-xs text-slate-400">(Ver E.E.P.N.)</span>
                       </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-sm tabular-nums text-slate-700">
+                      <td className="px-4 py-2.5 text-right font-mono text-sm text-slate-700 tabular-nums">
                         {formatCurrency(totalPN)}
                       </td>
                       {mostrarAnterior && (
-                        <td className="px-4 py-2.5 text-right font-mono text-sm tabular-nums text-slate-500">
+                        <td className="px-4 py-2.5 text-right font-mono text-sm text-slate-500 tabular-nums">
                           {formatCurrency(totalPNAnt)}
                         </td>
                       )}
@@ -470,7 +471,7 @@ export function SSPTab({
                   <tr className="border-b border-slate-200 bg-slate-100">
                     <td
                       colSpan={colSpan}
-                      className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500"
+                      className="px-4 py-1.5 text-xs font-semibold tracking-wide text-slate-500 uppercase"
                     >
                       Del período anterior
                     </td>

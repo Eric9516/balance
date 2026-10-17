@@ -1,25 +1,5 @@
 import type { RubroBaseSimple } from '../domain/types'
-
-// ─── Labels para grupos ───────────────────────────────────────────────────────
-
-const SECCION_SSP_LABELS: Record<string, string> = {
-  ACTIVO_CORRIENTE: 'Activo Corriente',
-  ACTIVO_NO_CORRIENTE: 'Activo No Corriente',
-  PASIVO_CORRIENTE: 'Pasivo Corriente',
-  PASIVO_NO_CORRIENTE: 'Pasivo No Corriente',
-  PATRIMONIO_NETO: 'Patrimonio Neto',
-}
-
-const SECCION_EERR_LABELS: Record<string, string> = {
-  INGRESOS: 'Ingresos',
-  COSTO_VENTAS: 'Costo de Ventas',
-  GASTOS_ADM: 'Gastos de Administración',
-  GASTOS_COM: 'Gastos de Comercialización',
-  GASTOS_BANCARIOS: 'Gastos Bancarios',
-  IMPUESTOS_CONTRIBUCIONES: 'Impuestos y Contribuciones',
-  RESULTADOS_FINANCIEROS: 'Resultados Financieros',
-  IMPUESTO_GANANCIAS: 'Impuesto a las Ganancias',
-}
+import { labelSeccion } from '@/modules/rubros-base/domain/secciones'
 
 function getGroupLabel(r: RubroBaseSimple): string {
   if (r.rubroGrupoNombre) {
@@ -29,8 +9,8 @@ function getGroupLabel(r: RubroBaseSimple): string {
     if (r.rubroGrupoEsGasto) return `EERR — ${r.rubroGrupoNombre}`
     return r.rubroGrupoNombre
   }
-  if (r.seccionSSP) return `SSP — ${SECCION_SSP_LABELS[r.seccionSSP] ?? r.seccionSSP}`
-  if (r.seccionEERR) return `EERR — ${SECCION_EERR_LABELS[r.seccionEERR] ?? r.seccionEERR}`
+  if (r.seccionSSP) return `SSP — ${labelSeccion(r.seccionSSP)}`
+  if (r.seccionEERR) return `EERR — ${labelSeccion(r.seccionEERR)}`
   return 'Otros'
 }
 

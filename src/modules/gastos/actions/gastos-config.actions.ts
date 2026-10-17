@@ -5,7 +5,10 @@ import { db } from '@/lib/db'
 import { actionOk, actionError } from '@/modules/errores/types'
 import { errorHandler } from '@/modules/errores/handler'
 import type { ActionResult } from '@/modules/errores/types'
-import { toggleEsGastoGrupo, swapOrdenGrupos, toggleAparecEnEERRGrupo } from '@/modules/rubros-grupo/repository/rubro-grupo.repository'
+import {
+  toggleEsGastoGrupo,
+  toggleAparecEnEERRGrupo,
+} from '@/modules/rubros-grupo/repository/rubro-grupo.repository'
 
 function revalidate(sociedadId: string, ejercicioId: string) {
   revalidatePath(`/sociedades/${sociedadId}/ejercicios/${ejercicioId}/cuentas`)
@@ -22,7 +25,9 @@ export async function toggleGastoSeccionAction(
     revalidate(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {
-    return actionError(errorHandler(error, { modulo: 'rubros-base', operacion: 'toggle-gasto-seccion' }))
+    return actionError(
+      errorHandler(error, { modulo: 'rubros-base', operacion: 'toggle-gasto-seccion' }),
+    )
   }
 }
 
@@ -46,7 +51,9 @@ export async function toggleAparecEnEERRAction(
     revalidate(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {
-    return actionError(errorHandler(error, { modulo: 'rubros-base', operacion: 'toggle-aparec-eerr' }))
+    return actionError(
+      errorHandler(error, { modulo: 'rubros-base', operacion: 'toggle-aparec-eerr' }),
+    )
   }
 }
 
@@ -60,10 +67,16 @@ export async function reordenarGastoSeccionAction(
   try {
     const getOrden = async (key: string) => {
       if (key.startsWith('grupo:')) {
-        const g = await db.rubroGrupo.findUnique({ where: { id: key.replace('grupo:', '') }, select: { orden: true } })
+        const g = await db.rubroGrupo.findUnique({
+          where: { id: key.replace('grupo:', '') },
+          select: { orden: true },
+        })
         return g?.orden ?? 9999
       } else {
-        const c = await db.gastoSeccionConfig.findUnique({ where: { clave: key }, select: { orden: true } })
+        const c = await db.gastoSeccionConfig.findUnique({
+          where: { clave: key },
+          select: { orden: true },
+        })
         return c?.orden ?? 9999
       }
     }
@@ -84,6 +97,8 @@ export async function reordenarGastoSeccionAction(
     revalidate(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {
-    return actionError(errorHandler(error, { modulo: 'rubros-base', operacion: 'reordenar-seccion' }))
+    return actionError(
+      errorHandler(error, { modulo: 'rubros-base', operacion: 'reordenar-seccion' }),
+    )
   }
 }

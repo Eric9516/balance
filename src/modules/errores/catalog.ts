@@ -121,7 +121,7 @@ export function getErrorFromCatalog(
       tipo: 'TECNICO',
       severidad: 'CRITICO',
       codigo: 'TECH-005',
-      mensaje: CATALOG['TECH-005'].mensaje,
+      mensaje: 'Error de servidor',
       detalle: `Código de error desconocido: ${codigo}`,
       ...overrides,
     }

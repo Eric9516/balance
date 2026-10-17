@@ -15,15 +15,19 @@ import { toastError, toastSuccess } from '@/modules/errores/components/Toast'
 import { CreateSociedadSchema, type CreateSociedadInput } from '../schemas/sociedad.schemas'
 import { crearSociedad, actualizarSociedad } from '../actions/sociedad.actions'
 import type { SociedadDTO } from '../domain/types'
+import { toDateInputValue } from '@/lib/utils/dates'
 
-const TIPO_SOCIETARIO_OPTIONS = ['S.A.', 'S.R.L.', 'S.A.S.', 'Cooperativa', 'Asociación Civil', 'Fundación', 'Otra']
+const TIPO_SOCIETARIO_OPTIONS = [
+  'S.A.',
+  'S.R.L.',
+  'S.A.S.',
+  'Cooperativa',
+  'Asociación Civil',
+  'Fundación',
+  'Otra',
+]
 const CONDICION_FISCAL_OPTIONS = ['Responsable inscripto', 'Monotributista', 'Unipersonal', 'Otro']
 const CLASIFICACION_RT54_OPTIONS = ['Entidad Pequeña', 'Entidad Mediana']
-
-function toDateInputValue(d: Date | null | undefined): string {
-  if (!d) return ''
-  return new Date(d).toISOString().split('T')[0]
-}
 
 interface SociedadFormProps {
   defaultValues?: SociedadDTO
@@ -66,18 +70,16 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
 
   // Actividades principales como lista dinámica (al menos una requerida)
   const [actPrincipales, setActPrincipales] = useState<string[]>(
-    defaultValues?.actividadPpal
-      ? defaultValues.actividadPpal.split('\n').filter(Boolean)
-      : ['']
+    defaultValues?.actividadPpal ? defaultValues.actividadPpal.split('\n').filter(Boolean) : [''],
   )
 
   function addActPrincipal() {
-    setActPrincipales(prev => [...prev, ''])
+    setActPrincipales((prev) => [...prev, ''])
   }
 
   function removeActPrincipal(idx: number) {
     if (actPrincipales.length <= 1) return
-    setActPrincipales(prev => {
+    setActPrincipales((prev) => {
       const next = prev.filter((_, i) => i !== idx)
       setValue('actividadPpal', next.join('\n'))
       return next
@@ -85,7 +87,7 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
   }
 
   function updateActPrincipal(idx: number, value: string) {
-    setActPrincipales(prev => {
+    setActPrincipales((prev) => {
       const next = [...prev]
       next[idx] = value
       setValue('actividadPpal', next.join('\n'))
@@ -97,15 +99,15 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
   const [actSecundarias, setActSecundarias] = useState<string[]>(
     defaultValues?.actividadSecundaria
       ? defaultValues.actividadSecundaria.split('\n').filter(Boolean)
-      : []
+      : [],
   )
 
   function addActSecundaria() {
-    setActSecundarias(prev => [...prev, ''])
+    setActSecundarias((prev) => [...prev, ''])
   }
 
   function removeActSecundaria(idx: number) {
-    setActSecundarias(prev => {
+    setActSecundarias((prev) => {
       const next = prev.filter((_, i) => i !== idx)
       setValue('actividadSecundaria', next.join('\n'))
       return next
@@ -113,7 +115,7 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
   }
 
   function updateActSecundaria(idx: number, value: string) {
-    setActSecundarias(prev => {
+    setActSecundarias((prev) => {
       const next = [...prev]
       next[idx] = value
       setValue('actividadSecundaria', next.join('\n'))
@@ -173,20 +175,20 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
   }
 
   return (
-    <Card className="max-w-2xl w-full">
+    <Card className="w-full max-w-2xl">
       <CardHeader>
         <CardTitle>{isEdit ? 'Editar cliente' : 'Nuevo cliente'}</CardTitle>
-        <p className="text-sm text-slate-500 mt-1">
-          Los datos del cliente se usan para generar la carátula y los encabezados de los estados contables.
+        <p className="mt-1 text-sm text-slate-500">
+          Los datos del cliente se usan para generar la carátula y los encabezados de los estados
+          contables.
         </p>
       </CardHeader>
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-6">
-
           {/* Identificación */}
           <div className="space-y-4">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
               Identificación
             </p>
 
@@ -203,9 +205,7 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="razonSocial">
-                {esFisica ? 'Nombre y apellido' : 'Razón social'}
-              </Label>
+              <Label htmlFor="razonSocial">{esFisica ? 'Nombre y apellido' : 'Razón social'}</Label>
               <Input
                 id="razonSocial"
                 placeholder={esFisica ? 'Ej: García, Carlos Alberto' : 'Ej: GARCIA E HIJOS SRL'}
@@ -232,24 +232,28 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
               {esFisica ? (
                 <div className="space-y-1.5">
                   <Label htmlFor="condicionFiscal">
-                    Condición fiscal <span className="text-slate-400 font-normal">(opcional)</span>
+                    Condición fiscal <span className="font-normal text-slate-400">(opcional)</span>
                   </Label>
                   <Select id="condicionFiscal" {...register('condicionFiscal')}>
                     <option value="">— Seleccionar —</option>
                     {CONDICION_FISCAL_OPTIONS.map((o) => (
-                      <option key={o} value={o}>{o}</option>
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
                     ))}
                   </Select>
                 </div>
               ) : (
                 <div className="space-y-1.5">
                   <Label htmlFor="tipoSocietario">
-                    Tipo societario <span className="text-slate-400 font-normal">(opcional)</span>
+                    Tipo societario <span className="font-normal text-slate-400">(opcional)</span>
                   </Label>
                   <Select id="tipoSocietario" {...register('tipoSocietario')}>
                     <option value="">— Seleccionar —</option>
                     {TIPO_SOCIETARIO_OPTIONS.map((o) => (
-                      <option key={o} value={o}>{o}</option>
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
                     ))}
                   </Select>
                 </div>
@@ -259,7 +263,7 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
 
           {/* Domicilio */}
           <div className="space-y-4">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
               Domicilio
             </p>
 
@@ -273,7 +277,9 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
                 error={Boolean(errors.domicilioLegal)}
                 {...register('domicilioLegal')}
               />
-              {errors.domicilioLegal && <p className="text-xs text-red-600">{errors.domicilioLegal.message}</p>}
+              {errors.domicilioLegal && (
+                <p className="text-xs text-red-600">{errors.domicilioLegal.message}</p>
+              )}
             </div>
 
             <div className="grid grid-cols-3 gap-4">
@@ -285,7 +291,9 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
                   error={Boolean(errors.localidad)}
                   {...register('localidad')}
                 />
-                {errors.localidad && <p className="text-xs text-red-600">{errors.localidad.message}</p>}
+                {errors.localidad && (
+                  <p className="text-xs text-red-600">{errors.localidad.message}</p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -296,7 +304,9 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
                   error={Boolean(errors.codigoPostal)}
                   {...register('codigoPostal')}
                 />
-                {errors.codigoPostal && <p className="text-xs text-red-600">{errors.codigoPostal.message}</p>}
+                {errors.codigoPostal && (
+                  <p className="text-xs text-red-600">{errors.codigoPostal.message}</p>
+                )}
               </div>
             </div>
 
@@ -308,13 +318,15 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
                 error={Boolean(errors.provincia)}
                 {...register('provincia')}
               />
-              {errors.provincia && <p className="text-xs text-red-600">{errors.provincia.message}</p>}
+              {errors.provincia && (
+                <p className="text-xs text-red-600">{errors.provincia.message}</p>
+              )}
             </div>
           </div>
 
           {/* Actividad */}
           <div className="space-y-4">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
               Actividad
             </p>
 
@@ -324,7 +336,7 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
                 <button
                   type="button"
                   onClick={addActPrincipal}
-                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Agregar
@@ -342,7 +354,7 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
                     <button
                       type="button"
                       onClick={() => removeActPrincipal(idx)}
-                      className="text-slate-400 hover:text-red-500 transition-colors flex-shrink-0"
+                      className="flex-shrink-0 text-slate-400 transition-colors hover:text-red-500"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -357,11 +369,14 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Actividades secundarias <span className="text-slate-400 font-normal">(opcional)</span></Label>
+                <Label>
+                  Actividades secundarias{' '}
+                  <span className="font-normal text-slate-400">(opcional)</span>
+                </Label>
                 <button
                   type="button"
                   onClick={addActSecundaria}
-                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Agregar
@@ -380,7 +395,7 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
                   <button
                     type="button"
                     onClick={() => removeActSecundaria(idx)}
-                    className="text-slate-400 hover:text-red-500 transition-colors flex-shrink-0"
+                    className="flex-shrink-0 text-slate-400 transition-colors hover:text-red-500"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -392,7 +407,7 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
 
           {/* Datos contables */}
           <div className="space-y-4">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
               Datos contables
             </p>
 
@@ -405,19 +420,23 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
               >
                 <option value="">— Seleccionar —</option>
                 {CLASIFICACION_RT54_OPTIONS.map((o) => (
-                  <option key={o} value={o}>{o}</option>
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
                 ))}
               </Select>
               <p className="text-xs text-slate-400">
                 Se usa en las Notas I para identificar el tipo de entidad según RT 54.
               </p>
-              {errors.clasificacionRT54 && <p className="text-xs text-red-600">{errors.clasificacionRT54.message}</p>}
+              {errors.clasificacionRT54 && (
+                <p className="text-xs text-red-600">{errors.clasificacionRT54.message}</p>
+              )}
             </div>
           </div>
 
           {/* Datos registrales */}
           <div className="space-y-4">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
               Datos registrales
             </p>
 
@@ -432,7 +451,9 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
                   error={Boolean(errors.fechaInscripcion)}
                   {...register('fechaInscripcion')}
                 />
-                {errors.fechaInscripcion && <p className="text-xs text-red-600">{errors.fechaInscripcion.message}</p>}
+                {errors.fechaInscripcion && (
+                  <p className="text-xs text-red-600">{errors.fechaInscripcion.message}</p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -445,7 +466,9 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
                   error={Boolean(errors.matriculaPJ)}
                   {...register('matriculaPJ')}
                 />
-                {errors.matriculaPJ && <p className="text-xs text-red-600">{errors.matriculaPJ.message}</p>}
+                {errors.matriculaPJ && (
+                  <p className="text-xs text-red-600">{errors.matriculaPJ.message}</p>
+                )}
               </div>
             </div>
 
@@ -458,7 +481,9 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
                   error={Boolean(errors.plazoDuracion)}
                   {...register('plazoDuracion')}
                 />
-                {errors.plazoDuracion && <p className="text-xs text-red-600">{errors.plazoDuracion.message}</p>}
+                {errors.plazoDuracion && (
+                  <p className="text-xs text-red-600">{errors.plazoDuracion.message}</p>
+                )}
               </div>
             )}
 
@@ -475,7 +500,9 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
                       min="1"
                       placeholder="100"
                       value={accionesCantidad}
-                      onChange={(e) => handleAccionesChange(e.target.value, accionesValor, accionesClase)}
+                      onChange={(e) =>
+                        handleAccionesChange(e.target.value, accionesValor, accionesClase)
+                      }
                     />
                   </div>
                   <div className="space-y-1">
@@ -483,7 +510,9 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
                     <Input
                       placeholder="1759,74"
                       value={accionesValor}
-                      onChange={(e) => handleAccionesChange(accionesCantidad, e.target.value, accionesClase)}
+                      onChange={(e) =>
+                        handleAccionesChange(accionesCantidad, e.target.value, accionesClase)
+                      }
                     />
                   </div>
                   <div className="space-y-1">
@@ -491,7 +520,13 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
                     <Input
                       placeholder="B"
                       value={accionesClase}
-                      onChange={(e) => handleAccionesChange(accionesCantidad, accionesValor, e.target.value.toUpperCase())}
+                      onChange={(e) =>
+                        handleAccionesChange(
+                          accionesCantidad,
+                          accionesValor,
+                          e.target.value.toUpperCase(),
+                        )
+                      }
                     />
                   </div>
                 </div>
@@ -501,8 +536,10 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
                   <p className="text-xs text-slate-500">Texto en la carátula (editable)</p>
                   <textarea
                     rows={4}
-                    className={`w-full rounded-md border px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none font-mono ${errors.composicionCapital ? 'border-red-400' : 'border-slate-200'}`}
-                    placeholder={'100 acciones de Valor Nominal $1759,74 c/u\nOrdinarias, nominativas, no endosables, de la clase B'}
+                    className={`w-full resize-none rounded-md border px-3 py-2 font-mono text-sm text-slate-900 placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none ${errors.composicionCapital ? 'border-red-400' : 'border-slate-200'}`}
+                    placeholder={
+                      '100 acciones de Valor Nominal $1759,74 c/u\nOrdinarias, nominativas, no endosables, de la clase B'
+                    }
                     {...register('composicionCapital')}
                   />
                 </div>
@@ -513,7 +550,6 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
               </div>
             )}
           </div>
-
         </CardContent>
 
         <CardFooter className="flex justify-end gap-3">

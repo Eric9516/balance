@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx'
-import { parseImporte } from '@/lib/utils/parseImporte'
+import { importeEditable, parseImporte } from '@/lib/utils/parseImporte'
 
 export type ColumnInfo = { index: number; letter: string; sample: string }
 export type PreviewData = {
@@ -28,39 +28,44 @@ export function colLetter(index: number): string {
   return letter
 }
 
-export function parsePreview(file: File, filasOmitir: number): Promise<PreviewData> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const wb = XLSX.read(e.target?.result, { type: 'array', raw: false })
-        const sheetName = wb.SheetNames[0]
-        const allRows: string[][] = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
-          header: 1, raw: false, defval: '',
-        }) as string[][]
-
-        if (allRows.length === 0) { reject(new Error('El archivo está vacío')); return }
-
-        const headerRow = allRows[Math.max(0, filasOmitir - 1)] ?? []
-        const dataRows = allRows.slice(filasOmitir, filasOmitir + 6)
-        const totalRows = allRows.slice(filasOmitir).length
-        const numCols = Math.max(...allRows.slice(0, filasOmitir + 3).map((r) => r.length))
-
-        const columns: ColumnInfo[] = Array.from({ length: numCols }, (_, i) => ({
-          index: i,
-          letter: colLetter(i),
-          sample: String(headerRow[i] ?? '').trim() || colLetter(i),
-        }))
-
-        resolve({ columns, rows: dataRows, totalRows, sheetName })
-      } catch (err) { reject(err) }
-    }
-    reader.onerror = () => reject(new Error('Error al leer el archivo'))
-    reader.readAsArrayBuffer(file)
-  })
+/**
+ * Lee las filas de la PRIMERA hoja de un libro Excel. Única lectura de Excel de la app
+ * (cliente y servidor). `raw: true` devuelve números como number; `false`, como texto visible.
+ */
+export function leerFilasPrimeraHoja<T = unknown>(
+  data: ArrayBuffer | Uint8Array,
+  raw: boolean,
+): { nombreHoja: string; filas: T[][] } {
+  const wb = XLSX.read(data, { type: 'array', raw })
+  const nombreHoja = wb.SheetNames[0]
+  const hoja = nombreHoja ? wb.Sheets[nombreHoja] : undefined
+  if (!nombreHoja || !hoja) throw new Error('El archivo Excel no contiene ninguna hoja.')
+  const filas = XLSX.utils.sheet_to_json<T[]>(hoja, { header: 1, raw, defval: '' })
+  return { nombreHoja, filas }
 }
 
-export function parseAllRows(
+export async function parsePreview(file: File, filasOmitir: number): Promise<PreviewData> {
+  const { nombreHoja, filas } = leerFilasPrimeraHoja<string>(await file.arrayBuffer(), false)
+  if (filas.length === 0) throw new Error('El archivo está vacío')
+
+  const headerRow = filas[Math.max(0, filasOmitir - 1)] ?? []
+  const numCols = Math.max(...filas.slice(0, filasOmitir + 3).map((r) => r.length))
+
+  const columns: ColumnInfo[] = Array.from({ length: numCols }, (_, i) => ({
+    index: i,
+    letter: colLetter(i),
+    sample: String(headerRow[i] ?? '').trim() || colLetter(i),
+  }))
+
+  return {
+    columns,
+    rows: filas.slice(filasOmitir, filasOmitir + 6),
+    totalRows: Math.max(0, filas.length - filasOmitir),
+    sheetName: nombreHoja,
+  }
+}
+
+export async function parseAllRows(
   file: File,
   filasOmitir: number,
   colCodigo: number,
@@ -68,37 +73,22 @@ export function parseAllRows(
   colDeudor: number,
   colAcreedor: number,
 ): Promise<EditableRow[]> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const wb = XLSX.read(e.target?.result, { type: 'array', raw: true })
-        const allRows: unknown[][] = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {
-          header: 1, raw: true, defval: '',
-        }) as unknown[][]
+  const { filas } = leerFilasPrimeraHoja(await file.arrayBuffer(), true)
+  const result: EditableRow[] = []
 
-        const result: EditableRow[] = []
-        let keyIdx = 0
+  for (const r of filas.slice(filasOmitir)) {
+    const codigo = String(r[colCodigo] ?? '').trim()
+    const nombre = String(r[colNombre] ?? '').trim()
+    if (!codigo && !nombre) continue
 
-        for (const row of allRows.slice(filasOmitir)) {
-          const r = row as unknown[]
-          const codigo = String(r[colCodigo] ?? '').trim()
-          const nombre = String(r[colNombre] ?? '').trim()
-          if (!codigo && !nombre) continue
+    result.push({
+      _key: String(result.length),
+      codigo: codigo || '?',
+      nombre: nombre || '?',
+      saldoDeudor: importeEditable(parseImporte(r[colDeudor])),
+      saldoAcreedor: importeEditable(parseImporte(r[colAcreedor])),
+    })
+  }
 
-          result.push({
-            _key: String(keyIdx++),
-            codigo: codigo || '?',
-            nombre: nombre || '?',
-            saldoDeudor: String(parseImporte(r[colDeudor])),
-            saldoAcreedor: String(parseImporte(r[colAcreedor])),
-          })
-        }
-
-        resolve(result)
-      } catch (err) { reject(err) }
-    }
-    reader.onerror = () => reject(new Error('Error al leer el archivo'))
-    reader.readAsArrayBuffer(file)
-  })
+  return result
 }

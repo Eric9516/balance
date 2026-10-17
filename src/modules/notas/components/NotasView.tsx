@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useTransition, useEffect } from 'react'
+import { useState, useTransition } from 'react'
+import { useMontado } from '@/components/shared/useMontado'
 import { RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { WizardNotaI, type ConfigNotaILocal } from './WizardNotaI'
 import { NotaCuantitativa } from './NotaCuantitativa'
@@ -42,19 +43,15 @@ export function NotasView({
   const [isPendingGen, startGen] = useTransition()
   const [showWizard, setShowWizard] = useState(false)
   const [config, setConfig] = useState<ConfigNotaILocal>(initialConfig)
-  const [mounted, setMounted] = useState(false)
+  const mounted = useMontado()
   const [pendienteRegenerar, setPendienteRegenerar] = useState(false)
-
-  useEffect(() => { setMounted(true) }, [])
 
   function handleChange(updated: NotaDTO) {
     setNotas((prev) => prev.map((n) => (n.id === updated.id ? updated : n)))
   }
 
   function handleDelete(id: string) {
-    setNotas((prev) =>
-      prev.filter((n) => n.id !== id).map((n, i) => ({ ...n, numero: i + 2 }))
-    )
+    setNotas((prev) => prev.filter((n) => n.id !== id).map((n, i) => ({ ...n, numero: i + 2 })))
   }
 
   function handleGenerar() {
@@ -70,11 +67,11 @@ export function NotasView({
     })
   }
 
-  const configCompleta = config.adopcionRT54 && config.criteriosBienesCambio && config.hechosPosterioress !== null
+  const configCompleta =
+    config.adopcionRT54 && config.criteriosBienesCambio && config.hechosPosterioress !== null
 
   return (
     <div className="space-y-4">
-
       {/* Wizard portal */}
       {mounted && showWizard && (
         <WizardNotaI
@@ -82,27 +79,30 @@ export function NotasView({
           ejercicioId={ejercicioId}
           sociedadId={sociedadId}
           onClose={() => setShowWizard(false)}
-          onGuardado={(c) => { setConfig(c); setPendienteRegenerar(true) }}
+          onGuardado={(c) => {
+            setConfig(c)
+            setPendienteRegenerar(true)
+          }}
         />
       )}
 
       {/* Banner configuración Nota I */}
-      <div className={cn(
-        'flex items-center justify-between rounded-lg border px-4 py-2.5',
-        configCompleta
-          ? 'border-green-200 bg-green-50'
-          : 'border-amber-200 bg-amber-50',
-      )}>
+      <div
+        className={cn(
+          'flex items-center justify-between rounded-lg border px-4 py-2.5',
+          configCompleta ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50',
+        )}
+      >
         <div className="flex items-center gap-2.5">
-          {configCompleta
-            ? <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-            : <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-          }
+          {configCompleta ? (
+            <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-600" />
+          ) : (
+            <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-600" />
+          )}
           <p className={cn('text-sm', configCompleta ? 'text-green-800' : 'text-amber-800')}>
             {configCompleta
               ? 'La configuración de la Nota I fue completada.'
-              : 'La configuración de la Nota I no fue completada. Algunos datos pueden estar incompletos.'
-            }
+              : 'La configuración de la Nota I no fue completada. Algunos datos pueden estar incompletos.'}
           </p>
         </div>
         <button
@@ -120,23 +120,24 @@ export function NotasView({
 
       {/* Overlay "regenerar obligatorio" */}
       {pendienteRegenerar && (
-        <div className="relative rounded-2xl overflow-hidden">
+        <div className="relative overflow-hidden rounded-2xl">
           {/* Contenido difuminado debajo */}
-          <div className="pointer-events-none select-none blur-sm opacity-40 space-y-4 p-4">
-            {notas.slice(0, 2).map(n => (
+          <div className="pointer-events-none space-y-4 p-4 opacity-40 blur-sm select-none">
+            {notas.slice(0, 2).map((n) => (
               <div key={n.id} className="h-24 rounded-xl bg-slate-200" />
             ))}
           </div>
           {/* Overlay encima */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm rounded-2xl">
-            <p className="text-sm font-semibold text-slate-800 mb-1">
+          <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl bg-white/60 backdrop-blur-sm">
+            <p className="mb-1 text-sm font-semibold text-slate-800">
               Hay cambios pendientes de aplicar
             </p>
-            <p className="text-xs text-slate-500 mb-4 text-center max-w-xs">
-              Regenerá las notas para que los nuevos criterios y configuraciones se reflejen correctamente.
+            <p className="mb-4 max-w-xs text-center text-xs text-slate-500">
+              Regenerá las notas para que los nuevos criterios y configuraciones se reflejen
+              correctamente.
             </p>
             <Button onClick={handleGenerar} disabled={isPendingGen}>
-              <RefreshCw className={cn('h-4 w-4 mr-2', isPendingGen && 'animate-spin')} />
+              <RefreshCw className={cn('mr-2 h-4 w-4', isPendingGen && 'animate-spin')} />
               {isPendingGen ? 'Regenerando...' : 'Regenerar desde rubros'}
             </Button>
           </div>
@@ -154,51 +155,47 @@ export function NotasView({
                 : 'Los importes del ejercicio anterior se completan manualmente o desde el balance anterior.'}
             </span>
           </p>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleGenerar}
-            disabled={isPendingGen}
-          >
-            <RefreshCw className={cn('h-3.5 w-3.5 mr-1.5', isPendingGen && 'animate-spin')} />
+          <Button variant="secondary" size="sm" onClick={handleGenerar} disabled={isPendingGen}>
+            <RefreshCw className={cn('mr-1.5 h-3.5 w-3.5', isPendingGen && 'animate-spin')} />
             Regenerar desde rubros
           </Button>
         </div>
       )}
 
       {/* Lista de notas o empty state */}
-      {!pendienteRegenerar && (notas.length === 0 ? (
-        <EmptyState
-          onGenerar={handleGenerar}
-          isPending={isPendingGen}
-          tieneCuentasClasificadas={tieneCuentasClasificadas}
-        />
-      ) : (
-        notas.map((nota) =>
-          nota.tipo === 'CUANTITATIVA' ? (
-            <NotaCuantitativa
-              key={nota.id}
-              nota={nota}
-              fechaCierre={fechaCierre}
-              fechaCierreAnterior={fechaCierreAnterior}
-              mostrarAnterior={mostrarAnterior}
-              ejercicioId={ejercicioId}
-              sociedadId={sociedadId}
-              onChange={handleChange}
-              onDelete={() => handleDelete(nota.id)}
-            />
-          ) : (
-            <NotaTexto
-              key={nota.id}
-              nota={nota}
-              ejercicioId={ejercicioId}
-              sociedadId={sociedadId}
-              onChange={handleChange}
-              onDelete={() => handleDelete(nota.id)}
-            />
-          ),
-        )
-      ))}
+      {!pendienteRegenerar &&
+        (notas.length === 0 ? (
+          <EmptyState
+            onGenerar={handleGenerar}
+            isPending={isPendingGen}
+            tieneCuentasClasificadas={tieneCuentasClasificadas}
+          />
+        ) : (
+          notas.map((nota) =>
+            nota.tipo === 'CUANTITATIVA' ? (
+              <NotaCuantitativa
+                key={nota.id}
+                nota={nota}
+                fechaCierre={fechaCierre}
+                fechaCierreAnterior={fechaCierreAnterior}
+                mostrarAnterior={mostrarAnterior}
+                ejercicioId={ejercicioId}
+                sociedadId={sociedadId}
+                onChange={handleChange}
+                onDelete={() => handleDelete(nota.id)}
+              />
+            ) : (
+              <NotaTexto
+                key={nota.id}
+                nota={nota}
+                ejercicioId={ejercicioId}
+                sociedadId={sociedadId}
+                onChange={handleChange}
+                onDelete={() => handleDelete(nota.id)}
+              />
+            ),
+          )
+        ))}
     </div>
   )
 }

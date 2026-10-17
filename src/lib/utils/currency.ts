@@ -11,18 +11,14 @@ export function formatCurrency(
 ): string {
   if (valor === null || valor === undefined) return '-'
 
-  const {
-    decimales = 2,
-    mostrarSimbolo = false,
-    ceroComoGuion = false,
-  } = opciones ?? {}
+  const { decimales = 2, mostrarSimbolo = false, ceroComoGuion = false } = opciones ?? {}
 
   const d = new Decimal(String(valor))
 
   if (ceroComoGuion && d.isZero()) return '-'
 
   const absVal = d.abs().toFixed(decimales)
-  const [entero, fraccion] = absVal.split('.')
+  const [entero = '0', fraccion] = absVal.split('.')
 
   const enteroFormateado = entero.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
   const resultado = fraccion ? `${enteroFormateado},${fraccion}` : enteroFormateado

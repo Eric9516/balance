@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
-import { parseImporte } from '@/lib/utils/parseImporte'
+import { importeEditable, parseImporte } from '@/lib/utils/parseImporte'
 
 /**
  * Celda de número ÚNICA de la app (importes contables).
@@ -73,7 +73,7 @@ export function CeldaNumero({
       value={focus ? draft : value === 0 ? '' : formatCurrency(value, { decimales })}
       onChange={(e) => setDraft(e.target.value)}
       onFocus={(e) => {
-        setDraft(value === 0 ? '' : String(value))
+        setDraft(importeEditable(value))
         setFocus(true)
         setTimeout(() => e.target.select(), 0)
       }}
@@ -84,7 +84,7 @@ export function CeldaNumero({
       }}
       placeholder={placeholder}
       className={cn(
-        'w-full text-right font-mono text-slate-900 bg-white border border-blue-200 hover:border-blue-300 focus:border-blue-500 rounded focus:outline-none transition-colors tabular-nums placeholder:text-slate-300',
+        'w-full rounded border border-blue-200 bg-white text-right font-mono text-slate-900 tabular-nums transition-colors placeholder:text-slate-300 hover:border-blue-300 focus:border-blue-500 focus:outline-none',
         tam,
         dense ? 'px-1.5 py-0.5' : 'px-2 py-1',
         className,

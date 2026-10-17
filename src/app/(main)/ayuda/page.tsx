@@ -44,27 +44,33 @@ function Step({ number, icon, title, description, details, pending, warning }: S
       </div>
 
       <div className="pb-8">
-        <div className="flex items-center gap-2 mb-1">
-          <span className={`flex h-6 w-6 items-center justify-center ${pending ? 'text-slate-400' : 'text-blue-600'}`}>
+        <div className="mb-1 flex items-center gap-2">
+          <span
+            className={`flex h-6 w-6 items-center justify-center ${pending ? 'text-slate-400' : 'text-blue-600'}`}
+          >
             {icon}
           </span>
-          <h3 className={`font-semibold text-base ${pending ? 'text-slate-400' : 'text-slate-900'}`}>
+          <h3
+            className={`text-base font-semibold ${pending ? 'text-slate-400' : 'text-slate-900'}`}
+          >
             {title}
             {pending && (
-              <span className="ml-2 text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+              <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-normal text-slate-400">
                 Próximamente
               </span>
             )}
           </h3>
         </div>
-        <p className={`text-sm leading-relaxed mb-2 ${pending ? 'text-slate-400' : 'text-slate-600'}`}>
+        <p
+          className={`mb-2 text-sm leading-relaxed ${pending ? 'text-slate-400' : 'text-slate-600'}`}
+        >
           {description}
         </p>
         {details && details.length > 0 && (
-          <ul className="space-y-1 mt-2">
+          <ul className="mt-2 space-y-1">
             {details.map((d, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-slate-500">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-400" />
                 <span>{d}</span>
               </li>
             ))}
@@ -72,7 +78,7 @@ function Step({ number, icon, title, description, details, pending, warning }: S
         )}
         {warning && (
           <div className="mt-2 flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-700">
-            <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <span>{warning}</span>
           </div>
         )}
@@ -83,134 +89,158 @@ function Step({ number, icon, title, description, details, pending, warning }: S
 
 export default function AyudaPage() {
   return (
-    <div className="px-8 py-8 max-w-3xl">
+    <div className="max-w-3xl px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 mb-1">Guía de uso</h1>
-        <p className="text-sm text-slate-500 leading-relaxed">
+        <h1 className="mb-1 text-2xl font-bold text-slate-900">Guía de uso</h1>
+        <p className="text-sm leading-relaxed text-slate-500">
           BalanceRT te ayuda a preparar los estados contables bajo{' '}
-          <strong className="text-slate-700">Resolución Técnica N.° 54</strong> (FACPCE).
-          Seguí este flujo paso a paso para cada ejercicio.
+          <strong className="text-slate-700">Resolución Técnica N.° 54</strong> (FACPCE). Seguí este
+          flujo paso a paso para cada ejercicio.
         </p>
       </div>
 
       {/* Estados del ejercicio */}
       <div className="mb-8 rounded-xl border border-slate-200 bg-white p-5">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="mb-3 flex items-center gap-2">
           <Workflow className="h-4 w-4 text-blue-600" />
-          <h2 className="font-semibold text-slate-900 text-sm">Estados del ejercicio</h2>
+          <h2 className="text-sm font-semibold text-slate-900">Estados del ejercicio</h2>
         </div>
-        <p className="text-xs text-slate-500 mb-4">
-          Cada ejercicio pasa por estos estados. El botón de avance aparece en la lista de ejercicios del cliente.
+        <p className="mb-4 text-xs text-slate-500">
+          Cada ejercicio pasa por estos estados. El botón de avance aparece en la lista de
+          ejercicios del cliente.
         </p>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-wrap items-center gap-2">
           {[
             { label: 'Borrador', desc: 'Recién creado', color: 'bg-slate-100 text-slate-600' },
             { label: '→', desc: '', color: 'text-slate-400' },
-            { label: 'En proceso', desc: 'Se está completando', color: 'bg-blue-100 text-blue-700' },
+            {
+              label: 'En proceso',
+              desc: 'Se está completando',
+              color: 'bg-blue-100 text-blue-700',
+            },
             { label: '→', desc: '', color: 'text-slate-400' },
-            { label: 'En revisión', desc: 'Listo para revisar', color: 'bg-amber-100 text-amber-700' },
+            {
+              label: 'En revisión',
+              desc: 'Listo para revisar',
+              color: 'bg-amber-100 text-amber-700',
+            },
             { label: '→', desc: '', color: 'text-slate-400' },
             { label: 'Cerrado', desc: 'Finalizado', color: 'bg-emerald-100 text-emerald-700' },
           ].map((item, i) =>
             item.desc === '' ? (
-              <span key={i} className="text-slate-300 text-lg font-light">→</span>
+              <span key={i} className="text-lg font-light text-slate-300">
+                →
+              </span>
             ) : (
               <div key={i} className="text-center">
-                <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${item.color}`}>
+                <span
+                  className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${item.color}`}
+                >
                   {item.label}
                 </span>
-                <p className="text-[10px] text-slate-400 mt-1">{item.desc}</p>
+                <p className="mt-1 text-[10px] text-slate-400">{item.desc}</p>
               </div>
             ),
           )}
         </div>
         <div className="mt-4 space-y-1.5 text-xs text-slate-500">
           <p>
-            <strong className="text-slate-700">Iniciar:</strong> pasa de Borrador a En proceso.
-            A partir de aquí podés importar cuentas y trabajar el balance.
+            <strong className="text-slate-700">Iniciar:</strong> pasa de Borrador a En proceso. A
+            partir de aquí podés importar cuentas y trabajar el balance.
           </p>
           <p>
-            <strong className="text-slate-700">A revisión:</strong> el balance está listo para
-            que el auditor revise antes de firmar. Todavía se puede editar si es necesario.
+            <strong className="text-slate-700">A revisión:</strong> el balance está listo para que
+            el auditor revise antes de firmar. Todavía se puede editar si es necesario.
           </p>
           <p>
-            <strong className="text-slate-700">Reabrir:</strong> si en revisión encontrás un
-            error, volvé a "En proceso" para corregir y después pasarlo nuevamente a revisión.
+            <strong className="text-slate-700">Reabrir:</strong> si en revisión encontrás un error,
+            volvé a “En proceso” para corregir y después pasarlo nuevamente a revisión.
           </p>
           <p>
-            <strong className="text-slate-700">Cerrar:</strong> balance aprobado y firmado.
-            Una vez cerrado no se puede modificar.
+            <strong className="text-slate-700">Cerrar:</strong> balance aprobado y firmado. Una vez
+            cerrado no se puede modificar.
           </p>
         </div>
       </div>
 
       {/* Clasificaciones */}
       <div className="mb-8 rounded-xl border border-slate-200 bg-white p-5">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="mb-3 flex items-center gap-2">
           <Tags className="h-4 w-4 text-blue-600" />
-          <h2 className="font-semibold text-slate-900 text-sm">Secciones y clasificaciones</h2>
-          <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">Configuración → Clasificaciones</span>
+          <h2 className="text-sm font-semibold text-slate-900">Secciones y clasificaciones</h2>
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+            Configuración → Clasificaciones
+          </span>
         </div>
-        <p className="text-xs text-slate-500 mb-4 leading-relaxed">
-          Antes de clasificar cuentas, configurá las secciones que va a usar el estudio.
-          RT 54 permite definir secciones propias además de las estándar.
+        <p className="mb-4 text-xs leading-relaxed text-slate-500">
+          Antes de clasificar cuentas, configurá las secciones que va a usar el estudio. RT 54
+          permite definir secciones propias además de las estándar.
         </p>
 
-        <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="mb-4 grid grid-cols-2 gap-3">
           <div className="rounded-lg border border-blue-100 bg-blue-50 p-3.5">
-            <div className="flex items-center gap-2 mb-2">
-              <FolderOpen className="h-4 w-4 text-blue-600 flex-shrink-0" />
+            <div className="mb-2 flex items-center gap-2">
+              <FolderOpen className="h-4 w-4 flex-shrink-0 text-blue-600" />
               <span className="text-xs font-semibold text-blue-800">Sección</span>
             </div>
-            <p className="text-xs text-blue-700 leading-relaxed">
-              Agrupador con <strong>nombre y sigla libres</strong> definidos por el contador.
-              Ej: "Gastos Operativos / GTO". Si se marca como <strong>gasto</strong>, aparece
-              en el EERR y en el Anexo III automáticamente.
+            <p className="text-xs leading-relaxed text-blue-700">
+              Agrupador con <strong>nombre y sigla libres</strong> definidos por el contador. Ej:
+              “Gastos Operativos / GTO”. Si se marca como <strong>gasto</strong>, aparece en el EERR
+              y en el Anexo III automáticamente.
             </p>
           </div>
           <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3.5">
-            <div className="flex items-center gap-2 mb-2">
-              <Tag className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+            <div className="mb-2 flex items-center gap-2">
+              <Tag className="h-4 w-4 flex-shrink-0 text-emerald-600" />
               <span className="text-xs font-semibold text-emerald-800">Clasificación</span>
             </div>
-            <p className="text-xs text-emerald-700 leading-relaxed">
-              El rubro específico al que se asignan las cuentas del balance de sumas y saldos.
-              Va dentro de una sección. Ej: "Sueldos y jornales", "Caja y Bancos".
+            <p className="text-xs leading-relaxed text-emerald-700">
+              El rubro específico al que se asignan las cuentas del balance de sumas y saldos. Va
+              dentro de una sección. Ej: “Sueldos y jornales”, “Caja y Bancos”.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-slate-500 mb-4 flex-wrap">
-          <span className="rounded-full bg-blue-50 border border-blue-200 px-2.5 py-1 text-blue-700 font-medium">Sección</span>
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 font-medium text-blue-700">
+            Sección
+          </span>
           <ArrowRight className="h-3 w-3 flex-shrink-0 text-slate-300" />
-          <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-emerald-700 font-medium">Clasificaciones</span>
+          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700">
+            Clasificaciones
+          </span>
           <ArrowRight className="h-3 w-3 flex-shrink-0 text-slate-300" />
-          <span className="rounded-full bg-slate-100 border border-slate-200 px-2.5 py-1 text-slate-600 font-medium">Cuentas contables</span>
+          <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 font-medium text-slate-600">
+            Cuentas contables
+          </span>
         </div>
 
-        <div className="rounded-lg border border-amber-100 bg-amber-50 p-3.5 mb-4">
-          <p className="text-xs font-semibold text-amber-800 mb-1">¿Es un gasto? → EERR + Anexo III automático</p>
-          <p className="text-xs text-amber-700 leading-relaxed">
-            Al marcar una sección como gasto, sus clasificaciones generan automáticamente:
-            una <strong>línea en el EERR</strong> con el total y una <strong>columna en el Anexo III</strong> con
-            el detalle por clasificación, calculado desde las cuentas ya clasificadas.
-            No hace falta cargar nada a mano.
+        <div className="mb-4 rounded-lg border border-amber-100 bg-amber-50 p-3.5">
+          <p className="mb-1 text-xs font-semibold text-amber-800">
+            ¿Es un gasto? → EERR + Anexo III automático
+          </p>
+          <p className="text-xs leading-relaxed text-amber-700">
+            Al marcar una sección como gasto, sus clasificaciones generan automáticamente: una{' '}
+            <strong>línea en el EERR</strong> con el total y una{' '}
+            <strong>columna en el Anexo III</strong> con el detalle por clasificación, calculado
+            desde las cuentas ya clasificadas. No hace falta cargar nada a mano.
           </p>
         </div>
 
         <div className="space-y-1.5 text-xs text-slate-500">
           <p>
-            <strong className="text-slate-700">Nueva sección:</strong> Configuración → Clasificaciones → "Nueva sección".
-            Solo pedí nombre, sigla y si es gasto o no.
+            <strong className="text-slate-700">Nueva sección:</strong> Configuración →
+            Clasificaciones → “Nueva sección”. Solo pedí nombre, sigla y si es gasto o no.
           </p>
           <p>
-            <strong className="text-slate-700">Nueva clasificación:</strong> "Nueva clasificación" o el enlace
-            "+ Agregar clasificación" dentro de cada sección.
+            <strong className="text-slate-700">Nueva clasificación:</strong> “Nueva clasificación” o
+            el enlace “+ Agregar clasificación” dentro de cada sección.
           </p>
           <p>
-            <strong className="text-slate-700">Configurar Anexo III:</strong> En el paso de Gastos del ejercicio,
-            usá "Configurar secciones" para activar/desactivar qué secciones aparecen en el anexo.
+            <strong className="text-slate-700">Configurar Anexo III:</strong> En el paso de Gastos
+            del ejercicio, usá “Configurar secciones” para activar/desactivar qué secciones aparecen
+            en el anexo.
           </p>
         </div>
       </div>
@@ -399,7 +429,7 @@ export default function AyudaPage() {
 
       {/* Notas técnicas RT 54 */}
       <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-5">
-        <h2 className="font-semibold text-slate-800 mb-3 text-sm">Notas técnicas — RT 54</h2>
+        <h2 className="mb-3 text-sm font-semibold text-slate-800">Notas técnicas — RT 54</h2>
         <ul className="space-y-2">
           {[
             'El ajuste por inflación (RT 6) usa el IPC según FACPCE Res. JG N° 539/2018 — NO el IPIM. El coeficiente = índice IPC al cierre actual / índice IPC al cierre anterior.',
@@ -410,7 +440,7 @@ export default function AyudaPage() {
             'El activo debe coincidir con pasivo + PN. El resultado del ejercicio debe coincidir en el EERR, la Evolución del PN y el SSP. El efectivo final del flujo debe coincidir con Caja y Bancos del SSP.',
           ].map((note, i) => (
             <li key={i} className="flex items-start gap-2 text-xs text-slate-600">
-              <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 font-bold text-[10px]">
+              <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">
                 {i + 1}
               </span>
               <span>{note}</span>

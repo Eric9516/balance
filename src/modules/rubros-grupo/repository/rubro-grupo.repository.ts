@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { toRubroGrupoDTO, type RubroGrupoDTO } from '../domain/types'
 import type { CreateRubroGrupoInput } from '../schemas/rubro-grupo.schemas'
@@ -17,7 +18,7 @@ export async function findRubroGrupoById(id: string): Promise<RubroGrupoDTO | nu
   return g ? toRubroGrupoDTO(g) : null
 }
 
-function buildData(input: CreateRubroGrupoInput) {
+function buildData(input: CreateRubroGrupoInput): Prisma.RubroGrupoCreateInput {
   return {
     nombre: input.nombre,
     sigla: input.sigla || null,
@@ -31,12 +32,19 @@ function buildData(input: CreateRubroGrupoInput) {
 }
 
 export async function createRubroGrupo(input: CreateRubroGrupoInput): Promise<RubroGrupoDTO> {
-  const g = await db.rubroGrupo.create({ data: buildData(input) as any, include: withCount })
+  const g = await db.rubroGrupo.create({ data: buildData(input), include: withCount })
   return toRubroGrupoDTO(g)
 }
 
-export async function updateRubroGrupo(id: string, input: CreateRubroGrupoInput): Promise<RubroGrupoDTO> {
-  const g = await db.rubroGrupo.update({ where: { id }, data: buildData(input) as any, include: withCount })
+export async function updateRubroGrupo(
+  id: string,
+  input: CreateRubroGrupoInput,
+): Promise<RubroGrupoDTO> {
+  const g = await db.rubroGrupo.update({
+    where: { id },
+    data: buildData(input),
+    include: withCount,
+  })
   return toRubroGrupoDTO(g)
 }
 
@@ -65,6 +73,9 @@ export async function swapOrdenGrupos(idA: string, idB: string): Promise<void> {
 }
 
 export async function findNextOrdenGrupo(): Promise<number> {
-  const last = await db.rubroGrupo.findFirst({ orderBy: { orden: 'desc' }, select: { orden: true } })
+  const last = await db.rubroGrupo.findFirst({
+    orderBy: { orden: 'desc' },
+    select: { orden: true },
+  })
   return last ? last.orden + 10 : 10
 }

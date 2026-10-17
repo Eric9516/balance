@@ -1,13 +1,13 @@
-import type { RubroGrupo } from '@prisma/client'
+import type { EstadoDestino, RubroGrupo, SeccionEERR, SeccionSSP } from '@prisma/client'
 
 export type RubroGrupoDTO = {
   id: string
   nombre: string
   sigla: string | null
   esGasto: boolean
-  estadoDestino: string | null
-  seccionSSP: string | null
-  seccionEERR: string | null
+  estadoDestino: EstadoDestino | null
+  seccionSSP: SeccionSSP | null
+  seccionEERR: SeccionEERR | null
   orden: number
   activo: boolean
   totalRubros: number

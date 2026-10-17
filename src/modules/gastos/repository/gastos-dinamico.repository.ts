@@ -1,10 +1,11 @@
 import { db } from '@/lib/db'
+import { SECCION_EERR_LABELS, SECCIONES_EERR_GASTO } from '@/modules/rubros-base/domain/secciones'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 export type GastoFila = {
   cuentaId: string
-  cuentaNombre: string   // nombre de la cuenta contable individual
+  cuentaNombre: string // nombre de la cuenta contable individual
   importe: number
   importeAnterior: number
 }
@@ -33,12 +34,9 @@ export type GastosSecciones = {
 }
 
 // Secciones EERR legacy que van en el Anexo III
-const EERR_GASTOS_LABELS: Record<string, string> = {
-  GASTOS_ADM:               'Gastos de Administración',
-  GASTOS_COM:               'Gastos de Comercialización',
-  GASTOS_BANCARIOS:         'Gastos Bancarios',
-  IMPUESTOS_CONTRIBUCIONES: 'Impuestos y Contribuciones',
-}
+const EERR_GASTOS_LABELS = Object.fromEntries(
+  SECCIONES_EERR_GASTO.map((s) => [s, SECCION_EERR_LABELS[s]]),
+)
 
 // ─── Repository ───────────────────────────────────────────────────────────────
 
@@ -46,7 +44,6 @@ export async function findGastosDinamicos(
   ejercicioId: string,
   ejercicioAnteriorId: string | null,
 ): Promise<GastosSecciones> {
-
   // ── 1. Secciones personalizadas (RubroGrupo) ────────────────────────────────
   const gruposAll = await db.rubroGrupo.findMany({
     where: { activo: true },
@@ -54,24 +51,25 @@ export async function findGastosDinamicos(
     orderBy: { orden: 'asc' },
   })
 
-  const gruposGastoIds = gruposAll.filter(g => g.esGasto).map(g => g.id)
+  const gruposGastoIds = gruposAll.filter((g) => g.esGasto).map((g) => g.id)
 
   // ── 2. Cuentas clasificadas bajo RubroGrupos de gasto (actual) ──────────────
-  const cuentasGrupoActual = gruposGastoIds.length > 0
-    ? await db.cuentaContable.findMany({
-        where: {
-          ejercicioId,
-          rubroBase: { rubroGrupoId: { in: gruposGastoIds } },
-        },
-        select: {
-          id: true,
-          nombre: true,
-          saldoFinal: true,
-          rubroBase: { select: { rubroGrupoId: true } },
-        },
-        orderBy: { nombre: 'asc' },
-      })
-    : []
+  const cuentasGrupoActual =
+    gruposGastoIds.length > 0
+      ? await db.cuentaContable.findMany({
+          where: {
+            ejercicioId,
+            rubroBase: { rubroGrupoId: { in: gruposGastoIds } },
+          },
+          select: {
+            id: true,
+            nombre: true,
+            saldoFinal: true,
+            rubroBase: { select: { rubroGrupoId: true } },
+          },
+          orderBy: { nombre: 'asc' },
+        })
+      : []
 
   // ── 3. Cuentas clasificadas bajo secciones legacy EERR (actual) ─────────────
   const cuentasLegacyActual = await db.cuentaContable.findMany({
@@ -79,7 +77,7 @@ export async function findGastosDinamicos(
       ejercicioId,
       rubroBase: {
         rubroGrupoId: null,
-        seccionEERR: { in: Object.keys(EERR_GASTOS_LABELS) as any[] },
+        seccionEERR: { in: [...SECCIONES_EERR_GASTO] },
       },
     },
     select: {
@@ -92,20 +90,21 @@ export async function findGastosDinamicos(
   })
 
   // ── 4. Lo mismo para ejercicio anterior ─────────────────────────────────────
-  const cuentasGrupoAnterior = ejercicioAnteriorId && gruposGastoIds.length > 0
-    ? await db.cuentaContable.findMany({
-        where: {
-          ejercicioId: ejercicioAnteriorId,
-          rubroBase: { rubroGrupoId: { in: gruposGastoIds } },
-        },
-        select: {
-          nombre: true,
-          saldoFinal: true,
-          rubroBase: { select: { rubroGrupoId: true } },
-        },
-        orderBy: { nombre: 'asc' },
-      })
-    : []
+  const cuentasGrupoAnterior =
+    ejercicioAnteriorId && gruposGastoIds.length > 0
+      ? await db.cuentaContable.findMany({
+          where: {
+            ejercicioId: ejercicioAnteriorId,
+            rubroBase: { rubroGrupoId: { in: gruposGastoIds } },
+          },
+          select: {
+            nombre: true,
+            saldoFinal: true,
+            rubroBase: { select: { rubroGrupoId: true } },
+          },
+          orderBy: { nombre: 'asc' },
+        })
+      : []
 
   const cuentasLegacyAnterior = ejercicioAnteriorId
     ? await db.cuentaContable.findMany({
@@ -113,7 +112,7 @@ export async function findGastosDinamicos(
           ejercicioId: ejercicioAnteriorId,
           rubroBase: {
             rubroGrupoId: null,
-            seccionEERR: { in: Object.keys(EERR_GASTOS_LABELS) as any[] },
+            seccionEERR: { in: [...SECCIONES_EERR_GASTO] },
           },
         },
         select: {
@@ -139,9 +138,9 @@ export async function findGastosDinamicos(
   }
 
   // ── 6. Construir secciones de grupo personalizado ───────────────────────────
-  const seccionesGrupo: GastoSeccion[] = gruposAll.map(g => {
-    const cuentas = cuentasGrupoActual.filter(c => c.rubroBase?.rubroGrupoId === g.id)
-    const filas: GastoFila[] = cuentas.map(c => ({
+  const seccionesGrupo: GastoSeccion[] = gruposAll.map((g) => {
+    const cuentas = cuentasGrupoActual.filter((c) => c.rubroBase?.rubroGrupoId === g.id)
+    const filas: GastoFila[] = cuentas.map((c) => ({
       cuentaId: c.id,
       cuentaNombre: c.nombre,
       importe: Math.abs(Number(c.saldoFinal)),
@@ -163,20 +162,20 @@ export async function findGastosDinamicos(
   // ── 7. Config de secciones legacy (orden + aparecEnEERR) ─────────────────────
   // Solo lectura — los registros se crean al primer toggle/reorden desde las actions.
   // Si no existe config, se usan los defaults (aparecEnEERR=true, orden=9000+i).
-  const legacyKeys = Object.keys(EERR_GASTOS_LABELS).map(k => `legacy:${k}`)
+  const legacyKeys = Object.keys(EERR_GASTOS_LABELS).map((k) => `legacy:${k}`)
   const legacyConfigs = await db.gastoSeccionConfig.findMany({
     where: { clave: { in: legacyKeys } },
   })
-  const legacyConfigMap = new Map(legacyConfigs.map(c => [c.clave, c]))
+  const legacyConfigMap = new Map(legacyConfigs.map((c) => [c.clave, c]))
 
   // ── 8. Construir secciones legacy ────────────────────────────────────────────
   const seccionesLegacy: GastoSeccion[] = []
   for (const [seccionEERR, label] of Object.entries(EERR_GASTOS_LABELS)) {
     const key = `legacy:${seccionEERR}`
-    const cuentas = cuentasLegacyActual.filter(c => c.rubroBase?.seccionEERR === seccionEERR)
+    const cuentas = cuentasLegacyActual.filter((c) => c.rubroBase?.seccionEERR === seccionEERR)
     if (cuentas.length === 0) continue
     const cfg = legacyConfigMap.get(key)
-    const filas: GastoFila[] = cuentas.map(c => ({
+    const filas: GastoFila[] = cuentas.map((c) => ({
       cuentaId: c.id,
       cuentaNombre: c.nombre,
       importe: Math.abs(Number(c.saldoFinal)),
@@ -197,13 +196,13 @@ export async function findGastosDinamicos(
 
   // ── 9. todasSecciones para el modal — orden unificado (custom + legacy juntos) ─
   const todasSinOrdenar = [
-    ...seccionesGrupo.map(s => ({
+    ...seccionesGrupo.map((s) => ({
       key: s.key,
       nombre: s.grupoNombre,
       sigla: s.grupoSigla,
       esGastoDefault: s.esGastoDefault,
       aparecEnEERR: s.aparecEnEERR,
-      orden: gruposAll.find(g => `grupo:${g.id}` === s.key)?.orden ?? 9999,
+      orden: gruposAll.find((g) => `grupo:${g.id}` === s.key)?.orden ?? 9999,
     })),
     ...Object.entries(EERR_GASTOS_LABELS).map(([seccionEERR, label]) => {
       const key = `legacy:${seccionEERR}`
@@ -220,10 +219,7 @@ export async function findGastosDinamicos(
   ]
   const todasSecciones = todasSinOrdenar.sort((a, b) => a.orden - b.orden)
 
-  const secciones = [
-    ...seccionesGrupo.filter(s => s.filas.length > 0),
-    ...seccionesLegacy,
-  ]
+  const secciones = [...seccionesGrupo.filter((s) => s.filas.length > 0), ...seccionesLegacy]
 
   return { secciones, todasSecciones }
 }

@@ -1,8 +1,13 @@
 import { db } from '@/lib/db'
 import { toRubroBaseDTO, type RubroBaseDTO } from '../domain/types'
 import type { CreateRubroBaseInput } from '../schemas/rubro-base.schemas'
+import { esSeccionEERR, esSeccionSSP } from '../domain/secciones'
 
-const includeGrupo = { rubroGrupo: { select: { nombre: true, estadoDestino: true as true, seccionSSP: true as true, seccionEERR: true as true } } } as const
+const includeGrupo = {
+  rubroGrupo: {
+    select: { nombre: true, estadoDestino: true, seccionSSP: true, seccionEERR: true },
+  },
+} as const
 
 export async function findAllRubrosBase(): Promise<RubroBaseDTO[]> {
   const rows = await db.rubroBase.findMany({
@@ -22,8 +27,15 @@ export async function createRubroBase(input: CreateRubroBaseInput): Promise<Rubr
   return toRubroBaseDTO(r)
 }
 
-export async function updateRubroBase(id: string, input: CreateRubroBaseInput): Promise<RubroBaseDTO> {
-  const r = await db.rubroBase.update({ where: { id }, data: buildData(input), include: includeGrupo })
+export async function updateRubroBase(
+  id: string,
+  input: CreateRubroBaseInput,
+): Promise<RubroBaseDTO> {
+  const r = await db.rubroBase.update({
+    where: { id },
+    data: buildData(input),
+    include: includeGrupo,
+  })
   return toRubroBaseDTO(r)
 }
 
@@ -32,10 +44,10 @@ export async function deleteRubroBase(id: string): Promise<void> {
 }
 
 export async function findNextOrden(seccionSSP?: string, seccionEERR?: string): Promise<number> {
-  const where = seccionSSP
-    ? { seccionSSP: seccionSSP as any }
-    : seccionEERR
-      ? { seccionEERR: seccionEERR as any }
+  const where = esSeccionSSP(seccionSSP)
+    ? { seccionSSP }
+    : esSeccionEERR(seccionEERR)
+      ? { seccionEERR }
       : {}
 
   const last = await db.rubroBase.findFirst({
@@ -52,13 +64,11 @@ function buildData(input: CreateRubroBaseInput) {
     codigo: input.codigo,
     nombre: input.nombre,
     descripcion: null,
-    estadoDestino: input.estadoDestino as any,
-    seccionSSP: (input.seccionSSP || null) as any,
-    seccionEERR: (input.seccionEERR || null) as any,
-    naturalezaEsperada: input.naturalezaEsperada as any,
+    estadoDestino: input.estadoDestino,
+    seccionSSP: input.seccionSSP || null,
+    seccionEERR: input.seccionEERR || null,
+    naturalezaEsperada: input.naturalezaEsperada,
     orden: parseInt(input.orden, 10),
     activo: true,
   }
 }
-
-

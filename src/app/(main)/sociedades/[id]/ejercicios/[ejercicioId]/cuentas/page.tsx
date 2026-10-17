@@ -23,15 +23,28 @@ import { AnexosTabs, AnexoEnConstruccion, type AnexoTab } from '@/components/sha
 // Repositorios
 import { findSociedadById } from '@/modules/sociedades/repository/sociedad.repository'
 import { findEjercicioById } from '@/modules/ejercicios/repository/ejercicio.repository'
-import { findCuentasByEjercicio, findRubrosBase } from '@/modules/importaciones/repository/cuentas.repository'
-import { findBienesDeUso, findNetoResidualAnterior } from '@/modules/bienes-de-uso/repository/bienes-de-uso.repository'
+import {
+  findCuentasByEjercicio,
+  findRubrosBase,
+} from '@/modules/importaciones/repository/cuentas.repository'
+import {
+  findBienesDeUso,
+  findNetoResidualAnterior,
+} from '@/modules/bienes-de-uso/repository/bienes-de-uso.repository'
 import { findCostoVentas } from '@/modules/costo-ventas/repository/costo-ventas.repository'
 import { findGastosDinamicos } from '@/modules/gastos/repository/gastos-dinamico.repository'
 import { findNotasByEjercicio } from '@/modules/notas/repository/notas.repository'
-import { buildEvolucionPNDefaultsDesdeAnterior, findEvolucionPN } from '@/modules/patrimonio-neto/repository/patrimonio-neto.repository'
+import {
+  buildEvolucionPNDefaultsDesdeAnterior,
+  findEvolucionPN,
+} from '@/modules/patrimonio-neto/repository/patrimonio-neto.repository'
 import { buildEstadosData } from '@/modules/estados/lib/aggregate'
 import { evaluarDocumentos } from '@/modules/documentos/lib/evaluar'
-import { getCoeficienteComparativo, ajustarCuentas, ajustarCostoVentas } from '@/modules/estados/lib/ajuste'
+import {
+  getCoeficienteComparativo,
+  ajustarCuentas,
+  ajustarCostoVentas,
+} from '@/modules/estados/lib/ajuste'
 import { findComparativoByEjercicio } from '@/modules/comparativo-manual/repository/comparativo.repository'
 import {
   applyComparativosToEstados,
@@ -46,9 +59,9 @@ import type { CuentaContableDTO } from '@/modules/importaciones/domain/types'
 // Las pestañas del paso "Anexos" son los anexos ACEPTADOS en "Anexos y notas".
 // `hasView` indica si ya existe la pantalla para cargarlo.
 const ANEXO_TABS_META: Record<string, { slug: string; label: string; hasView: boolean }> = {
-  ANEXO_BIENES_USO:   { slug: 'bienes-de-uso', label: 'Bs. de Uso',  hasView: true },
-  ANEXO_COSTO_VENTAS: { slug: 'costo-ventas',  label: 'Cto. Ventas', hasView: true },
-  ANEXO_GASTOS:       { slug: 'gastos',        label: 'Gastos',      hasView: true },
+  ANEXO_BIENES_USO: { slug: 'bienes-de-uso', label: 'Bs. de Uso', hasView: true },
+  ANEXO_COSTO_VENTAS: { slug: 'costo-ventas', label: 'Cto. Ventas', hasView: true },
+  ANEXO_GASTOS: { slug: 'gastos', label: 'Gastos', hasView: true },
 }
 // Orden fijo de las pestañas (independiente del orden en que se aceptaron).
 const ANEXO_ORDEN = ['ANEXO_BIENES_USO', 'ANEXO_COSTO_VENTAS', 'ANEXO_GASTOS']
@@ -137,15 +150,15 @@ export default async function CuentasPage({ params, searchParams }: Props) {
       select: { id: true },
     }),
   ])
-  const tieneBDU       = countBDU > 0
+  const tieneBDU = countBDU > 0
   const tieneCostoVentas = costoExiste !== null
-  const tieneNotas     = countNotas > 0
-  const tieneGastos    = tieneGastosClasificados !== null
+  const tieneNotas = countNotas > 0
+  const tieneGastos = tieneGastosClasificados !== null
   const tieneEjercicioAnterior = ejercicio.ejercicioAnteriorId !== null
   // Requiere comparativos manuales cuando el balance anterior no está disponible,
   // independientemente de si hay o no un ejercicio anterior vinculado en el sistema.
   const requiereComparativoManual = !ejercicio.balanceAnteriorDisponible
-  const pnConfirmado   = ejercicio.pnConfirmado ?? false
+  const pnConfirmado = ejercicio.pnConfirmado ?? false
 
   // ── Anexos/notas sugeridos ───────────────────────────────────────────────────
   // Se evalúan SIEMPRE según los saldos del ejercicio ACTUAL, haya o no ejercicio
@@ -181,7 +194,6 @@ export default async function CuentasPage({ params, searchParams }: Props) {
 
   if (paso === 'caratula') {
     content = <CaratulaContent sociedad={sociedad} ejercicio={ejercicio} />
-
   } else if (paso === 'clasificar') {
     const rubros = await findRubrosBase()
     content = (
@@ -191,7 +203,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
             <Link
               href={`/configuracion/rubros?volver=/sociedades/${id}/ejercicios/${ejercicioId}/cuentas?paso=clasificar`}
             >
-              <Tags className="h-3.5 w-3.5 mr-1.5" />
+              <Tags className="mr-1.5 h-3.5 w-3.5" />
               Gestionar clasificaciones
             </Link>
           </Button>
@@ -204,15 +216,16 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         />
       </div>
     )
-
   } else if (paso === 'anexos') {
     // Pestañas = anexos ACEPTADOS, en orden fijo.
-    const tabs: AnexoTab[] = ANEXO_ORDEN
-      .filter((clave) => anexosAceptadosSet.has(clave))
-      .map((clave) => ANEXO_TABS_META[clave])
+    const tabs: AnexoTab[] = ANEXO_ORDEN.filter((clave) => anexosAceptadosSet.has(clave)).flatMap(
+      (clave) => ANEXO_TABS_META[clave] ?? [],
+    )
     // Configuración: explícita (?anexo=configuracion) o por defecto si no hay anexos aún.
     const enConfig = anexo === 'configuracion' || tabs.length === 0
-    const activeSlug = enConfig ? '' : (tabs.find((t) => t.slug === anexo)?.slug ?? tabs[0]?.slug ?? '')
+    const activeSlug = enConfig
+      ? ''
+      : (tabs.find((t) => t.slug === anexo)?.slug ?? tabs[0]?.slug ?? '')
 
     let anexoContent: React.ReactNode = null
     if (enConfig) {
@@ -248,8 +261,9 @@ export default async function CuentasPage({ params, searchParams }: Props) {
       const comparativosCV = requiereComparativoManual
         ? await findComparativoByEjercicio(ejercicioId, 'COSTO_VENTAS')
         : []
-      const datosAnteriores = datosAnterioresDb
-        ?? (requiereComparativoManual
+      const datosAnteriores =
+        datosAnterioresDb ??
+        (requiereComparativoManual
           ? buildCostoVentasAntFromComparativos(ejercicioId, comparativosCV)
           : null)
       anexoContent = (
@@ -265,9 +279,15 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         />
       )
     } else if (activeSlug === 'gastos') {
-      const gastosRaw = await findGastosDinamicos(ejercicioId, ejercicio.ejercicioAnteriorId ?? null)
+      const gastosRaw = await findGastosDinamicos(
+        ejercicioId,
+        ejercicio.ejercicioAnteriorId ?? null,
+      )
       const gastosData = requiereComparativoManual
-        ? applyComparativosToGastos(gastosRaw, await findComparativoByEjercicio(ejercicioId, 'GASTOS'))
+        ? applyComparativosToGastos(
+            gastosRaw,
+            await findComparativoByEjercicio(ejercicioId, 'GASTOS'),
+          )
         : gastosRaw
       anexoContent = (
         <GastosView
@@ -294,7 +314,6 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         {anexoContent}
       </AnexosTabs>
     )
-
   } else if (paso === 'notas') {
     const notas = await findNotasByEjercicio(ejercicioId)
     content = (
@@ -316,7 +335,6 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         />
       </div>
     )
-
   } else if (paso === 'patrimonio-neto') {
     const { pnData } = await fetchEstadosConPN(ejercicioId, ejercicio, cuentas)
     content = (
@@ -329,9 +347,12 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         pnConfirmado={ejercicio.pnConfirmado ?? false}
       />
     )
-
   } else if (paso === 'estados') {
-    const { estadosData: estadosRaw, pnData } = await fetchEstadosConPN(ejercicioId, ejercicio, cuentas)
+    const { estadosData: estadosRaw, pnData } = await fetchEstadosConPN(
+      ejercicioId,
+      ejercicio,
+      cuentas,
+    )
 
     // Aplicar comparativos manuales (edición inline) — siempre a nivel rubro
     let estadosData = estadosRaw
@@ -354,7 +375,6 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         editarAnterior={requiereComparativoManual}
       />
     )
-
   } else {
     // Default: tabla de cuentas (balance overview)
     content = <CuentasTable cuentas={cuentas} sociedadId={id} ejercicioId={ejercicioId} />
@@ -373,7 +393,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
             <StepInfoButton info={PASO_INFO[pasoInfoKey]} />
             <Button variant="secondary" size="sm" asChild>
               <Link href={`/sociedades/${id}/ejercicios`}>
-                <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                <ChevronLeft className="mr-1 h-3.5 w-3.5" />
                 Ejercicios
               </Link>
             </Button>
