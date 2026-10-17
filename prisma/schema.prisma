@@ -1,0 +1,776 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum EstadoDestino {
+  SSP
+  EERR
+  PN
+}
+
+enum SeccionSSP {
+  ACTIVO_CORRIENTE
+  ACTIVO_NO_CORRIENTE
+  PASIVO_CORRIENTE
+  PASIVO_NO_CORRIENTE
+  PATRIMONIO_NETO
+}
+
+enum SeccionEERR {
+  INGRESOS
+  COSTO_VENTAS
+  GASTOS_ADM
+  GASTOS_COM
+  GASTOS_BANCARIOS
+  IMPUESTOS_CONTRIBUCIONES
+  RESULTADOS_FINANCIEROS
+  IMPUESTO_GANANCIAS
+}
+
+enum NaturalezaEsperada {
+  DEUDORA
+  ACREEDORA
+}
+
+enum TipoPersona {
+  FISICA
+  JURIDICA
+}
+
+enum EstadoEjercicio {
+  BORRADOR
+  EN_PROCESO
+  REVISION
+  CERRADO
+}
+
+enum AdopcionRT54 {
+  PRIMERA_ADOPCION
+  APLICACION_CONTINUADA
+}
+
+enum CriteriosBienesCambio {
+  COSTO_ADQUISICION
+  ULTIMA_COMPRA
+  COSTO_REPOSICION
+}
+
+enum EstadoImportacion {
+  PENDIENTE
+  PROCESANDO
+  COMPLETADA
+  CON_ERRORES
+  CANCELADA
+}
+
+enum ModoImportacion {
+  REEMPLAZAR
+  AGREGAR
+  SIMULAR
+}
+
+enum EstadoValidacion {
+  ACTIVA
+  RESUELTA
+  IGNORADA
+}
+
+enum SeveridadValidacion {
+  ERROR
+  ADVERTENCIA
+  INFO
+}
+
+enum TipoValidacion {
+  CUADRE_BALANCE
+  SALDO_NEGATIVO
+  CUENTA_SIN_CLASIFICAR
+  CONSISTENCIA_EJERCICIO
+  NOTA_INCOMPLETA
+  PATRIMONIO_NETO
+  REEXPRESION_FALTANTE    // ejercicio anterior no ajustado por inflación
+  ANEXO_INCONSISTENTE     // totales de anexo no coinciden con estado
+}
+
+enum RolEstudio {
+  ADMIN
+  CONTADOR
+  JUNIOR
+}
+
+enum TipoNota {
+  INFORMATIVA
+  CUANTITATIVA
+  POLITICA_CONTABLE
+}
+
+enum SeccionFlujo {
+  ACTIVIDADES_OPERATIVAS
+  ACTIVIDADES_INVERSION
+  ACTIVIDADES_FINANCIAMIENTO
+}
+
+enum TipoMovimientoPN {
+  SALDO_INICIO
+  AJUSTE_INFLACION
+  MODIFICACION_INICIO          // Nota 1.6 — primer ejercicio con RT 54
+  DISTRIB_HONORARIOS
+  DISTRIB_DIVIDENDOS
+  DISTRIB_RESERVA_LEGAL
+  DISTRIB_OTRAS_RESERVAS
+  DISTRIB_APORTES_IRREVOCABLES
+  RESULTADO_EJERCICIO
+}
+
+enum TipoErrorTecnico {
+  DATABASE
+  VALIDACION
+  IMPORTACION
+  CALCULO
+  SISTEMA
+}
+
+enum SeveridadError {
+  CRITICO
+  ALTO
+  MEDIO
+  BAJO
+}
+
+enum NivelComparativoSSP {
+  SECCION
+  RUBRO
+}
+
+enum ModuloSistema {
+  RUBROS
+  CUENTAS
+  IMPORTACION
+  CLASIFICACION
+  VALIDACION
+  NOTAS
+  ESTADOS_CONTABLES
+  PATRIMONIO_NETO
+  PREVIEW
+  EXPORTACION
+  SOCIEDADES
+  AUDITORES
+  EJERCICIOS
+  CONFIGURACION_ESTUDIO
+}
+
+// ─── Core ─────────────────────────────────────────────────────────────────────
+
+// Secciones personalizables creadas por el usuario (agrupa RubroBases)
+// esGasto=true → aparece en Anexo III como columna (auto-calculada)
+// aparecEnEERR=true → además aparece como línea de gasto en el EERR
+// aparecEnEERR=false → solo en Anexo III (ej: gastos vinculados al costo, ya incluidos en Costo de Ventas)
+model RubroGrupo {
+  id            String         @id @default(cuid())
+  nombre        String
+  sigla         String?        // Ej: "GTO", "GAST" — definida por el contador
+  esGasto       Boolean        @default(false)
+  aparecEnEERR  Boolean        @default(true)
+  estadoDestino EstadoDestino?
+  seccionSSP    SeccionSSP?
+  seccionEERR   SeccionEERR?
+  orden         Int
+  activo        Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  rubros RubroBase[]
+
+  @@map("rubros_grupo")
+}
+
+model RubroBase {
+  id                 String             @id @default(cuid())
+  rubroGrupoId       String?
+  codigo             String             @unique
+  nombre             String
+  descripcion        String?
+  estadoDestino      EstadoDestino
+  seccionSSP         SeccionSSP?
+  seccionEERR        SeccionEERR?
+  naturalezaEsperada NaturalezaEsperada
+  orden              Int                @unique
+  activo                Boolean            @default(true)
+  generaNotaInformativa Boolean            @default(false)
+  textoNotaDefault      String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  rubroGrupo    RubroGrupo?         @relation(fields: [rubroGrupoId], references: [id], onDelete: SetNull)
+  cuentas       CuentaContable[]
+  rubrosEstudio RubroActivoEstudio[]
+
+  @@map("rubros_base")
+}
+
+model RubroActivoEstudio {
+  id        String   @id @default(cuid())
+  estudioId String
+  rubroId   String
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  estudio Estudio   @relation(fields: [estudioId], references: [id], onDelete: Cascade)
+  rubro   RubroBase @relation(fields: [rubroId], references: [id], onDelete: Cascade)
+
+  @@unique([estudioId, rubroId])
+  @@map("rubros_activos_estudio")
+}
+
+// ─── Estudio ──────────────────────────────────────────────────────────────────
+
+model Estudio {
+  id          String      @id @default(cuid())
+  nombre      String
+  cuit        String      @unique
+  razonSocial String
+  tipoPersona TipoPersona @default(JURIDICA)
+  domicilio   String?
+  localidad   String?
+  provincia   String?
+  telefono    String?
+  email       String?
+  activo      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  configuracion   EstudioConfiguracion?
+  sociedades      Sociedad[]
+  auditores       Auditor[]
+  usuarios        UsuarioEstudio[]
+  plantillasNotas PlantillaNota[]
+  mapeosExcel     MapeoExcel[]
+  rubrosActivos   RubroActivoEstudio[]
+
+  @@map("estudios")
+}
+
+model EstudioConfiguracion {
+  id                     String   @id @default(cuid())
+  estudioId              String   @unique
+  logoUrl                String?
+  colorPrimario          String   @default("#1a1a2e")
+  monedaDisplay          String   @default("ARS")
+  decimalesDisplay       Int      @default(0)
+  mostrarNotasEnPreview  Boolean  @default(true)
+  firmaDigitalHabilitada Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  estudio Estudio @relation(fields: [estudioId], references: [id], onDelete: Cascade)
+
+  @@map("estudio_configuracion")
+}
+
+model UsuarioEstudio {
+  id        String     @id @default(cuid())
+  estudioId String
+  nombre    String
+  email     String     @unique
+  rol       RolEstudio @default(JUNIOR)
+  activo    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  estudio Estudio @relation(fields: [estudioId], references: [id], onDelete: Cascade)
+
+  @@map("usuarios_estudio")
+}
+
+// ─── Sociedad / Auditor ───────────────────────────────────────────────────────
+
+model Sociedad {
+  id                  String      @id @default(cuid())
+  estudioId           String
+  razonSocial         String
+  cuit                String      @unique
+  tipoPersona         TipoPersona @default(JURIDICA)
+  tipoSocietario      String?
+  condicionFiscal     String?
+  domicilioLegal      String?
+  localidad           String?
+  provincia           String?
+  codigoPostal        String?
+  actividadPpal       String?
+  actividadSecundaria String?
+  clasificacionRT54   String?
+  fechaInscripcion    DateTime?
+  matriculaPJ         String?
+  plazoDuracion       DateTime?
+  composicionCapital  String?
+  activo              Boolean     @default(true)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  estudio    Estudio             @relation(fields: [estudioId], references: [id], onDelete: Restrict)
+  ejercicios EjercicioContable[]
+
+  @@map("sociedades")
+}
+
+model Auditor {
+  id                 String   @id @default(cuid())
+  estudioId          String
+  nombre             String
+  apellido           String
+  cuit               String?
+  tituloProfesional  String?
+  matricula          String?
+  consejoProfesional String?
+  universidad        String?
+  localidadInforme   String?
+  textoFirma         String?
+  firmaImagenUrl     String?  // URL de imagen de la firma digital para pie de página
+  esDefault          Boolean  @default(false)
+  activo             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  estudio    Estudio             @relation(fields: [estudioId], references: [id], onDelete: Cascade)
+  ejercicios EjercicioContable[]
+
+  @@map("auditores")
+}
+
+// ─── Ejercicio ────────────────────────────────────────────────────────────────
+
+model EjercicioContable {
+  id                  String          @id @default(cuid())
+  estudioId           String
+  sociedadId          String
+  auditorId           String?
+  ejercicioAnteriorId String?         @unique
+  numeroEjercicio     Int?
+  fechaInicio         DateTime
+  fechaCierre         DateTime
+  fechaInformeAuditor     DateTime?
+  clasificacionEntidad    String?
+  indiceInflacionAnterior Decimal?  @db.Decimal(18, 6)
+  indiceInflacionActual   Decimal?  @db.Decimal(18, 6)
+  denominacion            String
+  estado              EstadoEjercicio @default(BORRADOR)
+  // ── Configuración Nota I ──────────────────────────────────────────────────────
+  adopcionRT54              AdopcionRT54?
+  criteriosBienesCambio     CriteriosBienesCambio?
+  hechosPosterioress        Boolean?
+  hechosPosterioressTexto   String?
+  pnConfirmado                Boolean              @default(false)
+  estadosConfirmado           Boolean              @default(false)
+  // ── Balance anterior ─────────────────────────────────────────────────────────
+  balanceAnteriorDisponible   Boolean              @default(true)
+  nivelComparativoSSP         NivelComparativoSSP?
+  auditorSnapshot     Json?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  sociedad           Sociedad                 @relation(fields: [sociedadId], references: [id], onDelete: Restrict)
+  auditor            Auditor?                 @relation(fields: [auditorId], references: [id], onDelete: SetNull)
+  ejercicioAnterior  EjercicioContable?       @relation("EjercicioComparativo", fields: [ejercicioAnteriorId], references: [id], onDelete: SetNull)
+  ejercicioSiguiente EjercicioContable?       @relation("EjercicioComparativo")
+  cuentas               CuentaContable[]
+  importaciones         ImportacionExcel[]
+  notas                 NotaEjercicio[]
+  validaciones          ErrorValidacion[]
+  evolucionPN           EvolucionPNMovimiento[]
+  flujoDeCaja           FlujoDeCajaEjercicio?
+  bienesDeUso           BienDeUsoCategoria[]
+  costoVentas           CostoVentasEjercicio?
+  comparativoManual     ComparativoManual[]
+  documentos            DocumentoEjercicio[]
+
+  @@map("ejercicios_contables")
+}
+
+// ─── Importación ──────────────────────────────────────────────────────────────
+
+model MapeoExcel {
+  id               String   @id @default(cuid())
+  estudioId        String
+  nombre           String
+  descripcion      String?
+  columnasCodigo   String[]
+  columnasNombre   String[]
+  columnasDeudor   String[]
+  columnasAcreedor String[]
+  filasOmitir      Int      @default(0)
+  activo           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  estudio       Estudio            @relation(fields: [estudioId], references: [id], onDelete: Cascade)
+  importaciones ImportacionExcel[]
+
+  @@map("mapeos_excel")
+}
+
+model ImportacionExcel {
+  id              String            @id @default(cuid())
+  ejercicioId     String
+  mapeoExcelId    String?
+  nombreArchivo   String
+  hashArchivo     String
+  estado          EstadoImportacion @default(PENDIENTE)
+  modo            ModoImportacion   @default(REEMPLAZAR)
+  mapeoSnapshot   Json?
+  totalFilas      Int?
+  filasImportadas Int?
+  filasError      Int?
+  erroresDetalle  Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  ejercicio  EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
+  mapeoExcel MapeoExcel?       @relation(fields: [mapeoExcelId], references: [id], onDelete: SetNull)
+  cuentas    CuentaContable[]
+
+  @@map("importaciones_excel")
+}
+
+// ─── Cuentas ──────────────────────────────────────────────────────────────────
+
+model CuentaContable {
+  id                 String   @id @default(cuid())
+  ejercicioId        String
+  importacionExcelId String?
+  rubroBaseId        String?
+  notaEjercicioId    String?
+  codigo             String
+  nombre             String
+  saldoDeudor        Decimal  @default(0) @db.Decimal(18, 2)
+  saldoAcreedor      Decimal  @default(0) @db.Decimal(18, 2)
+  saldoFinal         Decimal  @default(0) @db.Decimal(18, 2)
+  clasificadaManual  Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  ejercicio     EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
+  importacion   ImportacionExcel? @relation(fields: [importacionExcelId], references: [id], onDelete: SetNull)
+  rubroBase     RubroBase?        @relation(fields: [rubroBaseId], references: [id], onDelete: SetNull)
+  notaEjercicio NotaEjercicio?    @relation(fields: [notaEjercicioId], references: [id], onDelete: SetNull)
+
+  @@unique([ejercicioId, codigo])
+  @@map("cuentas_contables")
+}
+
+// ─── Notas ────────────────────────────────────────────────────────────────────
+
+model PlantillaNota {
+  id               String   @id @default(cuid())
+  estudioId        String
+  titulo           String
+  tipo             TipoNota
+  contenido        String?
+  criterioMedicion String?  // Valor por defecto para nuevas notas basadas en esta plantilla
+  textoApertura    String?  // Texto de apertura por defecto
+  orden            Int
+  activo           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  estudio Estudio         @relation(fields: [estudioId], references: [id], onDelete: Cascade)
+  notas   NotaEjercicio[]
+
+  @@map("plantillas_nota")
+}
+
+model NotaEjercicio {
+  id              String   @id @default(cuid())
+  ejercicioId     String
+  plantillaNotaId String?
+  titulo          String
+  tipo            TipoNota
+  numero          Int?     // Número que aparece impreso: "Nota N° 2", "Nota N° 3"...
+  orden           Int      // Orden de aparición (puede diferir del número)
+  // Campos para renderizado de la nota (ver PDF páginas 2-3)
+  criterioMedicion String?  // Ej: "valor nominal", "costo de reposición"
+  textoApertura    String?  // Ej: "El saldo del rubro a fecha de cierre está compuesto por:"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  ejercicio  EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
+  plantilla  PlantillaNota?    @relation(fields: [plantillaNotaId], references: [id], onDelete: SetNull)
+  detalles   DetalleNota[]
+  cuentas    CuentaContable[]
+
+  @@map("notas_ejercicio")
+}
+
+model DetalleNota {
+  id               String   @id @default(cuid())
+  notaEjercicioId  String
+  orden            Int
+  concepto         String
+  importeActual    Decimal  @default(0) @db.Decimal(18, 2)
+  importeAnterior  Decimal  @default(0) @db.Decimal(18, 2)
+  esTotal          Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  nota NotaEjercicio @relation(fields: [notaEjercicioId], references: [id], onDelete: Cascade)
+
+  @@map("detalles_nota")
+}
+
+// ─── Evolución del Patrimonio Neto ────────────────────────────────────────────
+// Una fila por tipo de movimiento (TipoMovimientoPN) por ejercicio.
+// Columnas = los 6 componentes del PN según el PDF + totalAnterior (comparativo).
+// Filas derivadas (saldo inicio modificado, saldo cierre) se calculan en la app.
+// El resultado del ejercicio se copia automáticamente desde el EERR.
+
+model EvolucionPNMovimiento {
+  id          String           @id @default(cuid())
+  ejercicioId String
+  tipo        TipoMovimientoPN
+  orden       Int
+
+  // Componentes del PN
+  capitalSuscripto    Decimal @default(0) @db.Decimal(18, 2)
+  ajusteCapital       Decimal @default(0) @db.Decimal(18, 2)
+  aportesIrrevocables Decimal @default(0) @db.Decimal(18, 2)
+  reservaLegal        Decimal @default(0) @db.Decimal(18, 2)
+  otrasReservas       Decimal @default(0) @db.Decimal(18, 2)
+  rdosNoAsignados     Decimal @default(0) @db.Decimal(18, 2)
+  // total = suma de columnas (calculado en app)
+
+  // Columna "Ejercicio Anterior" del comparativo
+  totalAnterior Decimal @default(0) @db.Decimal(18, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ejercicio EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
+
+  @@unique([ejercicioId, tipo])
+  @@map("evolucion_pn_movimientos")
+}
+
+// ─── Flujo de Efectivo ────────────────────────────────────────────────────────
+// Método directo. Un registro de cabecera por ejercicio con N ítems por sección.
+// El comparativo se guarda en importeAnterior de cada ítem porque las líneas
+// pueden variar año a año (ítems distintos, conceptos nuevos/eliminados).
+
+model FlujoDeCajaEjercicio {
+  id           String   @id @default(cuid())
+  ejercicioId  String   @unique
+  // Saldos de efectivo — bloque superior del estado (PDF página 6)
+  // efectivo inicio + modificaciones = efectivo modificado inicio
+  // efectivo cierre - efectivo modificado inicio = variación neta (calculada en app)
+  saldoInicial              Decimal @default(0) @db.Decimal(18, 2)
+  modificacionesEjAnt       Decimal @default(0) @db.Decimal(18, 2) // usualmente 0
+  saldoFinal                Decimal @default(0) @db.Decimal(18, 2)
+  // Comparativo
+  saldoInicialAnterior      Decimal @default(0) @db.Decimal(18, 2)
+  modificacionesEjAntAnt    Decimal @default(0) @db.Decimal(18, 2)
+  saldoFinalAnterior        Decimal @default(0) @db.Decimal(18, 2)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ejercicio EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
+  items     FlujoDeCajaItem[]
+
+  @@map("flujo_caja_ejercicio")
+}
+
+model FlujoDeCajaItem {
+  id              String       @id @default(cuid())
+  flujoId         String
+  seccion         SeccionFlujo
+  concepto        String
+  // Positivo = ingreso de efectivo, negativo = egreso
+  importe         Decimal      @default(0) @db.Decimal(18, 2)
+  importeAnterior Decimal      @default(0) @db.Decimal(18, 2)
+  esSubtotal      Boolean      @default(false)
+  orden           Int
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  flujo FlujoDeCajaEjercicio @relation(fields: [flujoId], references: [id], onDelete: Cascade)
+
+  @@map("flujo_caja_items")
+}
+
+// ─── Bienes de Uso ────────────────────────────────────────────────────────────
+// Una fila por categoría (Inmuebles, Rodados, Maquinaria, etc.).
+// El comparativo se deriva del mismo modelo del ejercicio anterior
+// (valor residual anterior = costoFin - depAcumFin del ejercicio previo).
+
+model BienDeUsoCategoria {
+  id          String   @id @default(cuid())
+  ejercicioId String
+  categoria   String   // Ej: "Inmuebles", "Rodados", "Muebles y Útiles"
+  orden       Int
+
+  // ── Costo reexpresado ──────────────────────────────────────────────────────
+  // Estructura exacta del Anexo I del PDF:
+  // inicio + ajusteInflación + altas - bajas = cierre
+  costoInicioReexpresado Decimal @default(0) @db.Decimal(18, 2)
+  costoAjusteInflacion   Decimal @default(0) @db.Decimal(18, 2) // REI sobre costo
+  altas                  Decimal @default(0) @db.Decimal(18, 2)
+  bajas                  Decimal @default(0) @db.Decimal(18, 2) // al costo
+  costoFinReexpresado    Decimal @default(0) @db.Decimal(18, 2)
+
+  // ── Depreciaciones acumuladas ──────────────────────────────────────────────
+  // inicio + ajusteInflación + delEjercicio - deBajas = cierre
+  depAcumInicio       Decimal @default(0) @db.Decimal(18, 2)
+  depAjusteInflacion  Decimal @default(0) @db.Decimal(18, 2) // REI sobre depreciaciones
+  depEjercicio        Decimal @default(0) @db.Decimal(18, 2) // cargo del período
+  depBajas            Decimal @default(0) @db.Decimal(18, 2) // dep. de bienes dados de baja
+  depAcumFin          Decimal @default(0) @db.Decimal(18, 2)
+
+  // Valor residual = costoFinReexpresado - depAcumFin (calculado en app)
+  // netoResidualAnteriorManual: se usa cuando no hay ejercicio anterior vinculado al sistema.
+  // Si hay ejercicio anterior, el comparativo se deriva automáticamente de ese registro.
+  netoResidualAnteriorManual Decimal? @db.Decimal(18, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ejercicio EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
+
+  @@unique([ejercicioId, categoria])
+  @@map("bienes_de_uso_categorias")
+}
+
+// ─── Costo de Ventas ──────────────────────────────────────────────────────────
+// Estructura fija: existencia inicial + compras + gastos fabricación - existencia final.
+// El comparativo se deriva del ejercicio anterior (mismo modelo, ejercicioAnteriorId).
+
+model CostoVentasEjercicio {
+  id          String   @id @default(cuid())
+  ejercicioId String   @unique
+
+  existenciaInicial  Decimal @default(0) @db.Decimal(18, 2)
+  compras            Decimal @default(0) @db.Decimal(18, 2)
+  gastosFabricacion  Decimal @default(0) @db.Decimal(18, 2) // solo empresas industriales
+  existenciaFinal    Decimal @default(0) @db.Decimal(18, 2)
+  // Total costo = existenciaInicial + compras + gastosFabricacion - existenciaFinal
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ejercicio EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
+
+  @@map("costo_ventas_ejercicio")
+}
+
+// ─── Gastos por Naturaleza ────────────────────────────────────────────────────
+
+// ─── Validaciones ─────────────────────────────────────────────────────────────
+
+model ErrorValidacion {
+  id          String              @id @default(cuid())
+  ejercicioId String
+  tipo        TipoValidacion
+  severidad   SeveridadValidacion
+  estado      EstadoValidacion    @default(ACTIVA)
+  mensaje     String
+  detalle     Json?
+  resueltaEn  DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  ejercicio EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
+
+  @@map("errores_validacion")
+}
+
+// ─── Errores técnicos ─────────────────────────────────────────────────────────
+
+model ErrorTecnicoLog {
+  id        String           @id @default(cuid())
+  tipo      TipoErrorTecnico
+  severidad SeveridadError
+  modulo    ModuloSistema?
+  mensaje   String
+  stack     String?
+  stackHash String?
+  contexto  Json?
+  resuelta  Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([stackHash])
+  @@index([tipo, severidad])
+  @@map("errores_tecnicos_log")
+}
+
+// ─── Comparativo manual ───────────────────────────────────────────────────────
+// Almacena los valores comparativos del ejercicio anterior cuando no se dispone
+// del balance importado. Un registro por módulo + clave (sección o rubroBaseId).
+
+model ComparativoManual {
+  id          String            @id @default(cuid())
+  ejercicioId String
+  modulo      String            // 'SSP' | 'EERR' | 'GASTOS' | 'BDU'
+  clave       String            // seccion key, rubroBaseId, o nombre de categoría
+  label       String            // nombre para mostrar (clave legible)
+  valor       Float
+  esHuerfano  Boolean           @default(false) // true = no existe en el ejercicio actual
+  orden       Int               @default(0)
+
+  ejercicio   EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
+
+  @@unique([ejercicioId, modulo, clave])
+  @@map("comparativo_manual")
+}
+
+// ─── Documentos sugeridos (anexos / notas dinámicos) ──────────────────────────
+// Estado por ejercicio de cada anexo/nota. El catálogo de REGLAS vive en código
+// (modules/documentos/domain/reglas.ts). Acá solo se persiste la DECISIÓN del
+// contador. Un documento "sugerido" no genera fila: solo existe fila cuando hay
+// una decisión explícita (aceptar / descartar / no aplica / manual).
+
+enum TipoDocumento {
+  ANEXO
+  NOTA
+}
+
+enum EstadoDocumento {
+  SUGERIDO
+  ACEPTADO
+  DESCARTADO
+  NO_APLICA
+}
+
+enum OrigenDocumento {
+  AUTOMATICO
+  MANUAL
+}
+
+model DocumentoEjercicio {
+  id             String          @id @default(cuid())
+  ejercicioId    String
+  reglaClave     String?         // null = documento agregado manualmente
+  tipo           TipoDocumento
+  titulo         String
+  estado         EstadoDocumento @default(SUGERIDO)
+  origen         OrigenDocumento @default(AUTOMATICO)
+  saldoAlAceptar Float? // foto del saldo al aceptar — para detectar saldo 0 posterior
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  ejercicio EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
+
+  @@unique([ejercicioId, reglaClave])
+  @@map("documentos_ejercicio")
+}
+
+// Config por sección legacy de gastos (las que no tienen RubroGrupo)
+// Permite controlar aparecEnEERR y orden igual que los grupos custom.
+model GastoSeccionConfig {
+  clave        String  @id   // ej: "legacy:GASTOS_ADM"
+  aparecEnEERR Boolean @default(true)
+  orden        Int     @default(9999)
+
+  @@map("gasto_seccion_config")
+}
