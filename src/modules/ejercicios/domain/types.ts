@@ -1,4 +1,10 @@
-import type { EjercicioContable, EstadoEjercicio, AdopcionRT54, CriteriosBienesCambio, NivelComparativoSSP } from '@prisma/client'
+import type {
+  EjercicioContable,
+  EstadoEjercicio,
+  AdopcionRT54,
+  CriteriosBienesCambio,
+  NivelComparativoSSP,
+} from '@prisma/client'
 
 export type EjercicioContableDTO = {
   id: string
@@ -37,7 +43,10 @@ export const ESTADO_LABELS: Record<EstadoEjercicio, string> = {
   CERRADO: 'Cerrado',
 }
 
-export const ESTADO_BADGE_VARIANTS: Record<EstadoEjercicio, 'borrador' | 'proceso' | 'revision' | 'cerrado'> = {
+export const ESTADO_BADGE_VARIANTS: Record<
+  EstadoEjercicio,
+  'borrador' | 'proceso' | 'revision' | 'cerrado'
+> = {
   BORRADOR: 'borrador',
   EN_PROCESO: 'proceso',
   REVISION: 'revision',
@@ -70,7 +79,8 @@ export function toEjercicioDTO(e: WithAuditor): EjercicioContableDTO {
     denominacion: e.denominacion,
     estado: e.estado,
     clasificacionEntidad: e.clasificacionEntidad,
-    indiceInflacionAnterior: e.indiceInflacionAnterior != null ? Number(e.indiceInflacionAnterior) : null,
+    indiceInflacionAnterior:
+      e.indiceInflacionAnterior != null ? Number(e.indiceInflacionAnterior) : null,
     indiceInflacionActual: e.indiceInflacionActual != null ? Number(e.indiceInflacionActual) : null,
     adopcionRT54: e.adopcionRT54,
     criteriosBienesCambio: e.criteriosBienesCambio,

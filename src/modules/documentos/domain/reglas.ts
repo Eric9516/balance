@@ -81,7 +81,14 @@ export const REGLAS: ReglaDoc[] = [
     clave: 'ANEXO_GASTOS',
     tipo: 'ANEXO',
     titulo: 'Anexo de Gastos',
-    rubros: ['EERR-GADM-01', 'EERR-GCOM-01', 'EERR-GBAN-01', 'EERR-IICC-01', 'EERR-GOP-01', 'EERR-GVC-01'],
+    rubros: [
+      'EERR-GADM-01',
+      'EERR-GCOM-01',
+      'EERR-GBAN-01',
+      'EERR-IICC-01',
+      'EERR-GOP-01',
+      'EERR-GVC-01',
+    ],
   },
   {
     // Previsiones también va como NOTA en este estudio (autogenerada en "Notas").

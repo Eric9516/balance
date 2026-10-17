@@ -18,6 +18,8 @@ export async function confirmarEstadosAction(
     revalidatePath(`/sociedades/${sociedadId}/ejercicios/${ejercicioId}/cuentas`)
     return actionOk(undefined)
   } catch (error) {
-    return actionError(errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'confirmar_estados' }))
+    return actionError(
+      errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'confirmar_estados' }),
+    )
   }
 }

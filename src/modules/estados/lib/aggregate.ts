@@ -169,16 +169,14 @@ export function buildEstadosData(
       if (!esBienesCambio(r.nombre)) return r
       return {
         ...r,
-        displayValue:    costoVentas    ? costoVentas.existenciaFinal    : r.displayValue,
+        displayValue: costoVentas ? costoVentas.existenciaFinal : r.displayValue,
         displayValueAnt: costoVentasAnt ? costoVentasAnt.existenciaFinal : r.displayValueAnt,
       }
     })
 
   // ── EERR por rubro (para Ingresos, RF, IG) ─────────────────────────────────
   const eerrFilasMap = new Map(
-    todasFilas
-      .filter((r) => r.estadoDestino === 'EERR')
-      .map((r) => [r.id, r]),
+    todasFilas.filter((r) => r.estadoDestino === 'EERR').map((r) => [r.id, r]),
   )
 
   // Fuente de datos para cada sección
@@ -198,16 +196,13 @@ export function buildEstadosData(
     .flatMap((r) => r.cuentas)
 
   // Nota numbers para ingresos y costo ventas
-  const notaIngresosNum = todasFilas
-    .find((r) => r.seccionEERR === 'INGRESOS')
-    ?.notaNumero ?? null
+  const notaIngresosNum = todasFilas.find((r) => r.seccionEERR === 'INGRESOS')?.notaNumero ?? null
 
-  const notaCostoVentasNum = todasFilas
-    .find((r) => r.seccionEERR === 'COSTO_VENTAS')
-    ?.notaNumero ?? null
+  const notaCostoVentasNum =
+    todasFilas.find((r) => r.seccionEERR === 'COSTO_VENTAS')?.notaNumero ?? null
 
   // Costo ventas: Anexo II si existe, sino de cuentas
-  const usaAnexoCosto = !!(costoVentas)
+  const usaAnexoCosto = !!costoVentas
   const costoVal = usaAnexoCosto
     ? calcularCostoTotal(costoVentas!)
     : sumEerr(eerrFilasMap, 'COSTO_VENTAS')
@@ -220,15 +215,16 @@ export function buildEstadosData(
   // Solo las secciones marcadas como aparecEnEERR=true aparecen como líneas en el EERR.
   // Las secciones con aparecEnEERR=false (ej: gastos vinculados al costo) van al Anexo III
   // pero no se deducen en el EERR porque ya están capturadas en el Costo de Ventas (Anexo II).
-  const seccionesGasto: import('../domain/types').GastoSeccionEERR[] =
-    (gastosDinamicos?.secciones ?? [])
-      .filter((s) => s.aparecEnEERR)
-      .map((s) => ({
-        key: s.key,
-        nombre: s.grupoNombre,
-        total: s.total,
-        totalAnt: s.totalAnterior,
-      }))
+  const seccionesGasto: import('../domain/types').GastoSeccionEERR[] = (
+    gastosDinamicos?.secciones ?? []
+  )
+    .filter((s) => s.aparecEnEERR)
+    .map((s) => ({
+      key: s.key,
+      nombre: s.grupoNombre,
+      total: s.total,
+      totalAnt: s.totalAnterior,
+    }))
 
   const usaAnexoGastos = seccionesGasto.length > 0
   const totalGastos = seccionesGasto.reduce((acc, s) => acc + s.total, 0)

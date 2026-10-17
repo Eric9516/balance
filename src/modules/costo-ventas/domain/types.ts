@@ -5,7 +5,7 @@ export type CostoVentasDTO = {
   ejercicioId: string
   existenciaInicial: number
   compras: number
-  gastosFabricacion: number   // "Gastos del ejercicio" en el PDF — cero para empresas comerciales
+  gastosFabricacion: number // "Gastos del ejercicio" en el PDF — cero para empresas comerciales
   existenciaFinal: number
   // costoTotal = existenciaInicial + compras + gastosFabricacion − existenciaFinal (calculado)
 }

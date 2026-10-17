@@ -4,7 +4,10 @@
  */
 
 import type { EstadosData, EERRData, RubroFila } from '@/modules/estados/domain/types'
-import type { GastosSecciones, GastoSeccion } from '@/modules/gastos/repository/gastos-dinamico.repository'
+import type {
+  GastosSecciones,
+  GastoSeccion,
+} from '@/modules/gastos/repository/gastos-dinamico.repository'
 import type { CostoVentasDTO } from '@/modules/costo-ventas/domain/types'
 import { parsSeccionDeClaveHuerfano, type ComparativoManualDTO } from '../domain/types'
 

@@ -17,9 +17,7 @@ const EJERCICIOS_INFO: StepInfo = {
     'Datos del ejercicio: fechas de inicio y cierre, número de ejercicio, auditor asignado.',
     'Vínculo al ejercicio anterior (opcional): habilita la columna comparativa reexpresada por inflación en todos los estados y anexos.',
   ],
-  formulas: [
-    'No aplica — esta pantalla es de gestión, no realiza cálculos contables.',
-  ],
+  formulas: ['No aplica — esta pantalla es de gestión, no realiza cálculos contables.'],
   notes: [
     'Vinculá cada ejercicio al anterior desde "Editar" para que los estados muestren columna comparativa.',
     'Una vez vinculados, los ejercicios aparecen conectados visualmente en esta lista.',
@@ -53,7 +51,7 @@ export default async function EjerciciosPage({ params }: Props) {
             <StepInfoButton info={EJERCICIOS_INFO} />
             <Button variant="secondary" size="sm" asChild>
               <Link href="/sociedades">
-                <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                <ChevronLeft className="mr-1 h-3.5 w-3.5" />
                 Clientes
               </Link>
             </Button>

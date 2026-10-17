@@ -22,7 +22,7 @@ function CeldaBDU({
   tdClassName?: string
 }) {
   return (
-    <td className={cn('px-2 py-1 w-36', calc && 'bg-slate-50', tdClassName)}>
+    <td className={cn('w-36 px-2 py-1', calc && 'bg-slate-50', tdClassName)}>
       <CeldaNumero
         value={value}
         editando={editando}
@@ -57,18 +57,22 @@ export function FilaCategoria({
   const { costoFinReexpresado, depAcumFin, netoResidual } = calcularCierre(bien)
 
   return (
-    <tr className={cn(
-      'border-b border-slate-100 group transition-colors',
-      editando ? 'bg-blue-50/20' : 'hover:bg-blue-50/10',
-    )}>
+    <tr
+      className={cn(
+        'group border-b border-slate-100 transition-colors',
+        editando ? 'bg-blue-50/20' : 'hover:bg-blue-50/10',
+      )}
+    >
       {/* Denominación */}
-      <td className="px-3 py-1 min-w-[180px] sticky left-0 z-10 bg-white">
+      <td className="sticky left-0 z-10 min-w-[180px] bg-white px-3 py-1">
         {editando ? (
           <input
             type="text"
             defaultValue={bien.categoria}
-            onBlur={(e) => { if (e.target.value !== bien.categoria) onGuardarCategoria(e.target.value) }}
-            className="w-full text-xs text-slate-900 font-medium bg-white border border-blue-200 focus:border-blue-500 rounded px-2 py-0.5 focus:outline-none"
+            onBlur={(e) => {
+              if (e.target.value !== bien.categoria) onGuardarCategoria(e.target.value)
+            }}
+            className="w-full rounded border border-blue-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-900 focus:border-blue-500 focus:outline-none"
           />
         ) : (
           <span className="text-xs font-medium text-slate-800">{bien.categoria}</span>
@@ -76,29 +80,59 @@ export function FilaCategoria({
       </td>
 
       {/* VALOR DE ORIGEN — Inicio | Aj. Inflación | Aumentos | Disminuciones | Cierre */}
-      <CeldaBDU value={bien.costoInicioReexpresado} editando={editando} onSave={(v) => onGuardarCampo('costoInicioReexpresado', v)} />
-      <CeldaBDU value={bien.costoAjusteInflacion} editando={editando} onSave={(v) => onGuardarCampo('costoAjusteInflacion', v)} />
+      <CeldaBDU
+        value={bien.costoInicioReexpresado}
+        editando={editando}
+        onSave={(v) => onGuardarCampo('costoInicioReexpresado', v)}
+      />
+      <CeldaBDU
+        value={bien.costoAjusteInflacion}
+        editando={editando}
+        onSave={(v) => onGuardarCampo('costoAjusteInflacion', v)}
+      />
       <CeldaBDU value={bien.altas} editando={editando} onSave={(v) => onGuardarCampo('altas', v)} />
-      <CeldaBDU value={bien.bajas} editando={editando} onSave={(v) => onGuardarCampo('bajas', v)} negativo />
+      <CeldaBDU
+        value={bien.bajas}
+        editando={editando}
+        onSave={(v) => onGuardarCampo('bajas', v)}
+        negativo
+      />
       <CeldaBDU value={costoFinReexpresado} calc />
 
       {/* AMORTIZACIONES — Inicio | Aj. Inflación | Baja | del ejercicio | Cierre */}
-      <CeldaBDU value={bien.depAcumInicio} editando={editando} onSave={(v) => onGuardarCampo('depAcumInicio', v)} />
-      <CeldaBDU value={bien.depAjusteInflacion} editando={editando} onSave={(v) => onGuardarCampo('depAjusteInflacion', v)} />
-      <CeldaBDU value={bien.depBajas} editando={editando} onSave={(v) => onGuardarCampo('depBajas', v)} negativo />
-      <CeldaBDU value={bien.depEjercicio} editando={editando} onSave={(v) => onGuardarCampo('depEjercicio', v)} />
+      <CeldaBDU
+        value={bien.depAcumInicio}
+        editando={editando}
+        onSave={(v) => onGuardarCampo('depAcumInicio', v)}
+      />
+      <CeldaBDU
+        value={bien.depAjusteInflacion}
+        editando={editando}
+        onSave={(v) => onGuardarCampo('depAjusteInflacion', v)}
+      />
+      <CeldaBDU
+        value={bien.depBajas}
+        editando={editando}
+        onSave={(v) => onGuardarCampo('depBajas', v)}
+        negativo
+      />
+      <CeldaBDU
+        value={bien.depEjercicio}
+        editando={editando}
+        onSave={(v) => onGuardarCampo('depEjercicio', v)}
+      />
       <CeldaBDU value={depAcumFin} calc />
 
       {/* NETO RESIDUAL */}
       <CeldaBDU value={netoResidual} calc />
       {netoAnterior !== null ? (
         // Viene del ejercicio anterior vinculado → solo lectura
-        <td className="px-2 py-1.5 text-right font-mono text-xs tabular-nums text-slate-500 w-36 bg-slate-50">
+        <td className="w-36 bg-slate-50 px-2 py-1.5 text-right font-mono text-xs text-slate-500 tabular-nums">
           {formatCurrency(netoAnterior, { decimales: 2 })}
         </td>
       ) : (
         // Carga manual del neto anterior (mismo control que el resto)
-        <td className="px-2 py-1 w-36">
+        <td className="w-36 px-2 py-1">
           <CeldaNumero
             value={bien.netoResidualAnteriorManual ?? 0}
             editando={editando}
@@ -109,11 +143,11 @@ export function FilaCategoria({
       )}
 
       {/* Acciones */}
-      <td className="px-2 py-1 w-20 text-center">
+      <td className="w-20 px-2 py-1 text-center">
         <button
           onClick={onDelete}
           title="Eliminar categoría"
-          className="text-slate-300 hover:text-red-500 transition-colors p-0.5 opacity-0 group-hover:opacity-100"
+          className="p-0.5 text-slate-300 opacity-0 transition-colors group-hover:opacity-100 hover:text-red-500"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -144,14 +178,14 @@ export function FilaTotal({
     : bienes.reduce((a, b) => a + (b.netoResidualAnteriorManual ?? 0), 0)
 
   const cell = (v: number) => (
-    <td className="px-2 py-2 text-right font-mono text-xs font-bold tabular-nums text-slate-900 w-36">
+    <td className="w-36 px-2 py-2 text-right font-mono text-xs font-bold text-slate-900 tabular-nums">
       {formatCurrency(v, { decimales: 2 })}
     </td>
   )
 
   return (
     <tr className="border-t-2 border-slate-300 bg-slate-50">
-      <td className="px-3 py-2 text-xs font-bold text-slate-900 sticky left-0 bg-slate-50 z-10">
+      <td className="sticky left-0 z-10 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-900">
         TOTALES
       </td>
       {cell(sum('costoInicioReexpresado'))}
@@ -165,8 +199,8 @@ export function FilaTotal({
       {cell(sum('depEjercicio'))}
       {cell(totDepFin)}
       {cell(totNetoActual)}
-      <td className="px-2 py-2 text-right font-mono text-xs font-bold tabular-nums text-slate-700 w-36">
-        {(netoAnteriorMap.size > 0 || bienes.some((b) => b.netoResidualAnteriorManual != null))
+      <td className="w-36 px-2 py-2 text-right font-mono text-xs font-bold text-slate-700 tabular-nums">
+        {netoAnteriorMap.size > 0 || bienes.some((b) => b.netoResidualAnteriorManual != null)
           ? formatCurrency(totNetoAnterior, { decimales: 2 })
           : '—'}
       </td>

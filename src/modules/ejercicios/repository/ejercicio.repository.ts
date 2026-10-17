@@ -39,13 +39,14 @@ function buildData(input: CreateEjercicioInput) {
     indiceInflacionActual: parseOptionalDecimal(input.indiceInflacionActual),
     // Se guarda independientemente de si hay ejercicio anterior vinculado o no
     balanceAnteriorDisponible: input.balanceAnteriorDisponible ?? true,
-    nivelComparativoSSP: input.balanceAnteriorDisponible === false
-      ? (input.nivelComparativoSSP ?? 'SECCION')
-      : null,
+    nivelComparativoSSP:
+      input.balanceAnteriorDisponible === false ? (input.nivelComparativoSSP ?? 'SECCION') : null,
   }
 }
 
-export async function findEjerciciosBySociedad(sociedadId: string): Promise<EjercicioContableDTO[]> {
+export async function findEjerciciosBySociedad(
+  sociedadId: string,
+): Promise<EjercicioContableDTO[]> {
   const rows = await db.ejercicioContable.findMany({
     where: { sociedadId },
     include: { auditor: auditorSelect },

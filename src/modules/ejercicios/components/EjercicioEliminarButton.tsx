@@ -32,12 +32,7 @@ export function EjercicioEliminarButton({ id, sociedadId }: EjercicioEliminarBut
   }
 
   return (
-    <Button
-      variant="destructive"
-      size="sm"
-      onClick={handleClick}
-      disabled={isPending}
-    >
+    <Button variant="destructive" size="sm" onClick={handleClick} disabled={isPending}>
       {isPending ? '...' : confirmed ? '¿Confirmar?' : 'Eliminar'}
     </Button>
   )

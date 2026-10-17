@@ -28,7 +28,12 @@ export async function guardarLoteBienes(
         depEjercicio: b.depEjercicio,
       })
       if (!campos.ok) return campos
-      return actualizarNetoAnteriorManualAction(b.id, ejercicioId, sociedadId, b.netoResidualAnteriorManual)
+      return actualizarNetoAnteriorManualAction(
+        b.id,
+        ejercicioId,
+        sociedadId,
+        b.netoResidualAnteriorManual,
+      )
     }),
   )
   const fallo = resultados.find((r) => !r.ok)

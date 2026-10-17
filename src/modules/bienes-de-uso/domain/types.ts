@@ -10,13 +10,13 @@ export type BienDeUsoDTO = {
   costoAjusteInflacion: number
   altas: number
   bajas: number
-  costoFinReexpresado: number   // calculado: inicio + ajuste + altas − bajas
+  costoFinReexpresado: number // calculado: inicio + ajuste + altas − bajas
   // ── DEPRECIACIONES ACUMULADAS ─────────────────────────────────────────────────
   depAcumInicio: number
   depAjusteInflacion: number
   depEjercicio: number
   depBajas: number
-  depAcumFin: number            // calculado: inicio + ajuste + ejercicio − bajas
+  depAcumFin: number // calculado: inicio + ajuste + ejercicio − bajas
   // ── NETO RESIDUAL ─────────────────────────────────────────────────────────────
   // netoResidual = costoFinReexpresado − depAcumFin  (calculado en app)
   // netoResidualAnteriorManual: ingreso manual cuando no hay ejercicio anterior en sistema
@@ -39,12 +39,23 @@ export function toBienDeUsoDTO(b: BienDeUsoCategoria): BienDeUsoDTO {
     depEjercicio: Number(b.depEjercicio),
     depBajas: Number(b.depBajas),
     depAcumFin: Number(b.depAcumFin),
-    netoResidualAnteriorManual: b.netoResidualAnteriorManual !== null ? Number(b.netoResidualAnteriorManual) : null,
+    netoResidualAnteriorManual:
+      b.netoResidualAnteriorManual !== null ? Number(b.netoResidualAnteriorManual) : null,
   }
 }
 
 // Calcula los campos derivados según la fórmula del PDF
-export function calcularCierre(b: Omit<BienDeUsoDTO, 'id' | 'ejercicioId' | 'orden' | 'costoFinReexpresado' | 'depAcumFin' | 'netoResidualAnteriorManual'>) {
+export function calcularCierre(
+  b: Omit<
+    BienDeUsoDTO,
+    | 'id'
+    | 'ejercicioId'
+    | 'orden'
+    | 'costoFinReexpresado'
+    | 'depAcumFin'
+    | 'netoResidualAnteriorManual'
+  >,
+) {
   const costoFin = b.costoInicioReexpresado + b.costoAjusteInflacion + b.altas - b.bajas
   const depFin = b.depAcumInicio + b.depAjusteInflacion + b.depEjercicio - b.depBajas
   return {

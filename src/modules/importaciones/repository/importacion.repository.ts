@@ -31,4 +31,3 @@ export async function updateImportacion(
 ): Promise<void> {
   await db.importacionExcel.update({ where: { id }, data })
 }
-

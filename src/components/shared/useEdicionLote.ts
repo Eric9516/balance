@@ -37,7 +37,9 @@ export function useEdicionLote<T>(
   }
 
   function actualizar(updater: T | ((prev: T) => T)) {
-    setBorrador((prev) => (typeof updater === 'function' ? (updater as (prev: T) => T)(prev) : updater))
+    setBorrador((prev) =>
+      typeof updater === 'function' ? (updater as (prev: T) => T)(prev) : updater,
+    )
   }
 
   function confirmar() {

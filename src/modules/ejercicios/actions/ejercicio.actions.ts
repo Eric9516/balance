@@ -72,7 +72,12 @@ export async function actualizarEjercicio(
     }
     const existing = await findEjercicioById(id)
     if (!existing) {
-      return actionError({ tipo: 'TECNICO', severidad: 'ALTO', codigo: 'TECH-002', mensaje: 'Ejercicio no encontrado' })
+      return actionError({
+        tipo: 'TECNICO',
+        severidad: 'ALTO',
+        codigo: 'TECH-002',
+        mensaje: 'Ejercicio no encontrado',
+      })
     }
     const ejercicio = await updateEjercicio(id, parsed.data)
     revalidatePath(`/sociedades/${sociedadId}/ejercicios`)
@@ -113,7 +118,12 @@ export async function eliminarEjercicio(
   try {
     const existing = await findEjercicioById(id)
     if (!existing) {
-      return actionError({ tipo: 'TECNICO', severidad: 'ALTO', codigo: 'TECH-002', mensaje: 'Ejercicio no encontrado' })
+      return actionError({
+        tipo: 'TECNICO',
+        severidad: 'ALTO',
+        codigo: 'TECH-002',
+        mensaje: 'Ejercicio no encontrado',
+      })
     }
     if (existing.estado !== 'BORRADOR') {
       return actionError({

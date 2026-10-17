@@ -11,7 +11,12 @@ import {
 
 type ColumnasPN = Pick<
   EvolucionPNMovimientoDTO,
-  'capitalSuscripto' | 'ajusteCapital' | 'aportesIrrevocables' | 'reservaLegal' | 'otrasReservas' | 'rdosNoAsignados'
+  | 'capitalSuscripto'
+  | 'ajusteCapital'
+  | 'aportesIrrevocables'
+  | 'reservaLegal'
+  | 'otrasReservas'
+  | 'rdosNoAsignados'
 >
 
 export type EvolucionPNDefaults = {
@@ -39,7 +44,11 @@ function sumarColumnas(acc: ColumnasPN, mov: ColumnasPN): ColumnasPN {
   }
 }
 
-function emptyMovimiento(ejercicioId: string, tipo: TipoMovimientoPN, orden: number): EvolucionPNMovimientoDTO {
+function emptyMovimiento(
+  ejercicioId: string,
+  tipo: TipoMovimientoPN,
+  orden: number,
+): EvolucionPNMovimientoDTO {
   return {
     id: '',
     ejercicioId,
@@ -69,12 +78,13 @@ function emptyMovimientoConDefaults(
   }
 }
 
-function withResultado(movimientos: EvolucionPNMovimientoDTO[], resultadoEjercicio: number): EvolucionPNMovimientoDTO[] {
-  return movimientos.map((mov) => (
-    mov.tipo === 'RESULTADO_EJERCICIO'
-      ? { ...mov, rdosNoAsignados: resultadoEjercicio }
-      : mov
-  ))
+function withResultado(
+  movimientos: EvolucionPNMovimientoDTO[],
+  resultadoEjercicio: number,
+): EvolucionPNMovimientoDTO[] {
+  return movimientos.map((mov) =>
+    mov.tipo === 'RESULTADO_EJERCICIO' ? { ...mov, rdosNoAsignados: resultadoEjercicio } : mov,
+  )
 }
 
 export async function findEvolucionPN(
@@ -89,7 +99,11 @@ export async function findEvolucionPN(
 
   const byTipo = new Map(rows.map((row) => [row.tipo, toEvolucionPNMovimientoDTO(row)]))
   const movimientos = withResultado(
-    PN_MOVIMIENTOS.map((base) => byTipo.get(base.tipo) ?? emptyMovimientoConDefaults(ejercicioId, base.tipo, base.orden, defaults)),
+    PN_MOVIMIENTOS.map(
+      (base) =>
+        byTipo.get(base.tipo) ??
+        emptyMovimientoConDefaults(ejercicioId, base.tipo, base.orden, defaults),
+    ),
     resultadoEjercicio,
   )
   const totalActual = movimientos.reduce((acc, mov) => acc + totalMovimientoPN(mov), 0)

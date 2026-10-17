@@ -44,14 +44,12 @@ export function AuditorTable({ auditores }: AuditorTableProps) {
     <>
       {/* Toggle inactivos */}
       {inactivos.length > 0 && (
-        <div className="flex justify-end mb-3">
+        <div className="mb-3 flex justify-end">
           <button
             onClick={() => setShowInactive((v) => !v)}
-            className="text-xs text-slate-500 hover:text-slate-700 underline underline-offset-2 transition-colors"
+            className="text-xs text-slate-500 underline underline-offset-2 transition-colors hover:text-slate-700"
           >
-            {showInactive
-              ? 'Ocultar inactivos'
-              : `Mostrar inactivos (${inactivos.length})`}
+            {showInactive ? 'Ocultar inactivos' : `Mostrar inactivos (${inactivos.length})`}
           </button>
         </div>
       )}
@@ -68,16 +66,16 @@ export function AuditorTable({ auditores }: AuditorTableProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Nombre
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Título / Consejo
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Matrícula
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Estado
                 </th>
                 <th className="px-4 py-3" />
@@ -87,7 +85,7 @@ export function AuditorTable({ auditores }: AuditorTableProps) {
               {visibles.map((a) => (
                 <tr
                   key={a.id}
-                  className={`border-b border-slate-100 last:border-0 transition-colors ${
+                  className={`border-b border-slate-100 transition-colors last:border-0 ${
                     a.activo ? 'hover:bg-slate-50' : 'bg-slate-50/60 opacity-60'
                   }`}
                 >
@@ -102,7 +100,7 @@ export function AuditorTable({ auditores }: AuditorTableProps) {
                       {a.tituloProfesional ?? <span className="text-slate-400">—</span>}
                     </div>
                     {a.consejoProfesional && (
-                      <p className="text-xs text-slate-400 mt-0.5">{a.consejoProfesional}</p>
+                      <p className="mt-0.5 text-xs text-slate-400">{a.consejoProfesional}</p>
                     )}
                   </td>
                   <td className="px-4 py-3 text-slate-600">
@@ -117,7 +115,7 @@ export function AuditorTable({ auditores }: AuditorTableProps) {
                     <div className="flex items-center justify-end gap-2">
                       <Button variant="ghost" size="sm" asChild>
                         <Link href={`/auditores/${a.id}/editar`}>
-                          <Pencil className="h-3.5 w-3.5 mr-1" />
+                          <Pencil className="mr-1 h-3.5 w-3.5" />
                           Editar
                         </Link>
                       </Button>

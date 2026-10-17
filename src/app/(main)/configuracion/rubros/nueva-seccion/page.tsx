@@ -10,7 +10,7 @@ export default function NuevaSeccionPage() {
         title="Nueva sección"
         description="Las secciones agrupan las clasificaciones en la tabla y en el dropdown."
       />
-      <div className="px-8 py-6 flex justify-center">
+      <div className="flex justify-center px-8 py-6">
         <RubroGrupoForm />
       </div>
     </div>

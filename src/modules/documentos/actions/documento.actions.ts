@@ -35,12 +35,18 @@ export async function aceptarDocumentoAction(
   try {
     const regla = REGLA_POR_CLAVE.get(reglaClave)
     if (!regla) {
-      return actionError(errorHandler(new Error(`Regla desconocida: ${reglaClave}`), ctxErr('aceptar')))
+      return actionError(
+        errorHandler(new Error(`Regla desconocida: ${reglaClave}`), ctxErr('aceptar')),
+      )
     }
     const saldoAlAceptar = await saldoDeRegla(ejercicioId, reglaClave)
     const row = await upsertDecisionRegla({
-      ejercicioId, reglaClave, tipo: regla.tipo, titulo: regla.titulo,
-      estado: 'ACEPTADO', saldoAlAceptar,
+      ejercicioId,
+      reglaClave,
+      tipo: regla.tipo,
+      titulo: regla.titulo,
+      estado: 'ACEPTADO',
+      saldoAlAceptar,
     })
     revalidate(sociedadId, ejercicioId)
     return actionOk(row)
@@ -78,7 +84,11 @@ async function setEstadoRegla(
       return actionError(errorHandler(new Error(`Regla desconocida: ${reglaClave}`), ctxErr(op)))
     }
     const row = await upsertDecisionRegla({
-      ejercicioId, reglaClave, tipo: regla.tipo, titulo: regla.titulo, estado,
+      ejercicioId,
+      reglaClave,
+      tipo: regla.tipo,
+      titulo: regla.titulo,
+      estado,
     })
     revalidate(sociedadId, ejercicioId)
     return actionOk(row)
@@ -110,7 +120,9 @@ export async function agregarDocumentoManualAction(
 ): Promise<ActionResult<DocumentoEjercicioDTO>> {
   try {
     if (!titulo.trim()) {
-      return actionError(errorHandler(new Error('El título es obligatorio'), ctxErr('agregar_manual')))
+      return actionError(
+        errorHandler(new Error('El título es obligatorio'), ctxErr('agregar_manual')),
+      )
     }
     const row = await createDocumentoManual({ ejercicioId, tipo, titulo: titulo.trim() })
     revalidate(sociedadId, ejercicioId)

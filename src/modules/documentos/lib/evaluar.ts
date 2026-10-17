@@ -34,28 +34,39 @@ const EPSILON = 0.005
  */
 export async function evaluarDocumentos(ejercicioId: string): Promise<DocumentoEvaluado[]> {
   const ejercicioAnteriorId = await getEjercicioAnteriorId(ejercicioId)
-  const [saldos, nombres, costoVentasCargado, hayME, decididosList, titulosNotas, aceptadasAnterior] =
-    await Promise.all([
-      saldoPorCodigoRubro(ejercicioId),
-      nombrePorCodigoRubro(),
-      existeCostoVentas(ejercicioId),
-      hayCuentasEnMonedaExtranjera(ejercicioId),
-      findDocumentosByEjercicio(ejercicioId),
-      findTitulosNotas(ejercicioId),
-      ejercicioAnteriorId
-        ? findReglasAceptadasAnterior(ejercicioAnteriorId)
-        : Promise.resolve(new Set<string>()),
-    ])
+  const [
+    saldos,
+    nombres,
+    costoVentasCargado,
+    hayME,
+    decididosList,
+    titulosNotas,
+    aceptadasAnterior,
+  ] = await Promise.all([
+    saldoPorCodigoRubro(ejercicioId),
+    nombrePorCodigoRubro(),
+    existeCostoVentas(ejercicioId),
+    hayCuentasEnMonedaExtranjera(ejercicioId),
+    findDocumentosByEjercicio(ejercicioId),
+    findTitulosNotas(ejercicioId),
+    ejercicioAnteriorId
+      ? findReglasAceptadasAnterior(ejercicioAnteriorId)
+      : Promise.resolve(new Set<string>()),
+  ])
 
   const tiene = (cod: string) => Math.abs(saldos.get(cod) ?? 0) > EPSILON
   const ctx: EvalCtx = { saldos, tiene, costoVentasCargado, hayMonedaExtranjera: hayME }
 
-  const decididos = new Map(decididosList.filter((d) => d.reglaClave).map((d) => [d.reglaClave!, d]))
+  const decididos = new Map(
+    decididosList.filter((d) => d.reglaClave).map((d) => [d.reglaClave!, d]),
+  )
 
   const motivoDe = (rubros: string[]): MotivoRubro[] =>
-    rubros
-      .filter(tiene)
-      .map((codigo) => ({ codigo, nombre: nombres.get(codigo) ?? codigo, saldo: saldos.get(codigo) ?? 0 }))
+    rubros.filter(tiene).map((codigo) => ({
+      codigo,
+      nombre: nombres.get(codigo) ?? codigo,
+      saldo: saldos.get(codigo) ?? 0,
+    }))
 
   // ── 1. Reglas del catálogo ──────────────────────────────────────────────────
   const desdeReglas: DocumentoEvaluado[] = []

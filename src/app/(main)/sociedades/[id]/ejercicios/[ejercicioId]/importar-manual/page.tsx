@@ -34,7 +34,7 @@ export default async function ImportarManualPage({ params }: Props) {
         action={
           <Button variant="secondary" size="sm" asChild>
             <Link href={`/sociedades/${id}/ejercicios/${ejercicioId}/importar`}>
-              <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" />
+              <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
               Importar desde Excel
             </Link>
           </Button>

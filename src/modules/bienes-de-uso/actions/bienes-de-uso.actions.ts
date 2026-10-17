@@ -29,7 +29,9 @@ export async function crearBienDeUsoAction(
     revalPath(sociedadId, ejercicioId)
     return actionOk(row)
   } catch (error) {
-    return actionError(errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'crear_bien_de_uso' }))
+    return actionError(
+      errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'crear_bien_de_uso' }),
+    )
   }
 }
 
@@ -54,7 +56,9 @@ export async function actualizarBienDeUsoAction(
     revalPath(sociedadId, ejercicioId)
     return actionOk(row)
   } catch (error) {
-    return actionError(errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'actualizar_bien_de_uso' }))
+    return actionError(
+      errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'actualizar_bien_de_uso' }),
+    )
   }
 }
 
@@ -69,7 +73,9 @@ export async function actualizarNetoAnteriorManualAction(
     revalPath(sociedadId, ejercicioId)
     return actionOk(row)
   } catch (error) {
-    return actionError(errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'actualizar_neto_anterior' }))
+    return actionError(
+      errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'actualizar_neto_anterior' }),
+    )
   }
 }
 
@@ -83,6 +89,8 @@ export async function eliminarBienDeUsoAction(
     revalPath(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {
-    return actionError(errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'eliminar_bien_de_uso' }))
+    return actionError(
+      errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'eliminar_bien_de_uso' }),
+    )
   }
 }

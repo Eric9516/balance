@@ -42,11 +42,11 @@ export async function createAuditor(
   return toAuditorDTO(a)
 }
 
-export async function updateAuditor(
-  id: string,
-  input: UpdateAuditorInput,
-): Promise<AuditorDTO> {
-  const existing = await db.auditor.findUniqueOrThrow({ where: { id }, select: { estudioId: true } })
+export async function updateAuditor(id: string, input: UpdateAuditorInput): Promise<AuditorDTO> {
+  const existing = await db.auditor.findUniqueOrThrow({
+    where: { id },
+    select: { estudioId: true },
+  })
 
   const data = {
     ...input,

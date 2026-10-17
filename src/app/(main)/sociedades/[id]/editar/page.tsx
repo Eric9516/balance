@@ -16,10 +16,7 @@ export default async function EditarSociedadPage({ params }: Props) {
 
   return (
     <div>
-      <PageHeader
-        title="Editar sociedad"
-        description={sociedad.razonSocial}
-      />
+      <PageHeader title="Editar sociedad" description={sociedad.razonSocial} />
       <div className="px-8 py-6">
         <SociedadForm defaultValues={sociedad} />
       </div>

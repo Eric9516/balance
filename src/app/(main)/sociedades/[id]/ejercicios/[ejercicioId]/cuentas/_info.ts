@@ -41,7 +41,9 @@ export const PASO_INFO: Record<InfoPasoKey, StepInfo> = {
       'Saldo final = Saldo deudor - Saldo acreedor',
       'Control de importación = Total debe - Total haber',
     ],
-    notes: ['Si el balance de origen no cierra, los estados posteriores pueden arrastrar ese problema.'],
+    notes: [
+      'Si el balance de origen no cierra, los estados posteriores pueden arrastrar ese problema.',
+    ],
   },
   caratula: {
     title: 'Carátula',
@@ -97,9 +99,7 @@ export const PASO_INFO: Record<InfoPasoKey, StepInfo> = {
     formulas: [
       'Las pestañas que aparecen = los anexos aceptados. Si no aceptaste ninguno, no hay pestañas.',
     ],
-    notes: [
-      'Aceptar un anexo en "Anexos y notas" hace aparecer su pestaña acá.',
-    ],
+    notes: ['Aceptar un anexo en "Anexos y notas" hace aparecer su pestaña acá.'],
   },
   'bienes-de-uso': {
     title: 'Anexo I - Bienes de Uso',
@@ -119,8 +119,15 @@ export const PASO_INFO: Record<InfoPasoKey, StepInfo> = {
     title: 'Anexo II - Costo de Ventas',
     purpose:
       'Calcula el costo de los bienes vendidos o servicios. El Estado de Resultados toma este anexo cuando está cargado.',
-    sources: ['Existencia inicial.', 'Compras.', 'Gastos de fabricación o producción.', 'Existencia final.'],
-    formulas: ['Costo de ventas = Existencia inicial + Compras + Gastos de fabricación - Existencia final'],
+    sources: [
+      'Existencia inicial.',
+      'Compras.',
+      'Gastos de fabricación o producción.',
+      'Existencia final.',
+    ],
+    formulas: [
+      'Costo de ventas = Existencia inicial + Compras + Gastos de fabricación - Existencia final',
+    ],
     notes: ['Este valor no debería duplicarse en notas si ya se informa por anexo.'],
   },
   gastos: {

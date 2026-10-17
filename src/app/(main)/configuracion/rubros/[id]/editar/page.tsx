@@ -17,10 +17,7 @@ export const metadata = { title: 'Editar clasificación — BalanceRT' }
 export default async function EditarRubroPage({ params, searchParams }: Props) {
   const { id } = await params
   const { volver } = await searchParams
-  const [rubro, grupos] = await Promise.all([
-    findRubroBaseById(id),
-    findAllRubroGrupos(),
-  ])
+  const [rubro, grupos] = await Promise.all([findRubroBaseById(id), findAllRubroGrupos()])
   if (!rubro) notFound()
 
   const volverHref = `/configuracion/rubros${volver ? `?volver=${encodeURIComponent(volver)}` : ''}`
@@ -33,13 +30,13 @@ export default async function EditarRubroPage({ params, searchParams }: Props) {
         action={
           <Button variant="secondary" size="sm" asChild>
             <Link href={volverHref}>
-              <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+              <ChevronLeft className="mr-1 h-3.5 w-3.5" />
               Volver
             </Link>
           </Button>
         }
       />
-      <div className="px-8 py-6 flex justify-center">
+      <div className="flex justify-center px-8 py-6">
         <RubroBaseForm defaultValues={rubro} grupos={grupos} redirectTo={volverHref} />
       </div>
     </div>

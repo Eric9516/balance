@@ -33,9 +33,7 @@ export function AnexosTabs({
       <div className="flex items-center justify-between gap-2 border-b border-slate-200">
         <div className="flex flex-wrap items-center gap-1">
           {tabs.length === 0 ? (
-            <span className="px-1 py-2.5 text-sm text-slate-400">
-              Todavía no elegiste anexos →
-            </span>
+            <span className="px-1 py-2.5 text-sm text-slate-400">Todavía no elegiste anexos →</span>
           ) : (
             tabs.map((t) => {
               const activo = !configActivo && t.slug === active
@@ -52,7 +50,7 @@ export function AnexosTabs({
                 >
                   {t.label}
                   {!t.hasView && (
-                    <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-600">
+                    <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-amber-600 uppercase">
                       en construcción
                     </span>
                   )}
@@ -93,9 +91,7 @@ export function AnexoEnConstruccion({ label }: { label: string }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-amber-200 bg-amber-50/40 py-16 text-center">
       <Wrench className="mb-3 h-8 w-8 text-amber-400" />
-      <p className="text-sm font-medium text-slate-700">
-        El {label} todavía no tiene pantalla
-      </p>
+      <p className="text-sm font-medium text-slate-700">El {label} todavía no tiene pantalla</p>
       <p className="mt-1 max-w-sm text-xs text-slate-500">
         Lo aceptaste, así que va a figurar en el balance, pero la pantalla para cargar su detalle
         está pendiente de construir.

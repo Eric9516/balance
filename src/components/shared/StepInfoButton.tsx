@@ -56,7 +56,9 @@ function InfoModal({ info, onClose }: { info: StepInfo; onClose: () => void }) {
               <Info className="h-4 w-4 text-blue-600" />
             </div>
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Información del paso</p>
+              <p className="text-xs font-medium tracking-wide text-slate-400 uppercase">
+                Información del paso
+              </p>
               <h2 className="text-base font-semibold text-slate-900">{info.title}</h2>
             </div>
           </div>

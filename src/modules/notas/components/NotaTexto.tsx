@@ -42,18 +42,22 @@ export function NotaTexto({
   }
 
   return (
-    <div className={cn('rounded-xl border border-slate-200 bg-white overflow-hidden', isPending && 'opacity-70')}>
+    <div
+      className={cn(
+        'overflow-hidden rounded-xl border border-slate-200 bg-white',
+        isPending && 'opacity-70',
+      )}
+    >
       {/* Encabezado */}
-      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3 bg-slate-50">
+      <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-5 py-3">
         <span className="text-sm font-bold text-slate-900">
-          Nota N° {nota.numero ?? '?'}:{' '}
-          <span className="uppercase">{nota.titulo}</span>
+          Nota N° {nota.numero ?? '?'}: <span className="uppercase">{nota.titulo}</span>
         </span>
         <button
           type="button"
           onClick={eliminarNota}
           disabled={isPending}
-          className="text-slate-300 hover:text-red-500 transition-colors"
+          className="text-slate-300 transition-colors hover:text-red-500"
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -64,7 +68,7 @@ export function NotaTexto({
           defaultValue={nota.textoApertura ?? ''}
           onBlur={(e) => saveTexto(e.target.value)}
           rows={4}
-          className="w-full text-sm text-slate-700 bg-transparent resize-none border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+          className="w-full resize-none rounded-lg border border-slate-200 bg-transparent px-3 py-2 text-sm text-slate-700 transition-colors focus:border-blue-400 focus:bg-white focus:outline-none"
           placeholder="Texto de la nota..."
         />
       </div>

@@ -55,15 +55,15 @@ export function PasoMapeo({
   onVerDatos: () => void
 }) {
   return (
-    <Card className="max-w-3xl w-full">
+    <Card className="w-full max-w-3xl">
       <CardHeader>
         <CardTitle>Importar balance de sumas y saldos</CardTitle>
-        <p className="text-sm text-slate-500 mt-1">
+        <p className="mt-1 text-sm text-slate-500">
           {denominacion} — Subí el archivo Excel exportado desde tu sistema contable.
         </p>
         {tieneCuentas && (
-          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 mt-2">
-            <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
             <p className="text-xs text-amber-700">
               Este ejercicio ya tiene cuentas importadas. Al importar nuevamente se reemplazarán
               todas las cuentas actuales y se perderá la clasificación existente.
@@ -73,14 +73,13 @@ export function PasoMapeo({
       </CardHeader>
 
       <CardContent className="space-y-6">
-
         {/* Paso 1: Archivo */}
         <div className="space-y-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
             1. Seleccionar archivo
           </p>
           <div
-            className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 px-6 py-8 cursor-pointer hover:border-blue-300 hover:bg-blue-50 transition-colors"
+            className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 px-6 py-8 transition-colors hover:border-blue-300 hover:bg-blue-50"
             onClick={() => fileRef.current?.click()}
           >
             {archivo ? (
@@ -90,15 +89,16 @@ export function PasoMapeo({
                   <p className="text-sm font-medium text-slate-900">{archivo.name}</p>
                   <p className="text-xs text-slate-500">
                     {(archivo.size / 1024).toFixed(0)} KB
-                    {preview && ` · ${preview.totalRows} filas de datos · hoja: ${preview.sheetName}`}
+                    {preview &&
+                      ` · ${preview.totalRows} filas de datos · hoja: ${preview.sheetName}`}
                   </p>
                 </div>
               </div>
             ) : (
               <div className="text-center">
-                <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+                <Upload className="mx-auto mb-2 h-8 w-8 text-slate-400" />
                 <p className="text-sm text-slate-600">Hacé clic para seleccionar el archivo</p>
-                <p className="text-xs text-slate-400 mt-1">.xlsx · .xls · .csv</p>
+                <p className="mt-1 text-xs text-slate-400">.xlsx · .xls · .csv</p>
               </div>
             )}
             <input
@@ -110,7 +110,7 @@ export function PasoMapeo({
             />
           </div>
           {parseError && (
-            <p className="text-xs text-red-600 flex items-center gap-1">
+            <p className="flex items-center gap-1 text-xs text-red-600">
               <AlertCircle className="h-3.5 w-3.5" /> {parseError}
             </p>
           )}
@@ -119,11 +119,11 @@ export function PasoMapeo({
         {/* Paso 2: Filas a omitir */}
         {archivo && (
           <div className="space-y-4">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
               2. Filas de encabezado
             </p>
             <div className="flex items-center gap-4">
-              <div className="space-y-1.5 w-40">
+              <div className="w-40 space-y-1.5">
                 <Label htmlFor="filasOmitir">Filas a omitir</Label>
                 <Input
                   id="filasOmitir"
@@ -134,7 +134,7 @@ export function PasoMapeo({
                   onChange={(e) => onFilasChange(parseInt(e.target.value) || 0)}
                 />
               </div>
-              <p className="text-xs text-slate-500 mt-4">
+              <p className="mt-4 text-xs text-slate-500">
                 Cuántas filas del inicio ignorar antes de que comiencen los datos
                 <br />
                 (encabezados, títulos, etc.)
@@ -148,18 +148,21 @@ export function PasoMapeo({
 
         {preview && !loadingPreview && (
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
               Vista previa (primeras filas de datos)
             </p>
             <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="text-xs w-full">
+              <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-slate-800 text-white">
                     {preview.columns.map((col) => (
-                      <th key={col.index} className="px-3 py-2 text-left font-mono whitespace-nowrap">
+                      <th
+                        key={col.index}
+                        className="px-3 py-2 text-left font-mono whitespace-nowrap"
+                      >
                         {col.letter}
                         {col.sample !== col.letter && (
-                          <span className="ml-1 text-slate-400 font-normal truncate max-w-[80px] inline-block align-bottom">
+                          <span className="ml-1 inline-block max-w-[80px] truncate align-bottom font-normal text-slate-400">
                             {col.sample}
                           </span>
                         )}
@@ -171,7 +174,10 @@ export function PasoMapeo({
                   {preview.rows.map((row, ri) => (
                     <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                       {preview.columns.map((col) => (
-                        <td key={col.index} className="px-3 py-1.5 text-slate-700 whitespace-nowrap max-w-[160px] truncate">
+                        <td
+                          key={col.index}
+                          className="max-w-[160px] truncate px-3 py-1.5 whitespace-nowrap text-slate-700"
+                        >
                           {row[col.index] ?? ''}
                         </td>
                       ))}
@@ -186,15 +192,35 @@ export function PasoMapeo({
         {/* Paso 3: Mapeo de columnas */}
         {preview && !loadingPreview && (
           <div className="space-y-4">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
               3. Mapear columnas
             </p>
             <div className="grid grid-cols-2 gap-4">
               {[
-                { id: 'colCodigo', label: 'Código de cuenta', value: columnaCodigo, set: onColumnaCodigoChange },
-                { id: 'colNombre', label: 'Nombre / descripción', value: columnaNombre, set: onColumnaNombreChange },
-                { id: 'colDeudor', label: 'Saldo debe (deudor)', value: columnaDeudor, set: onColumnaDeudorChange },
-                { id: 'colAcreedor', label: 'Saldo haber (acreedor)', value: columnaAcreedor, set: onColumnaAcreedorChange },
+                {
+                  id: 'colCodigo',
+                  label: 'Código de cuenta',
+                  value: columnaCodigo,
+                  set: onColumnaCodigoChange,
+                },
+                {
+                  id: 'colNombre',
+                  label: 'Nombre / descripción',
+                  value: columnaNombre,
+                  set: onColumnaNombreChange,
+                },
+                {
+                  id: 'colDeudor',
+                  label: 'Saldo debe (deudor)',
+                  value: columnaDeudor,
+                  set: onColumnaDeudorChange,
+                },
+                {
+                  id: 'colAcreedor',
+                  label: 'Saldo haber (acreedor)',
+                  value: columnaAcreedor,
+                  set: onColumnaAcreedorChange,
+                },
               ].map(({ id, label, value, set }) => (
                 <div key={id} className="space-y-1.5">
                   <Label htmlFor={id}>{label}</Label>
@@ -207,7 +233,8 @@ export function PasoMapeo({
                     <option value="">— Seleccionar columna —</option>
                     {preview.columns.map((col) => (
                       <option key={col.index} value={String(col.index)}>
-                        {col.letter}{col.sample !== col.letter ? ` — ${col.sample}` : ''}
+                        {col.letter}
+                        {col.sample !== col.letter ? ` — ${col.sample}` : ''}
                       </option>
                     ))}
                   </Select>
@@ -224,22 +251,13 @@ export function PasoMapeo({
             )}
           </div>
         )}
-
       </CardContent>
 
       <CardFooter className="flex justify-end gap-3">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={onCancelar}
-        >
+        <Button type="button" variant="secondary" onClick={onCancelar}>
           Cancelar
         </Button>
-        <Button
-          type="button"
-          disabled={!canVerDatos || loadingRevision}
-          onClick={onVerDatos}
-        >
+        <Button type="button" disabled={!canVerDatos || loadingRevision} onClick={onVerDatos}>
           {loadingRevision
             ? 'Cargando datos...'
             : preview

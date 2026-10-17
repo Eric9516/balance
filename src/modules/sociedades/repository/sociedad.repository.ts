@@ -44,10 +44,7 @@ export async function createSociedad(
   return toSociedadDTO(s)
 }
 
-export async function updateSociedad(
-  id: string,
-  input: UpdateSociedadInput,
-): Promise<SociedadDTO> {
+export async function updateSociedad(id: string, input: UpdateSociedadInput): Promise<SociedadDTO> {
   const s = await db.sociedad.update({ where: { id }, data: buildData(input) })
   return toSociedadDTO(s)
 }

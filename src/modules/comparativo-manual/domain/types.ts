@@ -4,10 +4,10 @@ export type ComparativoManualDTO = {
   id: string
   ejercicioId: string
   modulo: ModuloComparativo
-  clave: string    // seccionSSP key, rubroBaseId, seccionEERR key, o nombre de categoría BDU
-  label: string    // nombre para mostrar
+  clave: string // seccionSSP key, rubroBaseId, seccionEERR key, o nombre de categoría BDU
+  label: string // nombre para mostrar
   valor: number
-  esHuerfano: boolean  // true = no existe en el ejercicio actual
+  esHuerfano: boolean // true = no existe en el ejercicio actual
   orden: number
 }
 

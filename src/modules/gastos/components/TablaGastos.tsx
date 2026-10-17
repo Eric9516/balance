@@ -32,8 +32,12 @@ export function TablaGastos({
 
   // Cuentas únicas como filas — ordenadas alfabéticamente
   const cuentasUnicas = Array.from(
-    new Map(secciones.flatMap(s => s.filas.map(f => [f.cuentaNombre, f.cuentaNombre]))).entries()
-  ).map(([nombre]) => nombre).sort()
+    new Map(
+      secciones.flatMap((s) => s.filas.map((f) => [f.cuentaNombre, f.cuentaNombre])),
+    ).entries(),
+  )
+    .map(([nombre]) => nombre)
+    .sort()
 
   const grandTotalActual = cols.reduce((s, sec) => s + sec.total, 0)
   const grandTotalAnterior = cols.reduce(
@@ -52,24 +56,34 @@ export function TablaGastos({
         <thead>
           {/* Título */}
           <tr className="bg-slate-800">
-            <td colSpan={colSpanTotal + 1} className="px-4 py-2.5 text-center text-xs font-bold text-slate-200 uppercase tracking-widest">
+            <td
+              colSpan={colSpanTotal + 1}
+              className="px-4 py-2.5 text-center text-xs font-bold tracking-widest text-slate-200 uppercase"
+            >
               Anexo III — Gastos
             </td>
           </tr>
           {/* Encabezados de columna */}
           <tr className="border-b border-slate-200 bg-slate-50">
-            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest min-w-[220px]">
+            <th className="min-w-[220px] px-4 py-3 text-left text-xs font-semibold tracking-widest text-slate-500 uppercase">
               Rubros
             </th>
-            {cols.map(s => {
+            {cols.map((s) => {
               const huerfana = esSeccionHuerfana(s.key)
               return (
-                <th key={s.key} className={cn(
-                  'px-3 py-3 text-center text-xs font-semibold border-l border-slate-200 w-36 leading-tight',
-                  huerfana ? 'text-amber-700 bg-amber-50/60' : 'text-slate-700',
-                )}>
+                <th
+                  key={s.key}
+                  className={cn(
+                    'w-36 border-l border-slate-200 px-3 py-3 text-center text-xs leading-tight font-semibold',
+                    huerfana ? 'bg-amber-50/60 text-amber-700' : 'text-slate-700',
+                  )}
+                >
                   <div className="flex items-center justify-center gap-1">
-                    {huerfana && <span className="text-[9px] uppercase tracking-wide text-amber-500">solo ant.</span>}
+                    {huerfana && (
+                      <span className="text-[9px] tracking-wide text-amber-500 uppercase">
+                        solo ant.
+                      </span>
+                    )}
                     <span>{s.grupoNombre}</span>
                     {huerfana && editandoAnt && (
                       <EliminarFilaAnterior
@@ -84,37 +98,47 @@ export function TablaGastos({
                 </th>
               )
             })}
-            <th className="px-3 py-3 text-center text-xs font-semibold text-slate-800 border-l border-slate-300 w-36 leading-tight bg-slate-100">
+            <th className="w-36 border-l border-slate-300 bg-slate-100 px-3 py-3 text-center text-xs leading-tight font-semibold text-slate-800">
               Total Ejercicio Actual
             </th>
             {colAnteriorPorFila && (
-              <th className="px-3 py-3 text-center text-xs font-semibold text-slate-600 border-l border-slate-200 w-36 leading-tight">
+              <th className="w-36 border-l border-slate-200 px-3 py-3 text-center text-xs leading-tight font-semibold text-slate-600">
                 Total Ejercicio Anterior
               </th>
             )}
           </tr>
         </thead>
         <tbody>
-          {cuentasUnicas.map(nombre => {
-            const totalActual = cols.reduce((sum, s) => sum + (s.filas.find(f => f.cuentaNombre === nombre)?.importe ?? 0), 0)
-            const totalAnterior = cols.reduce((sum, s) => sum + (s.filas.find(f => f.cuentaNombre === nombre)?.importeAnterior ?? 0), 0)
+          {cuentasUnicas.map((nombre) => {
+            const totalActual = cols.reduce(
+              (sum, s) => sum + (s.filas.find((f) => f.cuentaNombre === nombre)?.importe ?? 0),
+              0,
+            )
+            const totalAnterior = cols.reduce(
+              (sum, s) =>
+                sum + (s.filas.find((f) => f.cuentaNombre === nombre)?.importeAnterior ?? 0),
+              0,
+            )
 
             return (
               <tr key={nombre} className="border-b border-slate-100 hover:bg-slate-50/40">
-                <td className="px-4 py-2 text-slate-700 text-sm">{nombre}</td>
-                {cols.map(s => {
-                  const fila = s.filas.find(f => f.cuentaNombre === nombre)
+                <td className="px-4 py-2 text-sm text-slate-700">{nombre}</td>
+                {cols.map((s) => {
+                  const fila = s.filas.find((f) => f.cuentaNombre === nombre)
                   return (
-                    <td key={s.key} className="px-3 py-2 text-right font-mono text-sm tabular-nums text-slate-700 border-l border-slate-100">
+                    <td
+                      key={s.key}
+                      className="border-l border-slate-100 px-3 py-2 text-right font-mono text-sm text-slate-700 tabular-nums"
+                    >
                       {fila?.importe ? formatCurrency(fila.importe, { decimales: 2 }) : ''}
                     </td>
                   )
                 })}
-                <td className="px-3 py-2 text-right font-mono text-sm tabular-nums font-semibold text-slate-900 border-l border-slate-200 bg-slate-50/60">
+                <td className="border-l border-slate-200 bg-slate-50/60 px-3 py-2 text-right font-mono text-sm font-semibold text-slate-900 tabular-nums">
                   {formatCurrency(totalActual, { decimales: 2 })}
                 </td>
                 {colAnteriorPorFila && (
-                  <td className="px-3 py-2 text-right font-mono text-sm tabular-nums text-slate-500 border-l border-slate-100">
+                  <td className="border-l border-slate-100 px-3 py-2 text-right font-mono text-sm text-slate-500 tabular-nums">
                     {totalAnterior ? formatCurrency(totalAnterior, { decimales: 2 }) : '–'}
                   </td>
                 )}
@@ -132,7 +156,16 @@ export function TablaGastos({
                   modulo="GASTOS"
                   ordenBase={huerfanas.length}
                   texto="Agregar sección del período anterior"
-                  onAdded={(dto) => comparativo.agregar({ modulo: dto.modulo, clave: dto.clave, label: dto.label, valor: dto.valor, esHuerfano: true, orden: dto.orden })}
+                  onAdded={(dto) =>
+                    comparativo.agregar({
+                      modulo: dto.modulo,
+                      clave: dto.clave,
+                      label: dto.label,
+                      valor: dto.valor,
+                      esHuerfano: true,
+                      orden: dto.orden,
+                    })
+                  }
                 />
               </td>
             </tr>
@@ -141,30 +174,36 @@ export function TablaGastos({
         <tfoot>
           {/* Fila 1: Total Ejercicio Actual */}
           <tr className="border-t-2 border-slate-400 bg-slate-800">
-            <td className="px-4 py-2.5 text-xs font-bold text-white uppercase tracking-wide">
+            <td className="px-4 py-2.5 text-xs font-bold tracking-wide text-white uppercase">
               Total Ejercicio Actual
             </td>
-            {cols.map(s => (
-              <td key={s.key} className="px-3 py-2.5 text-right font-mono text-sm font-bold text-white tabular-nums border-l border-slate-700">
+            {cols.map((s) => (
+              <td
+                key={s.key}
+                className="border-l border-slate-700 px-3 py-2.5 text-right font-mono text-sm font-bold text-white tabular-nums"
+              >
                 {esSeccionHuerfana(s.key) ? '–' : formatCurrency(s.total, { decimales: 2 })}
               </td>
             ))}
-            <td className="px-3 py-2.5 text-right font-mono text-sm font-bold text-white tabular-nums border-l border-slate-600">
+            <td className="border-l border-slate-600 px-3 py-2.5 text-right font-mono text-sm font-bold text-white tabular-nums">
               {formatCurrency(grandTotalActual, { decimales: 2 })}
             </td>
             {colAnteriorPorFila && (
-              <td className="px-3 py-2.5 text-right font-mono text-sm font-bold text-slate-300 tabular-nums border-l border-slate-700">
+              <td className="border-l border-slate-700 px-3 py-2.5 text-right font-mono text-sm font-bold text-slate-300 tabular-nums">
                 {grandTotalAnterior ? formatCurrency(grandTotalAnterior, { decimales: 2 }) : '–'}
               </td>
             )}
           </tr>
           {/* Fila 2: Total Ejercicio Anterior (editable por sección solo con el lápiz) */}
           <tr className="border-t border-slate-600 bg-slate-700">
-            <td className="px-4 py-2.5 text-xs font-bold text-slate-200 uppercase tracking-wide">
+            <td className="px-4 py-2.5 text-xs font-bold tracking-wide text-slate-200 uppercase">
               Total Ejercicio Anterior
             </td>
-            {cols.map(s => (
-              <td key={s.key} className="px-2 py-2 text-right font-mono text-sm font-bold tabular-nums border-l border-slate-600">
+            {cols.map((s) => (
+              <td
+                key={s.key}
+                className="border-l border-slate-600 px-2 py-2 text-right font-mono text-sm font-bold tabular-nums"
+              >
                 {editandoAnt ? (
                   <CeldaNumero
                     value={comparativo.entradas.get(s.key)?.valor ?? s.totalAnterior}
@@ -178,7 +217,7 @@ export function TablaGastos({
                 )}
               </td>
             ))}
-            <td className="px-3 py-2.5 text-right font-mono text-sm font-bold text-slate-200 tabular-nums border-l border-slate-600">
+            <td className="border-l border-slate-600 px-3 py-2.5 text-right font-mono text-sm font-bold text-slate-200 tabular-nums">
               {grandTotalAnterior ? formatCurrency(grandTotalAnterior, { decimales: 2 }) : '–'}
             </td>
             {colAnteriorPorFila && <td className="border-l border-slate-600" />}

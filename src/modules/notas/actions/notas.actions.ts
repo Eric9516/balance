@@ -19,7 +19,10 @@ import {
   deleteDetalle,
   generarNotasDesdeRubros,
 } from '../repository/notas.repository'
-import { findCuentasByEjercicio, findRubrosBase } from '@/modules/importaciones/repository/cuentas.repository'
+import {
+  findCuentasByEjercicio,
+  findRubrosBase,
+} from '@/modules/importaciones/repository/cuentas.repository'
 import type { NotaDTO, DetalleNotaDTO } from '../domain/types'
 import type { AdopcionRT54, CriteriosBienesCambio } from '@prisma/client'
 
@@ -134,8 +137,8 @@ export async function eliminarDetalleAction(
 
 const CRITERIO_LABEL: Record<string, string> = {
   COSTO_ADQUISICION: 'costo de adquisición',
-  ULTIMA_COMPRA:     'costo de la última compra',
-  COSTO_REPOSICION:  'costo de reposición',
+  ULTIMA_COMPRA: 'costo de la última compra',
+  COSTO_REPOSICION: 'costo de reposición',
 }
 
 const TEXTO_HECHOS_DEFAULT =
@@ -180,7 +183,7 @@ export async function guardarConfigNotaIAction(
     // 3. Sincronizar nota de Hechos Posteriores
     if (data.hechosPosterioress !== undefined) {
       const textoHechos = data.hechosPosterioress
-        ? (data.hechosPosterioressTexto?.trim() || TEXTO_HECHOS_DEFAULT)
+        ? data.hechosPosterioressTexto?.trim() || TEXTO_HECHOS_DEFAULT
         : null
 
       const notaExistente = await db.notaEjercicio.findFirst({
@@ -255,7 +258,11 @@ export async function generarNotasAutomaticasAction(
       findRubrosBase(),
       db.ejercicioContable.findUnique({
         where: { id: ejercicioId },
-        select: { criteriosBienesCambio: true, hechosPosterioress: true, hechosPosterioressTexto: true },
+        select: {
+          criteriosBienesCambio: true,
+          hechosPosterioress: true,
+          hechosPosterioressTexto: true,
+        },
       }),
     ])
 

@@ -4,8 +4,16 @@ import { revalidatePath } from 'next/cache'
 import { actionOk, actionError } from '@/modules/errores/types'
 import { errorHandler } from '@/modules/errores/handler'
 import type { ActionResult } from '@/modules/errores/types'
-import { assertCuentaBelongsToCurrentEstudio, assertEjercicioBelongsToCurrentEstudio } from '@/lib/authz'
-import { asignarRubroCuenta, asignarRubrosBulk, updateCuenta, deleteCuenta } from '../repository/cuentas.repository'
+import {
+  assertCuentaBelongsToCurrentEstudio,
+  assertEjercicioBelongsToCurrentEstudio,
+} from '@/lib/authz'
+import {
+  asignarRubroCuenta,
+  asignarRubrosBulk,
+  updateCuenta,
+  deleteCuenta,
+} from '../repository/cuentas.repository'
 import { resetEstadosConfirmado } from '@/modules/ejercicios/repository/ejercicio.repository'
 
 function revalidateClasificacion(sociedadId: string, ejercicioId: string) {
@@ -43,7 +51,9 @@ export async function actualizarCuentaAction(
     revalidateClasificacion(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {
-    return actionError(errorHandler(error, { modulo: 'clasificacion', operacion: 'actualizar-cuenta' }))
+    return actionError(
+      errorHandler(error, { modulo: 'clasificacion', operacion: 'actualizar-cuenta' }),
+    )
   }
 }
 
@@ -59,7 +69,9 @@ export async function eliminarCuentaAction(
     revalidateClasificacion(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {
-    return actionError(errorHandler(error, { modulo: 'clasificacion', operacion: 'eliminar-cuenta' }))
+    return actionError(
+      errorHandler(error, { modulo: 'clasificacion', operacion: 'eliminar-cuenta' }),
+    )
   }
 }
 
@@ -78,8 +90,6 @@ export async function asignarRubrosBulkAction(
     revalidateClasificacion(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {
-    return actionError(
-      errorHandler(error, { modulo: 'clasificacion', operacion: 'asignar-bulk' }),
-    )
+    return actionError(errorHandler(error, { modulo: 'clasificacion', operacion: 'asignar-bulk' }))
   }
 }

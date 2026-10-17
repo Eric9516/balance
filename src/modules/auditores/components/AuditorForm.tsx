@@ -79,20 +79,20 @@ export function AuditorForm({ defaultValues }: AuditorFormProps) {
   }
 
   return (
-    <Card className="max-w-2xl w-full">
+    <Card className="w-full max-w-2xl">
       <CardHeader>
         <CardTitle>{isEdit ? 'Editar auditor' : 'Nuevo auditor'}</CardTitle>
-        <p className="text-sm text-slate-500 mt-1">
-          Registrá los datos del contador o profesional que firmará los informes y estados contables.
+        <p className="mt-1 text-sm text-slate-500">
+          Registrá los datos del contador o profesional que firmará los informes y estados
+          contables.
         </p>
       </CardHeader>
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-6">
-
           {/* Datos personales */}
           <div className="space-y-4">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
               Datos personales
             </p>
 
@@ -118,25 +118,21 @@ export function AuditorForm({ defaultValues }: AuditorFormProps) {
                   error={Boolean(errors.nombre)}
                   {...register('nombre')}
                 />
-                {errors.nombre && (
-                  <p className="text-xs text-red-600">{errors.nombre.message}</p>
-                )}
+                {errors.nombre && <p className="text-xs text-red-600">{errors.nombre.message}</p>}
               </div>
             </div>
-
           </div>
 
           {/* Datos profesionales */}
           <div className="space-y-4">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
               Datos profesionales
             </p>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="tituloProfesional">
-                  Título profesional{' '}
-                  <span className="text-slate-400 font-normal">(opcional)</span>
+                  Título profesional <span className="font-normal text-slate-400">(opcional)</span>
                 </Label>
                 <Input
                   id="tituloProfesional"
@@ -147,8 +143,7 @@ export function AuditorForm({ defaultValues }: AuditorFormProps) {
 
               <div className="space-y-1.5">
                 <Label htmlFor="universidad">
-                  Universidad{' '}
-                  <span className="text-slate-400 font-normal">(opcional)</span>
+                  Universidad <span className="font-normal text-slate-400">(opcional)</span>
                 </Label>
                 <Input
                   id="universidad"
@@ -161,20 +156,14 @@ export function AuditorForm({ defaultValues }: AuditorFormProps) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="matricula">
-                  Matrícula{' '}
-                  <span className="text-slate-400 font-normal">(opcional)</span>
+                  Matrícula <span className="font-normal text-slate-400">(opcional)</span>
                 </Label>
-                <Input
-                  id="matricula"
-                  placeholder="CP 12345"
-                  {...register('matricula')}
-                />
+                <Input id="matricula" placeholder="CP 12345" {...register('matricula')} />
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="consejoProfesional">
-                  Consejo profesional{' '}
-                  <span className="text-slate-400 font-normal">(opcional)</span>
+                  Consejo profesional <span className="font-normal text-slate-400">(opcional)</span>
                 </Label>
                 <Input
                   id="consejoProfesional"
@@ -187,14 +176,13 @@ export function AuditorForm({ defaultValues }: AuditorFormProps) {
 
           {/* Firma e informe */}
           <div className="space-y-4">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
               Firma e informe
             </p>
 
             <div className="space-y-1.5">
               <Label htmlFor="localidadInforme">
-                Localidad del informe{' '}
-                <span className="text-slate-400 font-normal">(opcional)</span>
+                Localidad del informe <span className="font-normal text-slate-400">(opcional)</span>
               </Label>
               <Input
                 id="localidadInforme"
@@ -209,13 +197,12 @@ export function AuditorForm({ defaultValues }: AuditorFormProps) {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="textoFirma">
-                  Texto de firma{' '}
-                  <span className="text-slate-400 font-normal">(opcional)</span>
+                  Texto de firma <span className="font-normal text-slate-400">(opcional)</span>
                 </Label>
                 <button
                   type="button"
                   onClick={generarTextoFirma}
-                  className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700"
                 >
                   <Wand2 className="h-3 w-3" />
                   Generar automáticamente
@@ -224,12 +211,15 @@ export function AuditorForm({ defaultValues }: AuditorFormProps) {
               <textarea
                 id="textoFirma"
                 rows={4}
-                placeholder={'García, Carlos\nContador Público - UNVM\nMat. CP 12345 - CPCE Córdoba'}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none font-mono"
+                placeholder={
+                  'García, Carlos\nContador Público - UNVM\nMat. CP 12345 - CPCE Córdoba'
+                }
+                className="w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2 font-mono text-sm text-slate-900 placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 {...register('textoFirma')}
               />
               <p className="text-xs text-slate-400">
-                Se replica en todos los documentos generados. Usá &quot;Generar automáticamente&quot; para completarlo con los datos cargados arriba.
+                Se replica en todos los documentos generados. Usá &quot;Generar
+                automáticamente&quot; para completarlo con los datos cargados arriba.
               </p>
             </div>
 
@@ -237,20 +227,23 @@ export function AuditorForm({ defaultValues }: AuditorFormProps) {
               <input
                 type="checkbox"
                 id="esDefault"
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                className="mt-0.5 h-4 w-4 cursor-pointer rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                 {...register('esDefault')}
               />
               <div>
-                <label htmlFor="esDefault" className="text-sm font-medium text-slate-700 cursor-pointer">
+                <label
+                  htmlFor="esDefault"
+                  className="cursor-pointer text-sm font-medium text-slate-700"
+                >
                   Auditor por defecto
                 </label>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Se preseleccionará al crear un nuevo ejercicio contable. Solo puede haber uno por defecto.
+                <p className="mt-0.5 text-xs text-slate-400">
+                  Se preseleccionará al crear un nuevo ejercicio contable. Solo puede haber uno por
+                  defecto.
                 </p>
               </div>
             </div>
           </div>
-
         </CardContent>
 
         <CardFooter className="flex justify-end gap-3">

@@ -8,11 +8,12 @@ import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
 import { parseImporte } from '@/lib/utils/parseImporte'
 import { actionOk } from '@/modules/errores/types'
 import type { ActionResult } from '@/modules/errores/types'
+import { guardarComparativoAction, eliminarComparativoAction } from '../actions/comparativo.actions'
 import {
-  guardarComparativoAction,
-  eliminarComparativoAction,
-} from '../actions/comparativo.actions'
-import { buildClaveHuerfano, type ComparativoManualDTO, type ModuloComparativo } from '../domain/types'
+  buildClaveHuerfano,
+  type ComparativoManualDTO,
+  type ModuloComparativo,
+} from '../domain/types'
 
 export type ComparativoEntry = {
   modulo: ModuloComparativo
@@ -36,7 +37,16 @@ async function guardarLoteComparativo(
 ): Promise<ActionResult<MapaComparativo>> {
   const resultados = await Promise.all(
     Array.from(borrador.values()).map((e) =>
-      guardarComparativoAction(ejercicioId, sociedadId, e.modulo, e.clave, e.label, e.valor, e.esHuerfano ?? false, e.orden ?? 0),
+      guardarComparativoAction(
+        ejercicioId,
+        sociedadId,
+        e.modulo,
+        e.clave,
+        e.label,
+        e.valor,
+        e.esHuerfano ?? false,
+        e.orden ?? 0,
+      ),
     ),
   )
   const fallo = resultados.find((r) => !r.ok)
@@ -50,10 +60,24 @@ async function guardarLoteComparativo(
  * persiste todo de una vez (en vez de on-blur por celda). Usado por Costo de
  * Ventas, Gastos, y en conjunto por SSP+EERR (comparten un solo toggle).
  */
-export function useComparativoLote(entradas: ComparativoEntry[], ejercicioId: string, sociedadId: string) {
+export function useComparativoLote(
+  entradas: ComparativoEntry[],
+  ejercicioId: string,
+  sociedadId: string,
+) {
   const inicial = useMemo(() => aMapa(entradas), [entradas])
-  const { valor, editando, isPending, iniciarEdicion, cancelar, confirmar, actualizar, sincronizar } =
-    useEdicionLote(inicial, (borrador) => guardarLoteComparativo(borrador, ejercicioId, sociedadId))
+  const {
+    valor,
+    editando,
+    isPending,
+    iniciarEdicion,
+    cancelar,
+    confirmar,
+    actualizar,
+    sincronizar,
+  } = useEdicionLote(inicial, (borrador) =>
+    guardarLoteComparativo(borrador, ejercicioId, sociedadId),
+  )
 
   function setValor(clave: string, nuevoValor: number) {
     actualizar((prev) => {
@@ -74,7 +98,17 @@ export function useComparativoLote(entradas: ComparativoEntry[], ejercicioId: st
     sincronizar(next)
   }
 
-  return { entradas: valor, editando, isPending, iniciarEdicion, cancelar, confirmar, setValor, agregar, quitar }
+  return {
+    entradas: valor,
+    editando,
+    isPending,
+    iniciarEdicion,
+    cancelar,
+    confirmar,
+    setValor,
+    agregar,
+    quitar,
+  }
 }
 
 // Toggle de edición de la columna "Ejercicio Anterior" — usa el BotonEditar canónico.
@@ -131,7 +165,9 @@ export function AgregarFilaAnterior({
   const { isPending, ejecutar } = useGuardarAccion()
 
   function reset() {
-    setLabel(''); setValor(''); setOpen(false)
+    setLabel('')
+    setValor('')
+    setOpen(false)
   }
 
   function handleAdd() {
@@ -139,8 +175,21 @@ export function AgregarFilaAnterior({
     const v = parseImporte(valor)
     const clave = buildClaveHuerfano(seccion)
     ejecutar(
-      () => guardarComparativoAction(ejercicioId, sociedadId, modulo, clave, label.trim(), v, true, ordenBase),
-      (dto) => { onAdded?.(dto); reset() },
+      () =>
+        guardarComparativoAction(
+          ejercicioId,
+          sociedadId,
+          modulo,
+          clave,
+          label.trim(),
+          v,
+          true,
+          ordenBase,
+        ),
+      (dto) => {
+        onAdded?.(dto)
+        reset()
+      },
     )
   }
 
@@ -149,7 +198,7 @@ export function AgregarFilaAnterior({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-blue-600 transition-colors"
+        className="inline-flex items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-blue-600"
       >
         <Plus className="h-3.5 w-3.5" />
         {texto}
@@ -165,8 +214,11 @@ export function AgregarFilaAnterior({
         onChange={(e) => setLabel(e.target.value)}
         placeholder="Nombre del rubro / concepto"
         autoFocus
-        onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') reset() }}
-        className="flex-1 min-w-0 text-sm text-slate-900 bg-white border border-blue-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') handleAdd()
+          if (e.key === 'Escape') reset()
+        }}
+        className="min-w-0 flex-1 rounded border border-blue-200 bg-white px-2 py-1 text-sm text-slate-900 focus:border-blue-400 focus:outline-none"
       />
       <input
         type="text"
@@ -174,14 +226,17 @@ export function AgregarFilaAnterior({
         value={valor}
         onChange={(e) => setValor(e.target.value)}
         placeholder="0,00"
-        onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') reset() }}
-        className="w-32 text-right font-mono text-sm text-slate-900 bg-white border border-blue-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400 tabular-nums"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') handleAdd()
+          if (e.key === 'Escape') reset()
+        }}
+        className="w-32 rounded border border-blue-200 bg-white px-2 py-1 text-right font-mono text-sm text-slate-900 tabular-nums focus:border-blue-400 focus:outline-none"
       />
       <button
         type="button"
         onClick={handleAdd}
         disabled={isPending || !label.trim()}
-        className="p-1 text-emerald-600 hover:text-emerald-700 disabled:opacity-40 transition-colors"
+        className="p-1 text-emerald-600 transition-colors hover:text-emerald-700 disabled:opacity-40"
         title="Agregar"
       >
         <Check className="h-4 w-4" />
@@ -189,7 +244,7 @@ export function AgregarFilaAnterior({
       <button
         type="button"
         onClick={reset}
-        className="p-1 text-slate-400 hover:text-slate-600 transition-colors"
+        className="p-1 text-slate-400 transition-colors hover:text-slate-600"
         title="Cancelar"
       >
         <X className="h-4 w-4" />
@@ -217,8 +272,10 @@ export function EliminarFilaAnterior({
     <button
       type="button"
       disabled={isPending}
-      onClick={() => ejecutar(() => eliminarComparativoAction(ejercicioId, sociedadId, modulo, clave), onDeleted)}
-      className="p-1 text-slate-300 hover:text-red-500 transition-colors disabled:opacity-40"
+      onClick={() =>
+        ejecutar(() => eliminarComparativoAction(ejercicioId, sociedadId, modulo, clave), onDeleted)
+      }
+      className="p-1 text-slate-300 transition-colors hover:text-red-500 disabled:opacity-40"
       title="Eliminar fila"
     >
       <Trash2 className="h-3.5 w-3.5" />

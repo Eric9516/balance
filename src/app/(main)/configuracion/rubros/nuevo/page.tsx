@@ -23,13 +23,13 @@ export default async function NuevoRubroPage({ searchParams }: Props) {
         action={
           <Button variant="secondary" size="sm" asChild>
             <Link href={volverHref}>
-              <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+              <ChevronLeft className="mr-1 h-3.5 w-3.5" />
               Volver
             </Link>
           </Button>
         }
       />
-      <div className="px-8 py-6 flex justify-center">
+      <div className="flex justify-center px-8 py-6">
         <RubroBaseForm grupos={grupos} defaultGrupoId={grupoId} redirectTo={volverHref} />
       </div>
     </div>

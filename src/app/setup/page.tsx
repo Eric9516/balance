@@ -10,13 +10,13 @@ export default async function SetupPage() {
   if (existing) redirect('/sociedades')
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4 py-12">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-12">
       <div className="mb-8 flex flex-col items-center text-center">
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 shadow-lg shadow-blue-200">
           <Scale className="h-6 w-6 text-white" />
         </div>
         <h1 className="text-2xl font-bold text-slate-900">Bienvenido a BalanceRT</h1>
-        <p className="mt-2 text-sm text-slate-500 max-w-sm">
+        <p className="mt-2 max-w-sm text-sm text-slate-500">
           Para comenzar, completá los datos de tu estudio contable.
         </p>
       </div>

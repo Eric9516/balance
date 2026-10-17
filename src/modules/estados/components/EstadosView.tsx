@@ -27,7 +27,13 @@ interface Props {
   editarAnterior?: boolean
 }
 
-export function EstadosView({ data, ejercicioId, sociedadId, estadosConfirmado: initialConfirmado = false, editarAnterior = false }: Props) {
+export function EstadosView({
+  data,
+  ejercicioId,
+  sociedadId,
+  estadosConfirmado: initialConfirmado = false,
+  editarAnterior = false,
+}: Props) {
   const [tab, setTab] = useState<'ssp' | 'eerr'>('ssp')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [confirmado, setConfirmado] = useState(initialConfirmado)
@@ -43,9 +49,24 @@ export function EstadosView({ data, ejercicioId, sociedadId, estadosConfirmado: 
       esHuerfano: esRubroHuerfano(r.id),
     })),
     { modulo: 'EERR' as const, clave: 'INGRESOS', label: 'Ingresos', valor: data.eerr.ingresosAnt },
-    { modulo: 'EERR' as const, clave: 'COSTO_VENTAS', label: 'Costo de Ventas', valor: data.eerr.costoVentasAnt },
-    { modulo: 'EERR' as const, clave: 'RESULTADOS_FINANCIEROS', label: 'Resultados Financieros', valor: data.eerr.resultadosFinancierosAnt },
-    { modulo: 'EERR' as const, clave: 'IMPUESTO_GANANCIAS', label: 'Impuesto a las Ganancias', valor: data.eerr.impuestoGananciasAnt },
+    {
+      modulo: 'EERR' as const,
+      clave: 'COSTO_VENTAS',
+      label: 'Costo de Ventas',
+      valor: data.eerr.costoVentasAnt,
+    },
+    {
+      modulo: 'EERR' as const,
+      clave: 'RESULTADOS_FINANCIEROS',
+      label: 'Resultados Financieros',
+      valor: data.eerr.resultadosFinancierosAnt,
+    },
+    {
+      modulo: 'EERR' as const,
+      clave: 'IMPUESTO_GANANCIAS',
+      label: 'Impuesto a las Ganancias',
+      valor: data.eerr.impuestoGananciasAnt,
+    },
     ...data.eerr.seccionesGasto.map((s) => ({
       modulo: 'GASTOS' as const,
       clave: s.key,
@@ -100,18 +121,20 @@ export function EstadosView({ data, ejercicioId, sociedadId, estadosConfirmado: 
       {/* Tabs + botón confirmar en la misma línea */}
       <div className="mb-5 flex items-center justify-between border-b border-slate-200">
         <div className="flex gap-0">
-          {([
-            ['ssp', 'Estado de Situación Patrimonial'],
-            ['eerr', 'Estado de Resultados'],
-          ] as ['ssp' | 'eerr', string][]).map(([value, label]) => (
+          {(
+            [
+              ['ssp', 'Estado de Situación Patrimonial'],
+              ['eerr', 'Estado de Resultados'],
+            ] as ['ssp' | 'eerr', string][]
+          ).map(([value, label]) => (
             <button
               key={value}
               onClick={() => setTab(value)}
               className={cn(
-                'px-5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
+                '-mb-px border-b-2 px-5 py-2.5 text-sm font-medium transition-colors',
                 tab === value
                   ? 'border-blue-600 text-blue-700'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300',
+                  : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700',
               )}
             >
               {label}
@@ -129,30 +152,30 @@ export function EstadosView({ data, ejercicioId, sociedadId, estadosConfirmado: 
             />
           )}
           {cuadrado && (
-          <button
-            onClick={() => {
-              if (confirmado) return
-              startTransition(async () => {
-                const result = await confirmarEstadosAction(ejercicioId, sociedadId)
-                if (result.ok) {
-                  setConfirmado(true)
-                  toastSuccess('Estados confirmados')
-                } else {
-                  toastError(result.error)
-                }
-              })
-            }}
-            disabled={isPending}
-            className={cn(
-              'inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors',
-              confirmado
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
-            )}
-          >
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            {confirmado ? 'Confirmado' : 'Confirmar estados'}
-          </button>
+            <button
+              onClick={() => {
+                if (confirmado) return
+                startTransition(async () => {
+                  const result = await confirmarEstadosAction(ejercicioId, sociedadId)
+                  if (result.ok) {
+                    setConfirmado(true)
+                    toastSuccess('Estados confirmados')
+                  } else {
+                    toastError(result.error)
+                  }
+                })
+              }}
+              disabled={isPending}
+              className={cn(
+                'inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors',
+                confirmado
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
+              )}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              {confirmado ? 'Confirmado' : 'Confirmar estados'}
+            </button>
           )}
         </div>
       </div>
@@ -181,7 +204,6 @@ export function EstadosView({ data, ejercicioId, sociedadId, estadosConfirmado: 
           sociedadId={sociedadId}
         />
       )}
-
     </div>
   )
 }

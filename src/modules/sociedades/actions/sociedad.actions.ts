@@ -62,7 +62,12 @@ export async function actualizarSociedad(
     }
     const existing = await findSociedadById(id)
     if (!existing) {
-      return actionError({ tipo: 'TECNICO', severidad: 'ALTO', codigo: 'TECH-002', mensaje: 'Sociedad no encontrada' })
+      return actionError({
+        tipo: 'TECNICO',
+        severidad: 'ALTO',
+        codigo: 'TECH-002',
+        mensaje: 'Sociedad no encontrada',
+      })
     }
     const sociedad = await updateSociedad(id, parsed.data)
     revalidatePath('/sociedades')

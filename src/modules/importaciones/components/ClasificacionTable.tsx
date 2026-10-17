@@ -55,8 +55,7 @@ export function ClasificacionTable({ cuentas, rubros, ejercicioId, sociedadId }:
 
   const groups = useMemo(() => buildGroups(rubros), [rubros])
 
-  const progress =
-    cuentas.length > 0 ? Math.round((totalClasificadas / cuentas.length) * 100) : 0
+  const progress = cuentas.length > 0 ? Math.round((totalClasificadas / cuentas.length) * 100) : 0
 
   // ─── Indeterminate checkbox ─────────────────────────────────────────────────
 
@@ -85,9 +84,7 @@ export function ClasificacionTable({ cuentas, rubros, ejercicioId, sociedadId }:
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <p className="text-sm text-slate-500">No hay cuentas importadas en este ejercicio.</p>
-        <p className="mt-1 text-xs text-slate-400">
-          Importá el balance de sumas y saldos primero.
-        </p>
+        <p className="mt-1 text-xs text-slate-400">Importá el balance de sumas y saldos primero.</p>
       </div>
     )
   }
@@ -96,28 +93,38 @@ export function ClasificacionTable({ cuentas, rubros, ejercicioId, sociedadId }:
     <>
       {/* Progress bar */}
       <div className="mb-5 rounded-xl border border-slate-200 bg-white px-4 py-3">
-        <div className="flex items-center justify-between mb-2">
+        <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-slate-700">Progreso de clasificación</span>
             {progress < 100 && (
-              <span className="text-xs text-amber-600 font-medium bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600">
                 {cuentas.length - totalClasificadas} pendientes
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className={cn('text-xs tabular-nums', progress === 100 ? 'text-emerald-600' : 'text-slate-400')}>
+            <span
+              className={cn(
+                'text-xs tabular-nums',
+                progress === 100 ? 'text-emerald-600' : 'text-slate-400',
+              )}
+            >
               {totalClasificadas} de {cuentas.length}
             </span>
-            <span className={cn('text-sm font-bold tabular-nums w-10 text-right', progress === 100 ? 'text-emerald-600' : 'text-blue-600')}>
+            <span
+              className={cn(
+                'w-10 text-right text-sm font-bold tabular-nums',
+                progress === 100 ? 'text-emerald-600' : 'text-blue-600',
+              )}
+            >
               {Math.round(progress)}%
             </span>
           </div>
         </div>
-        <div className="h-2.5 rounded-full bg-slate-200 overflow-hidden">
+        <div className="h-2.5 overflow-hidden rounded-full bg-slate-200">
           <div
             className={cn(
-              'h-full rounded-full transition-all duration-500 relative overflow-hidden',
+              'relative h-full overflow-hidden rounded-full transition-all duration-500',
               progress === 100
                 ? 'bg-gradient-to-r from-emerald-400 to-emerald-600'
                 : 'bg-gradient-to-r from-blue-400 to-blue-600',
@@ -135,7 +142,7 @@ export function ClasificacionTable({ cuentas, rubros, ejercicioId, sociedadId }:
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-0 mb-5 border-b border-slate-200">
+      <div className="mb-5 flex gap-0 border-b border-slate-200">
         {(
           [
             ['todas', `Todas (${cuentas.length})`],
@@ -147,10 +154,10 @@ export function ClasificacionTable({ cuentas, rubros, ejercicioId, sociedadId }:
             key={value}
             onClick={() => handleTabChange(value)}
             className={cn(
-              'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
+              '-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors',
               tab === value
                 ? 'border-blue-600 text-blue-700'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300',
+                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700',
             )}
           >
             {label}
@@ -172,34 +179,34 @@ export function ClasificacionTable({ cuentas, rubros, ejercicioId, sociedadId }:
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                <th className="px-4 py-3 w-10">
+                <th className="w-10 px-4 py-3">
                   <input
                     ref={selectAllRef}
                     type="checkbox"
                     checked={bulk.selected.size > 0 && bulk.selected.size === visibles.length}
                     onChange={() => bulk.handleSelectAllVisibles(visibles)}
-                    className="rounded border-slate-300 accent-blue-600 cursor-pointer"
+                    className="cursor-pointer rounded border-slate-300 accent-blue-600"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 w-28">
+                <th className="w-28 px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Código
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Nombre
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 w-32">
+                <th className="w-32 px-4 py-3 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Debe
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 w-32">
+                <th className="w-32 px-4 py-3 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Haber
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 w-32">
+                <th className="w-32 px-4 py-3 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Saldo
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 w-72">
+                <th className="w-72 px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Rubro RT 54
                 </th>
-                <th className="px-4 py-3 w-24" />
+                <th className="w-24 px-4 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -242,7 +249,10 @@ export function ClasificacionTable({ cuentas, rubros, ejercicioId, sociedadId }:
           isBulkPending={bulk.isBulkPending}
           onChangeRubro={bulk.setBulkRubroId}
           onAsignar={bulk.handleBulkAsignar}
-          onCancelar={() => { bulk.setSelected(new Set()); bulk.setBulkRubroId('') }}
+          onCancelar={() => {
+            bulk.setSelected(new Set())
+            bulk.setBulkRubroId('')
+          }}
         />
       )}
 

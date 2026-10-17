@@ -30,7 +30,7 @@ function RowMenu({ sociedadId, activo, isPending, onDeactivate, onReactivate }: 
       const rect = btnRef.current.getBoundingClientRect()
       setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
     }
-    setOpen(v => !v)
+    setOpen((v) => !v)
   }
 
   return (
@@ -38,7 +38,7 @@ function RowMenu({ sociedadId, activo, isPending, onDeactivate, onReactivate }: 
       <button
         ref={btnRef}
         onClick={handleToggle}
-        className="rounded-md p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+        className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
         aria-label="Opciones"
       >
         <MoreHorizontal className="h-4 w-4" />
@@ -51,12 +51,12 @@ function RowMenu({ sociedadId, activo, isPending, onDeactivate, onReactivate }: 
 
           {/* Dropdown: fixed para escapar del overflow-hidden de la tabla */}
           <div
-            className="fixed z-50 min-w-[160px] rounded-lg border border-slate-200 bg-white shadow-md py-1"
+            className="fixed z-50 min-w-[160px] rounded-lg border border-slate-200 bg-white py-1 shadow-md"
             style={{ top: menuPos.top, right: menuPos.right }}
           >
             <Link
               href={`/sociedades/${sociedadId}/ejercicios`}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50"
               onClick={() => setOpen(false)}
             >
               <FolderOpen className="h-3.5 w-3.5 text-slate-400" />
@@ -64,7 +64,7 @@ function RowMenu({ sociedadId, activo, isPending, onDeactivate, onReactivate }: 
             </Link>
             <Link
               href={`/sociedades/${sociedadId}/editar`}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50"
               onClick={() => setOpen(false)}
             >
               <Pencil className="h-3.5 w-3.5 text-slate-400" />
@@ -73,16 +73,22 @@ function RowMenu({ sociedadId, activo, isPending, onDeactivate, onReactivate }: 
             <div className="my-1 h-px bg-slate-100" />
             {activo ? (
               <button
-                onClick={() => { setOpen(false); onDeactivate() }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                onClick={() => {
+                  setOpen(false)
+                  onDeactivate()
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
               >
                 Desactivar
               </button>
             ) : (
               <button
-                onClick={() => { setOpen(false); onReactivate() }}
+                onClick={() => {
+                  setOpen(false)
+                  onReactivate()
+                }}
                 disabled={isPending}
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
               >
                 Reactivar
               </button>
@@ -130,14 +136,12 @@ export function SociedadTable({ sociedades }: SociedadTableProps) {
     <>
       {/* Toggle inactivos */}
       {inactivas.length > 0 && (
-        <div className="flex justify-end mb-3">
+        <div className="mb-3 flex justify-end">
           <button
             onClick={() => setShowInactive((v) => !v)}
-            className="text-xs text-slate-500 hover:text-slate-700 underline underline-offset-2 transition-colors"
+            className="text-xs text-slate-500 underline underline-offset-2 transition-colors hover:text-slate-700"
           >
-            {showInactive
-              ? 'Ocultar inactivos'
-              : `Mostrar inactivos (${inactivas.length})`}
+            {showInactive ? 'Ocultar inactivos' : `Mostrar inactivos (${inactivas.length})`}
           </button>
         </div>
       )}
@@ -154,44 +158,42 @@ export function SociedadTable({ sociedades }: SociedadTableProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Sociedad
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   CUIT
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Tipo
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Estado
                 </th>
-                <th className="px-4 py-3 w-12" />
+                <th className="w-12 px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {visibles.map((s) => (
                 <tr
                   key={s.id}
-                  className={`border-b border-slate-100 last:border-0 transition-colors ${
+                  className={`border-b border-slate-100 transition-colors last:border-0 ${
                     s.activo ? 'hover:bg-slate-50' : 'bg-slate-50/60 opacity-60'
                   }`}
                 >
                   <td className="px-4 py-3">
                     <Link
                       href={`/sociedades/${s.id}/ejercicios`}
-                      className="font-medium text-slate-900 hover:text-blue-600 transition-colors"
+                      className="font-medium text-slate-900 transition-colors hover:text-blue-600"
                     >
                       {s.razonSocial}
                     </Link>
-                    {s.localidad && (
-                      <p className="text-xs text-slate-400 mt-0.5">{s.localidad}</p>
-                    )}
+                    {s.localidad && <p className="mt-0.5 text-xs text-slate-400">{s.localidad}</p>}
                   </td>
-                  <td className="px-4 py-3 text-slate-600 font-mono text-xs">
+                  <td className="px-4 py-3 font-mono text-xs text-slate-600">
                     {formatCuit(s.cuit)}
                   </td>
-                  <td className="px-4 py-3 text-slate-600 text-xs">
+                  <td className="px-4 py-3 text-xs text-slate-600">
                     {TIPO_PERSONA_LABELS[s.tipoPersona]}
                     {s.tipoPersona === 'JURIDICA' && s.tipoSocietario && (
                       <span className="text-slate-400"> · {s.tipoSocietario}</span>

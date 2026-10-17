@@ -14,11 +14,19 @@ import {
 } from '../repository/rubro-base.repository'
 import type { RubroBaseDTO } from '../domain/types'
 
-export async function crearRubroBase(input: CreateRubroBaseInput): Promise<ActionResult<RubroBaseDTO>> {
+export async function crearRubroBase(
+  input: CreateRubroBaseInput,
+): Promise<ActionResult<RubroBaseDTO>> {
   try {
     const parsed = CreateRubroBaseSchema.safeParse(input)
     if (!parsed.success) {
-      return actionError({ tipo: 'FORMULARIO', severidad: 'BAJO', codigo: 'FORM-001', mensaje: 'Datos inválidos', detalle: parsed.error.issues[0]?.message })
+      return actionError({
+        tipo: 'FORMULARIO',
+        severidad: 'BAJO',
+        codigo: 'FORM-001',
+        mensaje: 'Datos inválidos',
+        detalle: parsed.error.issues[0]?.message,
+      })
     }
     const rubro = await createRubroBase(parsed.data)
     revalidatePath('/configuracion/rubros')
@@ -28,14 +36,29 @@ export async function crearRubroBase(input: CreateRubroBaseInput): Promise<Actio
   }
 }
 
-export async function actualizarRubroBase(id: string, input: CreateRubroBaseInput): Promise<ActionResult<RubroBaseDTO>> {
+export async function actualizarRubroBase(
+  id: string,
+  input: CreateRubroBaseInput,
+): Promise<ActionResult<RubroBaseDTO>> {
   try {
     const parsed = CreateRubroBaseSchema.safeParse(input)
     if (!parsed.success) {
-      return actionError({ tipo: 'FORMULARIO', severidad: 'BAJO', codigo: 'FORM-001', mensaje: 'Datos inválidos', detalle: parsed.error.issues[0]?.message })
+      return actionError({
+        tipo: 'FORMULARIO',
+        severidad: 'BAJO',
+        codigo: 'FORM-001',
+        mensaje: 'Datos inválidos',
+        detalle: parsed.error.issues[0]?.message,
+      })
     }
     const existing = await findRubroBaseById(id)
-    if (!existing) return actionError({ tipo: 'TECNICO', severidad: 'ALTO', codigo: 'TECH-002', mensaje: 'Clasificación no encontrada' })
+    if (!existing)
+      return actionError({
+        tipo: 'TECNICO',
+        severidad: 'ALTO',
+        codigo: 'TECH-002',
+        mensaje: 'Clasificación no encontrada',
+      })
     const rubro = await updateRubroBase(id, parsed.data)
     revalidatePath('/configuracion/rubros')
     return actionOk(rubro)
@@ -44,7 +67,10 @@ export async function actualizarRubroBase(id: string, input: CreateRubroBaseInpu
   }
 }
 
-export async function getSiguienteOrden(seccionSSP?: string, seccionEERR?: string): Promise<number> {
+export async function getSiguienteOrden(
+  seccionSSP?: string,
+  seccionEERR?: string,
+): Promise<number> {
   try {
     return await findNextOrden(seccionSSP, seccionEERR)
   } catch {

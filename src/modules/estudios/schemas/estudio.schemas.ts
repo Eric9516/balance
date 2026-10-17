@@ -5,10 +5,7 @@ import { validarCuit } from '@/lib/utils/cuit'
 const emailOptional = z
   .string()
   .optional()
-  .refine(
-    (val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
-    'Email inválido',
-  )
+  .refine((val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), 'Email inválido')
 
 export const CreateEstudioSchema = z.object({
   tipoPersona: z.nativeEnum(TipoPersona),

@@ -37,19 +37,19 @@ export function EjercicioTable({ ejercicios, sociedadId }: EjercicioTableProps) 
         // Vínculo a un ejercicio que existe en la lista pero no es el siguiente (caso raro)
         const linkedNonAdjacent =
           e.ejercicioAnteriorId && !isLinkedToNext
-            ? idMap.get(e.ejercicioAnteriorId) ?? null
+            ? (idMap.get(e.ejercicioAnteriorId) ?? null)
             : null
 
         return (
           <div key={e.id}>
             {/* ── Card del ejercicio ─────────────────────────────────────── */}
-            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 gap-4">
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3">
               {/* Nombre + período + detalles */}
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium text-slate-900">{e.denominacion}</span>
                   {e.numeroEjercicio != null && (
-                    <span className="text-xs text-slate-400 font-mono">#{e.numeroEjercicio}</span>
+                    <span className="font-mono text-xs text-slate-400">#{e.numeroEjercicio}</span>
                   )}
                   {linkedNonAdjacent && (
                     <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] text-slate-500">
@@ -58,8 +58,8 @@ export function EjercicioTable({ ejercicios, sociedadId }: EjercicioTableProps) 
                     </span>
                   )}
                 </div>
-                <div className="mt-0.5 flex items-center gap-3 flex-wrap">
-                  <span className="text-xs text-slate-500 font-mono">
+                <div className="mt-0.5 flex flex-wrap items-center gap-3">
+                  <span className="font-mono text-xs text-slate-500">
                     {formatFecha(e.fechaInicio)}
                     <span className="mx-1 text-slate-300">→</span>
                     {formatFecha(e.fechaCierre)}
@@ -74,20 +74,18 @@ export function EjercicioTable({ ejercicios, sociedadId }: EjercicioTableProps) 
               </div>
 
               {/* Estado + acciones */}
-              <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap justify-end">
-                <Badge variant={ESTADO_BADGE_VARIANTS[e.estado]}>
-                  {ESTADO_LABELS[e.estado]}
-                </Badge>
+              <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-1.5">
+                <Badge variant={ESTADO_BADGE_VARIANTS[e.estado]}>{ESTADO_LABELS[e.estado]}</Badge>
 
                 <Button variant="ghost" size="sm" asChild>
                   <Link href={`/sociedades/${sociedadId}/ejercicios/${e.id}/cuentas`}>
-                    <Table2 className="h-3.5 w-3.5 mr-1" />
+                    <Table2 className="mr-1 h-3.5 w-3.5" />
                     Cuentas
                   </Link>
                 </Button>
                 <Button variant="ghost" size="sm" asChild>
                   <Link href={`/sociedades/${sociedadId}/ejercicios/${e.id}/editar`}>
-                    <Pencil className="h-3.5 w-3.5 mr-1" />
+                    <Pencil className="mr-1 h-3.5 w-3.5" />
                     Editar
                   </Link>
                 </Button>
@@ -140,17 +138,15 @@ export function EjercicioTable({ ejercicios, sociedadId }: EjercicioTableProps) 
 
             {/* ── Conector entre ejercicios vinculados ───────────────────── */}
             {isLinkedToNext && (
-              <div className="flex items-stretch gap-0 pl-6 py-0">
+              <div className="flex items-stretch gap-0 py-0 pl-6">
                 {/* línea vertical con flecha */}
-                <div className="flex flex-col items-center w-5">
+                <div className="flex w-5 flex-col items-center">
                   <div className="w-px flex-1 bg-slate-300" />
                 </div>
                 {/* label */}
                 <div className="flex items-center gap-1.5 py-1.5 pl-1.5">
                   <Link2 className="h-3 w-3 text-slate-400" />
-                  <span className="text-[10px] text-slate-500">
-                    toma como comparativo ↓
-                  </span>
+                  <span className="text-[10px] text-slate-500">toma como comparativo ↓</span>
                 </div>
               </div>
             )}

@@ -64,7 +64,7 @@ function CeldaConcepto({
       placeholder={placeholder}
       onChange={(e) => setLocal(e.target.value)}
       onBlur={() => onBlur(local)}
-      className="w-full text-sm text-slate-900 bg-transparent border border-transparent hover:border-slate-200 focus:border-blue-400 focus:bg-white rounded px-1.5 py-0.5 focus:outline-none transition-colors"
+      className="w-full rounded border border-transparent bg-transparent px-1.5 py-0.5 text-sm text-slate-900 transition-colors hover:border-slate-200 focus:border-blue-400 focus:bg-white focus:outline-none"
     />
   )
 }
@@ -115,7 +115,11 @@ export function NotaCuantitativa({
   }
 
   // ── Borrador: detalle — se persiste al Guardar
-  function saveDetalle(id: string, field: 'concepto' | 'importeActual' | 'importeAnterior', value: string | number) {
+  function saveDetalle(
+    id: string,
+    field: 'concepto' | 'importeActual' | 'importeAnterior',
+    value: string | number,
+  ) {
     actualizar((prev) => ({
       ...prev,
       detalles: prev.detalles.map((d) => (d.id === id ? { ...d, [field]: value } : d)),
@@ -156,27 +160,30 @@ export function NotaCuantitativa({
   const filasData = nota.detalles.filter((d) => !d.esTotal)
 
   return (
-    <div className={cn('rounded-xl border border-slate-200 bg-white overflow-hidden', isPendingTotal && 'opacity-70')}>
+    <div
+      className={cn(
+        'overflow-hidden rounded-xl border border-slate-200 bg-white',
+        isPendingTotal && 'opacity-70',
+      )}
+    >
       {/* Encabezado de nota — idéntico al PDF */}
-      <div className="flex items-start justify-between border-b border-slate-100 px-5 py-3 bg-slate-50">
+      <div className="flex items-start justify-between border-b border-slate-100 bg-slate-50 px-5 py-3">
         <div className="flex-1">
           <div className="flex items-baseline gap-2">
-            <span className="text-sm font-bold text-slate-900">
-              Nota N° {nota.numero ?? '?'}:
-            </span>
+            <span className="text-sm font-bold text-slate-900">Nota N° {nota.numero ?? '?'}:</span>
             <span className="text-sm font-bold text-slate-900 uppercase">{nota.titulo}</span>
           </div>
 
           {/* Criterio de medición — solo SSP (no EERR) */}
           {nota.criterioMedicion !== null && (
-            <div className="flex items-baseline gap-1 mt-0.5">
+            <div className="mt-0.5 flex items-baseline gap-1">
               <span className="text-xs text-slate-500">Criterio de medición:</span>
               {editando ? (
                 <input
                   type="text"
                   defaultValue={nota.criterioMedicion ?? ''}
                   onBlur={(e) => saveNotaField('criterioMedicion', e.target.value)}
-                  className="text-xs text-slate-600 bg-transparent border-b border-dashed border-slate-300 focus:outline-none focus:border-blue-400 min-w-[200px]"
+                  className="min-w-[200px] border-b border-dashed border-slate-300 bg-transparent text-xs text-slate-600 focus:border-blue-400 focus:outline-none"
                 />
               ) : (
                 <span className="text-xs text-slate-600">{nota.criterioMedicion}</span>
@@ -185,7 +192,7 @@ export function NotaCuantitativa({
           )}
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+        <div className="ml-4 flex flex-shrink-0 items-center gap-2">
           {/* Fechas — columnas del PDF */}
           <div className="text-right">
             <p className="text-xs font-semibold text-slate-500 tabular-nums">
@@ -209,7 +216,7 @@ export function NotaCuantitativa({
             type="button"
             onClick={eliminarNota}
             disabled={isPendingTotal}
-            className="text-slate-300 hover:text-red-500 transition-colors rounded p-1.5"
+            className="rounded p-1.5 text-slate-300 transition-colors hover:text-red-500"
             title="Eliminar nota"
           >
             <Trash2 className="h-4 w-4" />
@@ -219,13 +226,13 @@ export function NotaCuantitativa({
 
       {/* Texto apertura */}
       {nota.textoApertura && (
-        <div className="px-5 py-2 border-b border-slate-50">
+        <div className="border-b border-slate-50 px-5 py-2">
           {editando ? (
             <input
               type="text"
               defaultValue={nota.textoApertura}
               onBlur={(e) => saveNotaField('textoApertura', e.target.value)}
-              className="w-full text-xs text-slate-500 italic bg-transparent border-b border-dashed border-slate-200 focus:outline-none focus:border-blue-400"
+              className="w-full border-b border-dashed border-slate-200 bg-transparent text-xs text-slate-500 italic focus:border-blue-400 focus:outline-none"
             />
           ) : (
             <span className="text-xs text-slate-500 italic">{nota.textoApertura}</span>
@@ -237,7 +244,7 @@ export function NotaCuantitativa({
       <table className="w-full">
         <tbody>
           {filasData.map((det) => (
-            <tr key={det.id} className="border-b border-slate-50 hover:bg-slate-50/40 group">
+            <tr key={det.id} className="group border-b border-slate-50 hover:bg-slate-50/40">
               <td className="px-5 py-1.5">
                 {editando ? (
                   <CeldaConcepto
@@ -249,7 +256,7 @@ export function NotaCuantitativa({
                   <span className="text-sm text-slate-700">{det.concepto}</span>
                 )}
               </td>
-              <td className="px-3 py-1.5 w-36">
+              <td className="w-36 px-3 py-1.5">
                 <CeldaNumero
                   value={det.importeActual}
                   editando={editando}
@@ -257,7 +264,7 @@ export function NotaCuantitativa({
                 />
               </td>
               {mostrarAnterior && (
-                <td className="px-3 py-1.5 w-36">
+                <td className="w-36 px-3 py-1.5">
                   <CeldaNumero
                     value={det.importeAnterior}
                     editando={editando}
@@ -265,13 +272,13 @@ export function NotaCuantitativa({
                   />
                 </td>
               )}
-              <td className="px-3 py-1.5 w-8 text-center">
+              <td className="w-8 px-3 py-1.5 text-center">
                 {editando && (
                   <button
                     type="button"
                     onClick={() => eliminarFila(det.id)}
                     disabled={isPendingTotal}
-                    className="text-slate-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                    className="text-slate-200 opacity-0 transition-colors group-hover:opacity-100 hover:text-red-500"
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>
@@ -285,11 +292,11 @@ export function NotaCuantitativa({
         <tfoot>
           <tr className="border-t border-slate-200 bg-slate-50">
             <td className="px-5 py-2 text-sm font-bold text-slate-900">TOTAL</td>
-            <td className="px-3 py-2 w-36 text-right font-mono text-sm font-bold text-slate-900 tabular-nums">
+            <td className="w-36 px-3 py-2 text-right font-mono text-sm font-bold text-slate-900 tabular-nums">
               {formatCurrency(totalActual, { decimales: 2 })}
             </td>
             {mostrarAnterior && (
-              <td className="px-3 py-2 w-36 text-right font-mono text-sm font-bold text-slate-700 tabular-nums">
+              <td className="w-36 px-3 py-2 text-right font-mono text-sm font-bold text-slate-700 tabular-nums">
                 {formatCurrency(totalAnterior, { decimales: 2 })}
               </td>
             )}
@@ -300,12 +307,12 @@ export function NotaCuantitativa({
 
       {/* Agregar fila — solo en modo edición */}
       {editando && (
-        <div className="px-5 py-2 border-t border-slate-100">
+        <div className="border-t border-slate-100 px-5 py-2">
           <button
             type="button"
             onClick={agregarFila}
             disabled={isPendingTotal}
-            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-blue-600 transition-colors"
+            className="flex items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-blue-600"
           >
             <PlusCircle className="h-3.5 w-3.5" />
             Agregar fila

@@ -3,7 +3,11 @@ import type { EvolucionPNMovimiento, TipoMovimientoPN } from '@prisma/client'
 export const PN_MOVIMIENTOS: Array<{ tipo: TipoMovimientoPN; orden: number; label: string }> = [
   { tipo: 'SALDO_INICIO', orden: 10, label: 'Saldos al inicio del ejercicio' },
   { tipo: 'AJUSTE_INFLACION', orden: 20, label: 'Ajuste por inflación del ejercicio' },
-  { tipo: 'MODIFICACION_INICIO', orden: 30, label: 'Modificación de saldos al inicio del ejercicio' },
+  {
+    tipo: 'MODIFICACION_INICIO',
+    orden: 30,
+    label: 'Modificación de saldos al inicio del ejercicio',
+  },
   { tipo: 'DISTRIB_HONORARIOS', orden: 40, label: 'Honorarios' },
   { tipo: 'DISTRIB_DIVIDENDOS', orden: 50, label: 'Dividendos' },
   { tipo: 'DISTRIB_RESERVA_LEGAL', orden: 60, label: 'Reserva Legal' },
@@ -52,6 +56,23 @@ export function toEvolucionPNMovimientoDTO(row: EvolucionPNMovimiento): Evolucio
   }
 }
 
-export function totalMovimientoPN(row: Pick<EvolucionPNMovimientoDTO, 'capitalSuscripto' | 'ajusteCapital' | 'aportesIrrevocables' | 'reservaLegal' | 'otrasReservas' | 'rdosNoAsignados'>): number {
-  return row.capitalSuscripto + row.ajusteCapital + row.aportesIrrevocables + row.reservaLegal + row.otrasReservas + row.rdosNoAsignados
+export function totalMovimientoPN(
+  row: Pick<
+    EvolucionPNMovimientoDTO,
+    | 'capitalSuscripto'
+    | 'ajusteCapital'
+    | 'aportesIrrevocables'
+    | 'reservaLegal'
+    | 'otrasReservas'
+    | 'rdosNoAsignados'
+  >,
+): number {
+  return (
+    row.capitalSuscripto +
+    row.ajusteCapital +
+    row.aportesIrrevocables +
+    row.reservaLegal +
+    row.otrasReservas +
+    row.rdosNoAsignados
+  )
 }

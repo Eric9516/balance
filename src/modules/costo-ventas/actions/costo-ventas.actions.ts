@@ -24,6 +24,8 @@ export async function guardarTodoCostoVentasAction(
     revalidatePath(`/sociedades/${sociedadId}/ejercicios/${ejercicioId}/costo-ventas`)
     return actionOk(row)
   } catch (error) {
-    return actionError(errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'guardar_costo_ventas' }))
+    return actionError(
+      errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'guardar_costo_ventas' }),
+    )
   }
 }

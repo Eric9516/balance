@@ -7,12 +7,32 @@ import type { EjercicioContableDTO } from '@/modules/ejercicios/domain/types'
 // ─── Helpers de fecha ─────────────────────────────────────────────────────────
 
 const MESES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
 ]
 const MESES_MIN = [
-  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
 ]
 
 function fechaLarga(d: Date): string {
@@ -64,13 +84,13 @@ export function CaratulaContent({ sociedad, ejercicio }: Props) {
       <div className="flex items-center gap-2">
         <Button variant="secondary" size="sm" asChild>
           <Link href={`/sociedades/${sociedad.id}/editar`}>
-            <Pencil className="h-3.5 w-3.5 mr-1.5" />
+            <Pencil className="mr-1.5 h-3.5 w-3.5" />
             Editar cliente
           </Link>
         </Button>
         <Button variant="secondary" size="sm" asChild>
           <Link href={`/sociedades/${sociedad.id}/ejercicios/${ejercicio.id}/editar`}>
-            <Pencil className="h-3.5 w-3.5 mr-1.5" />
+            <Pencil className="mr-1.5 h-3.5 w-3.5" />
             Editar ejercicio
           </Link>
         </Button>
@@ -101,14 +121,20 @@ export function CaratulaContent({ sociedad, ejercicio }: Props) {
             <div className="mt-6">
               <p className="text-xs text-slate-500 italic">Actividad Principal:</p>
               {actPrincipales.map((act, i) => (
-                <p key={i} className="mt-0.5 text-sm font-bold text-slate-900 uppercase leading-snug">
+                <p
+                  key={i}
+                  className="mt-0.5 text-sm leading-snug font-bold text-slate-900 uppercase"
+                >
                   {act}
                 </p>
               ))}
               {actSecundarias.length > 0 && (
                 <div className="mt-3">
                   {actSecundarias.map((act, i) => (
-                    <p key={i} className="mt-0.5 text-sm font-bold text-slate-900 uppercase leading-snug">
+                    <p
+                      key={i}
+                      className="mt-0.5 text-sm leading-snug font-bold text-slate-900 uppercase"
+                    >
                       {act}
                     </p>
                   ))}
@@ -123,9 +149,7 @@ export function CaratulaContent({ sociedad, ejercicio }: Props) {
             </p>
           </div>
 
-          <p className="mt-5 text-sm text-slate-700 leading-relaxed max-w-md mx-auto">
-            {parrafo}
-          </p>
+          <p className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-slate-700">{parrafo}</p>
 
           <div className="mt-10 border-t border-slate-200" />
 
@@ -165,7 +189,10 @@ export function CaratulaContent({ sociedad, ejercicio }: Props) {
               <p className="text-xs text-slate-500">(en pesos)</p>
               {sociedad.composicionCapital ? (
                 sociedad.composicionCapital.split('\n').map((linea, i) => (
-                  <p key={i} className="mt-1 text-sm font-bold text-slate-900 leading-snug max-w-sm mx-auto">
+                  <p
+                    key={i}
+                    className="mx-auto mt-1 max-w-sm text-sm leading-snug font-bold text-slate-900"
+                  >
                     {linea}
                   </p>
                 ))

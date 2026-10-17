@@ -16,10 +16,7 @@ export default async function EditarAuditorPage({ params }: Props) {
 
   return (
     <div>
-      <PageHeader
-        title="Editar auditor"
-        description={auditor.nombreCompleto}
-      />
+      <PageHeader title="Editar auditor" description={auditor.nombreCompleto} />
       <div className="px-8 py-6">
         <AuditorForm defaultValues={auditor} />
       </div>

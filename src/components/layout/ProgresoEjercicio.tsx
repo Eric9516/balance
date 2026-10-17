@@ -1,10 +1,5 @@
 import Link from 'next/link'
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Circle,
-  Lock,
-} from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Circle, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type EstadoPaso = 'completado' | 'activo' | 'pendiente' | 'bloqueado'
@@ -45,20 +40,20 @@ function PasoItem({
   }
 
   const inner = (
-    <div className="flex flex-col items-center text-center gap-1 min-w-0">
+    <div className="flex min-w-0 flex-col items-center gap-1 text-center">
       <div
         className={cn(
-          'flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors flex-shrink-0',
+          'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border-2 transition-colors',
           paso.estado === 'completado' && 'border-emerald-200 bg-emerald-50',
           paso.estado === 'activo' && 'border-blue-200 bg-blue-50',
           paso.estado === 'pendiente' && 'border-slate-200 bg-white',
           paso.estado === 'bloqueado' && 'border-slate-100 bg-white',
-          esActivo && 'ring-2 ring-offset-1 ring-blue-400',
+          esActivo && 'ring-2 ring-blue-400 ring-offset-1',
         )}
       >
         {iconos[paso.estado]}
       </div>
-      <span className={cn('text-xs font-semibold leading-tight', labelColor[paso.estado])}>
+      <span className={cn('text-xs leading-tight font-semibold', labelColor[paso.estado])}>
         {paso.label}
       </span>
       <span
@@ -73,10 +68,10 @@ function PasoItem({
   )
 
   return (
-    <div className="flex items-start gap-0 flex-1 min-w-0">
-      <div className="flex-1 min-w-0 px-2">
+    <div className="flex min-w-0 flex-1 items-start gap-0">
+      <div className="min-w-0 flex-1 px-2">
         {paso.href && paso.estado !== 'bloqueado' ? (
-          <Link href={paso.href} className="block hover:opacity-75 transition-opacity">
+          <Link href={paso.href} className="block transition-opacity hover:opacity-75">
             {inner}
           </Link>
         ) : (
@@ -85,7 +80,7 @@ function PasoItem({
       </div>
 
       {!esUltimo && (
-        <div className="flex-shrink-0 w-4 mt-4 flex items-center">
+        <div className="mt-4 flex w-4 flex-shrink-0 items-center">
           <div
             className={cn(
               'h-px w-full',
@@ -173,9 +168,12 @@ export function ProgresoEjercicio({
     {
       pasoKey: 'anexos',
       label: 'Anexos',
-      descripcion: anexosAceptados > 0
-        ? (anexosCompletos ? `${anexosAceptados} cargados` : `${anexosAceptados} aceptados`)
-        : 'Aceptá en el paso anterior',
+      descripcion:
+        anexosAceptados > 0
+          ? anexosCompletos
+            ? `${anexosAceptados} cargados`
+            : `${anexosAceptados} aceptados`
+          : 'Aceptá en el paso anterior',
       estado: estadoPaso('anexos', balanceImportado, anexosAceptados > 0 && anexosCompletos),
       href: balanceImportado ? `${base}?paso=anexos` : undefined,
     },
@@ -196,7 +194,11 @@ export function ProgresoEjercicio({
     {
       pasoKey: 'estados',
       label: 'Estados',
-      descripcion: estadosConfirmado ? 'Confirmado' : todoClasificado ? 'Pendiente confirmación' : 'Requiere clasificar',
+      descripcion: estadosConfirmado
+        ? 'Confirmado'
+        : todoClasificado
+          ? 'Pendiente confirmación'
+          : 'Requiere clasificar',
       estado: estadoPaso('estados', todoClasificado, estadosConfirmado),
       href: todoClasificado ? `${base}?paso=estados` : undefined,
     },
@@ -219,10 +221,10 @@ export function ProgresoEjercicio({
 
       {!tieneEjercicioAnterior && !requiereComparativoManual && balanceImportado && (
         <div className="flex items-center gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5">
-          <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0" />
+          <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-500" />
           <p className="text-xs text-amber-700">
-            <strong>Sin ejercicio anterior vinculado</strong> - los estados, notas y anexos no mostrarán columna comparativa.
-            Vinculá el ejercicio anterior desde{' '}
+            <strong>Sin ejercicio anterior vinculado</strong> - los estados, notas y anexos no
+            mostrarán columna comparativa. Vinculá el ejercicio anterior desde{' '}
             <Link
               href={`/sociedades/${sociedadId}/ejercicios`}
               className="underline hover:text-amber-900"
@@ -236,11 +238,12 @@ export function ProgresoEjercicio({
 
       {requiereComparativoManual && balanceImportado && (
         <div className="flex items-center gap-2.5 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5">
-          <AlertTriangle className="h-4 w-4 text-blue-500 flex-shrink-0" />
+          <AlertTriangle className="h-4 w-4 flex-shrink-0 text-blue-500" />
           <p className="text-xs text-blue-700">
-            <strong>Sin balance anterior importado</strong> - completá los importes del ejercicio anterior
-            directamente en la columna <em>&quot;Ejercicio Anterior&quot;</em> de cada anexo, nota y estado.
-            Podés agregar filas para clasificaciones que el ejercicio actual no tiene.
+            <strong>Sin balance anterior importado</strong> - completá los importes del ejercicio
+            anterior directamente en la columna <em>&quot;Ejercicio Anterior&quot;</em> de cada
+            anexo, nota y estado. Podés agregar filas para clasificaciones que el ejercicio actual
+            no tiene.
           </p>
         </div>
       )}

@@ -19,7 +19,7 @@ export type RubroFila = {
   naturalezaEsperada: 'DEUDORA' | 'ACREEDORA'
   orden: number
   displayValue: number
-  displayValueAnt: number   // valor del ejercicio anterior (mismo signo)
+  displayValueAnt: number // valor del ejercicio anterior (mismo signo)
   notaNumero: number | null // número de nota asociada para mostrar "(Nota X)"
   cuentas: FilaCuenta[]
 }
@@ -28,8 +28,8 @@ export type RubroFila = {
 
 // Una sección de gasto del Anexo III que aparece como línea en el EERR
 export type GastoSeccionEERR = {
-  key: string         // identificador único (ej: 'grupo:abc123')
-  nombre: string      // nombre de la sección para mostrar
+  key: string // identificador único (ej: 'grupo:abc123')
+  nombre: string // nombre de la sección para mostrar
   total: number
   totalAnt: number
 }
@@ -40,13 +40,13 @@ export type EERRData = {
   ingresosAnt: number
   notaIngresosNum: number | null
 
-  costoVentas: number         // de Anexo II si existe, sino de cuentas
+  costoVentas: number // de Anexo II si existe, sino de cuentas
   costoVentasAnt: number
   notaCostoVentasNum: number | null
-  usaAnexoCosto: boolean      // true = viene del Anexo II
+  usaAnexoCosto: boolean // true = viene del Anexo II
 
-  seccionesGasto: GastoSeccionEERR[]  // cada sección del Anexo III como línea EERR
-  usaAnexoGastos: boolean             // true = viene del Anexo III dinámico
+  seccionesGasto: GastoSeccionEERR[] // cada sección del Anexo III como línea EERR
+  usaAnexoGastos: boolean // true = viene del Anexo III dinámico
 
   resultadosFinancieros: number
   resultadosFinancierosAnt: number

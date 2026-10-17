@@ -30,7 +30,9 @@ export async function guardarComparativoAction(
     revalidate(sociedadId, ejercicioId)
     return actionOk(row)
   } catch (error) {
-    return actionError(errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'guardar_comparativo' }))
+    return actionError(
+      errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'guardar_comparativo' }),
+    )
   }
 }
 
@@ -45,7 +47,9 @@ export async function eliminarComparativoAction(
     revalidate(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {
-    return actionError(errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'eliminar_comparativo' }))
+    return actionError(
+      errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'eliminar_comparativo' }),
+    )
   }
 }
 
@@ -58,6 +62,8 @@ export async function limpiarComparativosAction(
     revalidate(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {
-    return actionError(errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'limpiar_comparativos' }))
+    return actionError(
+      errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'limpiar_comparativos' }),
+    )
   }
 }

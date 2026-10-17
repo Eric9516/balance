@@ -27,10 +27,7 @@ export default async function NuevoEjercicioPage({ params }: Props) {
 
   return (
     <div>
-      <PageHeader
-        title="Nuevo ejercicio"
-        description={sociedad.razonSocial}
-      />
+      <PageHeader title="Nuevo ejercicio" description={sociedad.razonSocial} />
       <div className="px-8 py-6">
         <EjercicioForm
           sociedadId={id}

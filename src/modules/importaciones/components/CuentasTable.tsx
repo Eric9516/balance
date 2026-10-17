@@ -20,12 +20,12 @@ export function CuentasTable({ cuentas, sociedadId, ejercicioId }: CuentasTableP
 
   if (cuentas.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center rounded-xl border border-dashed border-slate-200 bg-white">
-        <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white py-20 text-center">
+        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
           <Upload className="h-5 w-5 text-slate-400" />
         </div>
         <p className="text-sm font-medium text-slate-700">Sin cuentas importadas</p>
-        <p className="mt-1 text-xs text-slate-400 max-w-xs">
+        <p className="mt-1 max-w-xs text-xs text-slate-400">
           Importá el balance desde Excel o ingresá las cuentas manualmente.
         </p>
         <div className="mt-4 flex items-center gap-3">
@@ -64,21 +64,25 @@ export function CuentasTable({ cuentas, sociedadId, ejercicioId }: CuentasTableP
         </div>
         <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
           <p className="text-xs text-slate-500">Total debe</p>
-          <p className="mt-0.5 text-sm font-mono font-semibold text-slate-900">
+          <p className="mt-0.5 font-mono text-sm font-semibold text-slate-900">
             {formatCurrency(totalDebe, { decimales: 2 })}
           </p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
           <p className="text-xs text-slate-500">Total haber</p>
-          <p className="mt-0.5 text-sm font-mono font-semibold text-slate-900">
+          <p className="mt-0.5 font-mono text-sm font-semibold text-slate-900">
             {formatCurrency(totalHaber, { decimales: 2 })}
           </p>
         </div>
-        <div className={`rounded-lg border px-4 py-3 ${cuadra ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50'}`}>
+        <div
+          className={`rounded-lg border px-4 py-3 ${cuadra ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50'}`}
+        >
           <p className={`text-xs ${cuadra ? 'text-emerald-600' : 'text-red-600'}`}>
             {cuadra ? 'Balance cuadrado ✓' : '⚠ No cuadra'}
           </p>
-          <p className={`mt-0.5 text-sm font-mono font-semibold ${cuadra ? 'text-emerald-800' : 'text-red-800'}`}>
+          <p
+            className={`mt-0.5 font-mono text-sm font-semibold ${cuadra ? 'text-emerald-800' : 'text-red-800'}`}
+          >
             {cuadra ? formatCurrency(0) : formatCurrency(diferencia, { decimales: 2 })}
           </p>
         </div>
@@ -88,17 +92,15 @@ export function CuentasTable({ cuentas, sociedadId, ejercicioId }: CuentasTableP
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 text-xs text-slate-500">
           {sinClasificar > 0 ? (
-            <span className="text-amber-600 font-medium">{sinClasificar} sin clasificar</span>
+            <span className="font-medium text-amber-600">{sinClasificar} sin clasificar</span>
           ) : (
-            <span className="text-emerald-600 font-medium">Todas clasificadas ✓</span>
+            <span className="font-medium text-emerald-600">Todas clasificadas ✓</span>
           )}
-          {clasificadas > 0 && (
-            <span>{clasificadas} clasificadas</span>
-          )}
+          {clasificadas > 0 && <span>{clasificadas} clasificadas</span>}
         </div>
         <Button variant="secondary" size="sm" asChild>
           <Link href={importarHref}>
-            <Upload className="h-3.5 w-3.5 mr-1" />
+            <Upload className="mr-1 h-3.5 w-3.5" />
             Re-importar
           </Link>
         </Button>
@@ -110,22 +112,22 @@ export function CuentasTable({ cuentas, sociedadId, ejercicioId }: CuentasTableP
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 w-28">
+                <th className="w-28 px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Código
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Nombre
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 w-36">
+                <th className="w-36 px-4 py-3 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Debe
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 w-36">
+                <th className="w-36 px-4 py-3 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Haber
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 w-36">
+                <th className="w-36 px-4 py-3 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Saldo
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 w-40">
+                <th className="w-40 px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Rubro
                 </th>
               </tr>
@@ -134,15 +136,23 @@ export function CuentasTable({ cuentas, sociedadId, ejercicioId }: CuentasTableP
               {cuentas.map((c) => (
                 <tr
                   key={c.id}
-                  className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                  className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50"
                 >
                   <td className="px-4 py-2.5 font-mono text-xs text-slate-600">{c.codigo}</td>
                   <td className="px-4 py-2.5 text-slate-900">{c.nombre}</td>
                   <td className="px-4 py-2.5 text-right font-mono text-xs text-slate-700">
-                    {c.saldoDeudor > 0 ? formatCurrency(c.saldoDeudor, { decimales: 2 }) : <span className="text-slate-300">—</span>}
+                    {c.saldoDeudor > 0 ? (
+                      formatCurrency(c.saldoDeudor, { decimales: 2 })
+                    ) : (
+                      <span className="text-slate-300">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-2.5 text-right font-mono text-xs text-slate-700">
-                    {c.saldoAcreedor > 0 ? formatCurrency(c.saldoAcreedor, { decimales: 2 }) : <span className="text-slate-300">—</span>}
+                    {c.saldoAcreedor > 0 ? (
+                      formatCurrency(c.saldoAcreedor, { decimales: 2 })
+                    ) : (
+                      <span className="text-slate-300">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-2.5 text-right font-mono text-xs">
                     <span className={c.saldoFinal >= 0 ? 'text-slate-800' : 'text-red-600'}>

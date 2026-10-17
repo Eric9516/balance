@@ -4,11 +4,17 @@ import type { AppError } from './types'
 // Replace with pino in production when structured logging infra is ready.
 const isDev = process.env.NODE_ENV === 'development'
 
-function safeContext(ctx: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+function safeContext(
+  ctx: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
   if (!ctx) return undefined
   // Strip any keys that may contain sensitive data
   const { password, token, secret, importe, saldo, ...safe } = ctx as Record<string, unknown>
-  void password; void token; void secret; void importe; void saldo
+  void password
+  void token
+  void secret
+  void importe
+  void saldo
   return safe
 }
 

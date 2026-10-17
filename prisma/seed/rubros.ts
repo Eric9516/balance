@@ -1,4 +1,10 @@
-﻿import { PrismaClient, EstadoDestino, SeccionSSP, SeccionEERR, NaturalezaEsperada } from '@prisma/client'
+﻿import {
+  PrismaClient,
+  EstadoDestino,
+  SeccionSSP,
+  SeccionEERR,
+  NaturalezaEsperada,
+} from '@prisma/client'
 
 interface RubroSeedData {
   codigo: string
@@ -15,7 +21,6 @@ interface RubroSeedData {
 }
 
 export const RUBROS_BASE: RubroSeedData[] = [
-
   // ACTIVO CORRIENTE
   {
     codigo: 'ACT-CTE-01',
@@ -239,7 +244,8 @@ export const RUBROS_BASE: RubroSeedData[] = [
     orden: 380,
     activo: true,
     generaNotaInformativa: true,
-    textoNotaDefault: 'La composición y evolución del rubro se expone en el Anexo I, que forma parte integrante de los presentes estados contables.\n\nLos bienes de uso se miden por el modelo de costo, sobre la base de su costo de adquisición reexpresado en moneda de cierre, neto de las depreciaciones acumuladas correspondientes.\n\nLas depreciaciones se calculan por el método lineal, considerando la vida útil estimada de los bienes.\n\nLa sociedad no aplica el modelo de revaluación para la medición de sus bienes de uso.',
+    textoNotaDefault:
+      'La composición y evolución del rubro se expone en el Anexo I, que forma parte integrante de los presentes estados contables.\n\nLos bienes de uso se miden por el modelo de costo, sobre la base de su costo de adquisición reexpresado en moneda de cierre, neto de las depreciaciones acumuladas correspondientes.\n\nLas depreciaciones se calculan por el método lineal, considerando la vida útil estimada de los bienes.\n\nLa sociedad no aplica el modelo de revaluación para la medición de sus bienes de uso.',
   },
   {
     codigo: 'ACT-NCTE-10',
@@ -683,5 +689,3 @@ export async function seedRubrosBase(prisma: PrismaClient): Promise<void> {
 
   console.log('Rubros base insertados correctamente.')
 }
-
-

@@ -18,7 +18,9 @@ export async function guardarEvolucionPNAction(
     revalidatePath(`/sociedades/${sociedadId}/ejercicios/${ejercicioId}/cuentas`)
     return actionOk(data)
   } catch (error) {
-    return actionError(errorHandler(error, { modulo: 'PATRIMONIO_NETO', operacion: 'guardar_evolucion_pn' }))
+    return actionError(
+      errorHandler(error, { modulo: 'PATRIMONIO_NETO', operacion: 'guardar_evolucion_pn' }),
+    )
   }
 }
 
@@ -35,6 +37,8 @@ export async function confirmarPNAction(
     revalidatePath(`/sociedades/${sociedadId}/ejercicios/${ejercicioId}/cuentas`)
     return actionOk(undefined)
   } catch (error) {
-    return actionError(errorHandler(error, { modulo: 'PATRIMONIO_NETO', operacion: 'confirmar_pn' }))
+    return actionError(
+      errorHandler(error, { modulo: 'PATRIMONIO_NETO', operacion: 'confirmar_pn' }),
+    )
   }
 }

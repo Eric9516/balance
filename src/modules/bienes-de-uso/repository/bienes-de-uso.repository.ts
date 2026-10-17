@@ -121,7 +121,10 @@ export async function deleteBienDeUso(id: string): Promise<void> {
   await db.bienDeUsoCategoria.delete({ where: { id } })
 }
 
-export async function updateNetoAnteriorManual(id: string, valor: number | null): Promise<BienDeUsoDTO> {
+export async function updateNetoAnteriorManual(
+  id: string,
+  valor: number | null,
+): Promise<BienDeUsoDTO> {
   const row = await db.bienDeUsoCategoria.update({
     where: { id },
     data: { netoResidualAnteriorManual: valor },

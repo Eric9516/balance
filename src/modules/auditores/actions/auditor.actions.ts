@@ -60,7 +60,12 @@ export async function actualizarAuditor(
     }
     const existing = await findAuditorById(id)
     if (!existing) {
-      return actionError({ tipo: 'TECNICO', severidad: 'ALTO', codigo: 'TECH-002', mensaje: 'Auditor no encontrado' })
+      return actionError({
+        tipo: 'TECNICO',
+        severidad: 'ALTO',
+        codigo: 'TECH-002',
+        mensaje: 'Auditor no encontrado',
+      })
     }
     const auditor = await updateAuditor(id, parsed.data)
     revalidatePath('/auditores')

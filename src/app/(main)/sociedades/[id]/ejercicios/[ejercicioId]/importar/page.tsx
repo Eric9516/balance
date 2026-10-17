@@ -34,7 +34,7 @@ export default async function ImportarPage({ params }: Props) {
         action={
           <Button variant="secondary" size="sm" asChild>
             <Link href={`/sociedades/${id}/ejercicios/${ejercicioId}/importar-manual`}>
-              <Keyboard className="h-3.5 w-3.5 mr-1.5" />
+              <Keyboard className="mr-1.5 h-3.5 w-3.5" />
               Carga manual
             </Link>
           </Button>

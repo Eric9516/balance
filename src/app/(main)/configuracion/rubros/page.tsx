@@ -15,10 +15,7 @@ interface Props {
 
 export default async function RubrosPage({ searchParams }: Props) {
   const { volver } = await searchParams
-  const [rubros, grupos] = await Promise.all([
-    findAllRubrosBase(),
-    findAllRubroGrupos(),
-  ])
+  const [rubros, grupos] = await Promise.all([findAllRubrosBase(), findAllRubroGrupos()])
 
   const nuevoHref = `/configuracion/rubros/nuevo${volver ? `?volver=${encodeURIComponent(volver)}` : ''}`
 
@@ -37,13 +34,13 @@ export default async function RubrosPage({ searchParams }: Props) {
             )}
             <Button variant="secondary" asChild>
               <Link href="/configuracion/rubros/nueva-seccion">
-                <FolderPlus className="h-4 w-4 mr-1.5" />
+                <FolderPlus className="mr-1.5 h-4 w-4" />
                 Nueva sección
               </Link>
             </Button>
             <Button asChild>
               <Link href={nuevoHref}>
-                <Plus className="h-4 w-4 mr-1.5" />
+                <Plus className="mr-1.5 h-4 w-4" />
                 Nueva clasificación
               </Link>
             </Button>

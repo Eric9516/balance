@@ -2,8 +2,14 @@ import { db } from '@/lib/db'
 import type { ComparativoManualDTO, ModuloComparativo } from '../domain/types'
 
 function toDTO(r: {
-  id: string; ejercicioId: string; modulo: string; clave: string
-  label: string; valor: number; esHuerfano: boolean; orden: number
+  id: string
+  ejercicioId: string
+  modulo: string
+  clave: string
+  label: string
+  valor: number
+  esHuerfano: boolean
+  orden: number
 }): ComparativoManualDTO {
   return {
     id: r.id,
@@ -55,8 +61,6 @@ export async function deleteComparativo(
   })
 }
 
-export async function deleteAllComparativosByEjercicio(
-  ejercicioId: string,
-): Promise<void> {
+export async function deleteAllComparativosByEjercicio(ejercicioId: string): Promise<void> {
   await db.comparativoManual.deleteMany({ where: { ejercicioId } })
 }
