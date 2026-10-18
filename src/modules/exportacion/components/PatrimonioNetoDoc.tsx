@@ -74,18 +74,18 @@ export function PatrimonioNetoDoc({
   return (
     <>
       <TituloSeccion titulo={titulo} subtitulo={subtitulo} />
-      <table className="doc-tabla text-[8pt]">
+      <table className="doc-tabla ancha">
         <thead>
           <tr>
             <th rowSpan={2} className="izq align-bottom">
               {T.eepn.rubros}
             </th>
             {GRUPOS_PN.map((g) => (
-              <th key={g} colSpan={COLUMNAS_PN[g].columnas.length} className="text-center">
+              <th key={g} colSpan={COLUMNAS_PN[g].columnas.length} className="centro">
                 {COLUMNAS_PN[g].titulo}
               </th>
             ))}
-            <th colSpan={columnas.mostrarAnterior ? 2 : 1} className="text-center">
+            <th colSpan={columnas.mostrarAnterior ? 2 : 1} className="centro">
               {T.eepn.patrimonioNeto}
             </th>
           </tr>

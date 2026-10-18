@@ -7,6 +7,7 @@ import { FlujoDoc } from './FlujoDoc'
 import { NotasDoc } from './NotasDoc'
 import { PanelEstado } from './PanelEstado'
 import { PatrimonioNetoDoc } from './PatrimonioNetoDoc'
+import { AjusteAncho } from './AjusteAncho'
 import { CajaPendiente, Hoja, MarcaAgua } from './piezas'
 
 function Seccion({ seccion, doc }: { seccion: SeccionDocumento; doc: Doc }) {
@@ -56,7 +57,7 @@ function Seccion({ seccion, doc }: { seccion: SeccionDocumento; doc: Doc }) {
       )
     case 'anexo-gastos':
       return (
-        <Hoja doc={doc} apaisada={columnasGastos(seccion.anexo, columnas).length > 3}>
+        <Hoja doc={doc} apaisada={columnasGastos(seccion.anexo, columnas).length > 2}>
           <AnexoGastosDoc {...seccion} columnas={columnas} />
         </Hoja>
       )
@@ -82,6 +83,7 @@ function Seccion({ seccion, doc }: { seccion: SeccionDocumento; doc: Doc }) {
 export function DocumentoBalance({ doc, volverHref }: { doc: Doc; volverHref: string }) {
   return (
     <div className="documento">
+      <AjusteAncho />
       <PanelEstado doc={doc} volverHref={volverHref} />
       {doc.borrador.es && <MarcaAgua texto={T.borrador.marca} />}
       {doc.secciones.map((seccion, i) => (
