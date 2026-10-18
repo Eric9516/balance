@@ -99,6 +99,58 @@ describe('DocumentoBalance (HTML)', () => {
     expect(html).toContain('El Estado de Flujo de Efectivo no cuadra.')
   })
 
+  it('imprime el Anexo I en dos bloques: valor de origen y amortizaciones con neto residual', () => {
+    const html = render({
+      documentos: [
+        {
+          clave: 'ANEXO_BIENES_USO',
+          tipo: 'ANEXO',
+          titulo: 'Anexo de Bienes de Uso',
+          estado: 'ACEPTADO',
+        },
+      ],
+      anexos: {
+        bienesDeUso: {
+          bienes: [
+            {
+              id: 'bdu-1',
+              ejercicioId: 'ej-1',
+              categoria: 'Rodados',
+              orden: 1,
+              costoInicioReexpresado: 3900000,
+              costoAjusteInflacion: 500000,
+              altas: 900000,
+              bajas: 0,
+              costoFinReexpresado: 5300000,
+              depAcumInicio: 0,
+              depAjusteInflacion: 0,
+              depEjercicio: 800000,
+              depBajas: 0,
+              depAcumFin: 800000,
+              netoResidualAnteriorManual: null,
+            },
+          ],
+          bloqueadas: new Set(),
+          sinDato: [],
+          netoAnteriorMap: new Map(),
+          advertencias: [],
+        },
+        costoVentas: null,
+        gastos: null,
+      },
+    })
+    const anexo = html.slice(html.indexOf('Anexo I — Bienes de uso'))
+    expect(anexo).toContain('Valor de origen')
+    expect(anexo).toContain('Amortizaciones acumuladas')
+    expect(anexo).toContain('Neto residual')
+    // Dos tablas, cada una con su columna de rubros y su fila de totales.
+    expect(anexo.match(/<table class="doc-tabla ancha/g)).toHaveLength(2)
+    expect(anexo.match(/>Rubros</g)).toHaveLength(2)
+    expect(anexo.match(/>Totales</g)).toHaveLength(2)
+    expect(anexo).toContain('5.300.000,00') // valor de origen al cierre
+    expect(anexo).toContain('4.500.000,00') // neto residual
+  })
+
   it('el panel de pantalla no se imprime y enlaza al ejercicio', () => {
     const html = render()
     expect(html).toContain('no-imprimir')

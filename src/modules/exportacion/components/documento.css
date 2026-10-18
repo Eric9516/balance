@@ -122,6 +122,13 @@
 .doc-tabla th.izq {
   text-align: left;
 }
+.doc-tabla th.centro {
+  text-align: center;
+}
+/* Tamaños intermedios (las utilidades de Tailwind no pisan este CSS: va fuera de @layer). */
+.doc-tabla.media {
+  font-size: 8pt;
+}
 .doc-tabla th .fecha {
   font-weight: 400;
   color: #6e6a62;
@@ -161,6 +168,15 @@
   font-weight: 700;
   border-top: 1px solid var(--tinta);
   border-bottom: 2px solid var(--tinta);
+}
+/* Tablas con muchas columnas de importes (E.E.P.N., Anexo I): letra más chica y
+   celdas ajustadas. Si aun así no entran, AjusteAncho achica la letra en el navegador. */
+.doc-tabla.ancha {
+  font-size: 7pt;
+}
+.doc-tabla.ancha th,
+.doc-tabla.ancha td {
+  padding: 2pt 3pt;
 }
 .doc-tabla td.sangria {
   padding-left: 14pt;
