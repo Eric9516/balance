@@ -24,6 +24,7 @@ import {
   SECCION_FLUJO_LABELS,
   SECCION_FLUJO_SUBTOTAL,
   SECCIONES_FLUJO,
+  TEXTOS_FLUJO,
   type FlujoGuardadoDTO,
   type FlujoItemDTO,
   type SeccionFlujo,
@@ -213,9 +214,9 @@ export function FlujoEfectivoView({
             </thead>
 
             <tbody>
-              <FilaTitulo colSpan={columnas}>Variaciones del efectivo</FilaTitulo>
+              <FilaTitulo colSpan={columnas}>{TEXTOS_FLUJO.variaciones}</FilaTitulo>
               <tr>
-                <td className="celda pl-6">Efectivo al inicio del ejercicio</td>
+                <td className="celda pl-6">{TEXTOS_FLUJO.efectivoInicio}</td>
                 <td className="celda">
                   {bloqueo.saldoInicial ? (
                     calculado(flujo.saldoInicial, ORIGEN_BALANCE)
@@ -238,7 +239,7 @@ export function FlujoEfectivoView({
                 {editando && <td />}
               </tr>
               <tr>
-                <td className="celda pl-6">Modificación de ejercicios anteriores</td>
+                <td className="celda pl-6">{TEXTOS_FLUJO.modificaciones}</td>
                 <td className="celda">
                   <CeldaNumero
                     value={flujo.modificacionesEjAnt}
@@ -257,13 +258,13 @@ export function FlujoEfectivoView({
                 {editando && <td />}
               </tr>
               <FilaTotal
-                label="Efectivo modificado al inicio del ejercicio"
+                label={TEXTOS_FLUJO.efectivoInicioModificado}
                 actual={actual.efectivoInicioModificado}
                 anterior={anterior?.efectivoInicioModificado}
                 editando={editando}
               />
               <tr>
-                <td className="celda pl-6">Efectivo al cierre del ejercicio</td>
+                <td className="celda pl-6">{TEXTOS_FLUJO.efectivoCierre}</td>
                 <td className="celda">{calculado(flujo.saldoFinal, ORIGEN_BALANCE)}</td>
                 {mostrarAnterior && (
                   <td className="celda">{calculado(flujo.saldoFinalAnterior, ORIGEN_BALANCE)}</td>
@@ -271,14 +272,14 @@ export function FlujoEfectivoView({
                 {editando && <td />}
               </tr>
               <FilaTotal
-                label="Aumento (disminución) neta del efectivo"
+                label={TEXTOS_FLUJO.variacionNeta}
                 actual={actual.variacionNeta}
                 anterior={anterior?.variacionNeta}
                 editando={editando}
                 fuerte
               />
 
-              <FilaTitulo colSpan={columnas}>Causas de las variaciones del efectivo</FilaTitulo>
+              <FilaTitulo colSpan={columnas}>{TEXTOS_FLUJO.causas}</FilaTitulo>
               {SECCIONES_FLUJO.map((seccion) => {
                 const lineas = flujo.items.filter((i) => i.seccion === seccion)
                 return (
@@ -307,7 +308,7 @@ export function FlujoEfectivoView({
             </tbody>
             <tfoot>
               <FilaTotal
-                label="Aumento (disminución) neta del efectivo"
+                label={TEXTOS_FLUJO.variacionNeta}
                 actual={actual.sumaActividades}
                 anterior={anterior?.sumaActividades}
                 editando={editando}

@@ -4,7 +4,14 @@ import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatFecha } from '@/lib/utils/dates'
 import { guardarTodoCostoVentasAction } from '../actions/costo-ventas.actions'
-import { calcularCostoTotal, type CostoVentasDTO } from '../domain/types'
+import {
+  CONCEPTOS_COSTO_VENTAS as CLAVES_FIJAS,
+  COSTO_VENTAS_VACIO as VACIO,
+  TOTAL_COSTO_VENTAS_LABEL,
+  calcularCostoTotal,
+  costoAnteriorConExtras,
+  type CostoVentasDTO,
+} from '../domain/types'
 import {
   ToggleEditarAnterior,
   AgregarFilaAnterior,
@@ -132,19 +139,7 @@ interface Props {
   fechaCierreAnterior: Date | null
 }
 
-const VACIO: Omit<CostoVentasDTO, 'id' | 'ejercicioId'> = {
-  existenciaInicial: 0,
-  compras: 0,
-  gastosFabricacion: 0,
-  existenciaFinal: 0,
-}
-
-const CLAVES_FIJAS: { clave: keyof typeof VACIO; label: string }[] = [
-  { clave: 'existenciaInicial', label: 'Existencia al comienzo del ejercicio' },
-  { clave: 'compras', label: 'Compras del ejercicio' },
-  { clave: 'gastosFabricacion', label: 'Gastos del ejercicio' },
-  { clave: 'existenciaFinal', label: 'Existencia al final del ejercicio' },
-]
+// Conceptos fijos y total: fuente única con el documento imprimible (domain/types).
 
 export function CostoVentasView({
   datos: initialDatos,
@@ -222,10 +217,7 @@ export function CostoVentasView({
   }
 
   const costoActual = calcularCostoTotal(datos)
-  const sumaExtra = conceptosExtraActuales.reduce((acc, c) => acc + c.valor, 0)
-  const costoAnteriorBase = datosAnteriores ? calcularCostoTotal(datosAnteriores) : null
-  const costoAnterior =
-    costoAnteriorBase !== null ? costoAnteriorBase + sumaExtra : sumaExtra !== 0 ? sumaExtra : null
+  const costoAnterior = costoAnteriorConExtras(datosAnteriores, conceptosExtraActuales)
 
   const columnas = mostrarAnterior ? 3 : 2
 
@@ -379,7 +371,7 @@ export function CostoVentasView({
           <tfoot>
             <tr className="border-t-2 border-slate-300 bg-slate-800">
               <td className="px-4 py-3 text-sm font-bold tracking-wide text-white uppercase">
-                Costo de Mercaderías Vendidas
+                {TOTAL_COSTO_VENTAS_LABEL}
               </td>
               <td className="w-44 px-4 py-3 text-right font-mono text-sm font-bold text-white tabular-nums">
                 {formatCurrency(costoActual, { decimales: 2 })}

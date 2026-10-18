@@ -15,7 +15,8 @@ import { useEdicionLote } from '@/components/shared/useEdicionLote'
 import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
 import { useGruposColumnas } from '@/components/shared/useGruposColumnas'
 import { ToggleDensidad, TogglePlegarTodos } from '@/components/shared/ControlesTabla'
-import { COLUMNAS_BDU, FilaCategoria, FilaTotal, GRUPOS_BDU, type GrupoBDU } from './FilaCategoria'
+import { COLUMNAS_BDU, GRUPOS_BDU, type GrupoBDU } from '../domain/columnas'
+import { FilaCategoria, FilaTotal } from './FilaCategoria'
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 

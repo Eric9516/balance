@@ -14,6 +14,17 @@ export const SECCION_FLUJO_LABELS: Record<SeccionFlujo, string> = {
   ACTIVIDADES_FINANCIAMIENTO: 'Actividades de financiación',
 }
 
+/** Textos fijos del bloque "Variaciones del efectivo" y de los totales. */
+export const TEXTOS_FLUJO = {
+  variaciones: 'Variaciones del efectivo',
+  efectivoInicio: 'Efectivo al inicio del ejercicio',
+  modificaciones: 'Modificación de ejercicios anteriores',
+  efectivoInicioModificado: 'Efectivo modificado al inicio del ejercicio',
+  efectivoCierre: 'Efectivo al cierre del ejercicio',
+  variacionNeta: 'Aumento (disminución) neta del efectivo',
+  causas: 'Causas de las variaciones del efectivo',
+} as const
+
 /** Texto del subtotal de cada sección, como se expone en el estado. */
 export const SECCION_FLUJO_SUBTOTAL: Record<SeccionFlujo, string> = {
   ACTIVIDADES_OPERATIVAS:

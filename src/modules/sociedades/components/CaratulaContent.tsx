@@ -3,49 +3,10 @@ import { Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { SociedadDTO } from '../domain/types'
 import type { EjercicioContableDTO } from '@/modules/ejercicios/domain/types'
-
-// ─── Helpers de fecha ─────────────────────────────────────────────────────────
-
-const MESES = [
-  'Enero',
-  'Febrero',
-  'Marzo',
-  'Abril',
-  'Mayo',
-  'Junio',
-  'Julio',
-  'Agosto',
-  'Septiembre',
-  'Octubre',
-  'Noviembre',
-  'Diciembre',
-]
-const MESES_MIN = [
-  'enero',
-  'febrero',
-  'marzo',
-  'abril',
-  'mayo',
-  'junio',
-  'julio',
-  'agosto',
-  'septiembre',
-  'octubre',
-  'noviembre',
-  'diciembre',
-]
-
-function fechaLarga(d: Date): string {
-  const day = String(d.getUTCDate()).padStart(2, '0')
-  return `${day} de ${MESES[d.getUTCMonth()]} de ${d.getUTCFullYear()}`
-}
-
-function fechaLargaMinus(d: Date): string {
-  const day = String(d.getUTCDate()).padStart(2, '0')
-  return `${day} de ${MESES_MIN[d.getUTCMonth()]} de ${d.getUTCFullYear()}`
-}
+import { TEXTOS_CARATULA, armarCaratula } from '../domain/caratula'
 
 // ─── Componente ───────────────────────────────────────────────────────────────
+// Los textos salen de domain/caratula.ts (fuente única con el documento imprimible).
 
 interface Props {
   sociedad: SociedadDTO
@@ -53,30 +14,7 @@ interface Props {
 }
 
 export function CaratulaContent({ sociedad, ejercicio }: Props) {
-  const domicilioParts: string[] = []
-  if (sociedad.domicilioLegal) domicilioParts.push(sociedad.domicilioLegal)
-  if (sociedad.localidad) {
-    const loc = sociedad.codigoPostal
-      ? `${sociedad.localidad} (CP ${sociedad.codigoPostal})`
-      : sociedad.localidad
-    domicilioParts.push(loc)
-  }
-  const domicilio = domicilioParts.join(' - ')
-  const provinciaLinea = [sociedad.provincia, 'Republica Argentina'].filter(Boolean).join(' - ')
-  const numEj = ejercicio.numeroEjercicio != null ? `N°${ejercicio.numeroEjercicio}` : ''
-  const parrafo = `Por el ejercicio económico ${numEj} iniciado el ${fechaLarga(ejercicio.fechaInicio)}, expresado en moneda homogénea (pesos) del ${fechaLarga(ejercicio.fechaCierre)}, fecha de cierre del mismo.-`
-  const actPrincipales = sociedad.actividadPpal?.split('\n').filter(Boolean) ?? []
-  const actSecundarias = sociedad.actividadSecundaria?.split('\n').filter(Boolean) ?? []
-
-  const camposFaltantes: string[] = []
-  if (!sociedad.domicilioLegal) camposFaltantes.push('domicilio legal')
-  if (actPrincipales.length === 0) camposFaltantes.push('actividad principal')
-  if (ejercicio.numeroEjercicio == null) camposFaltantes.push('número de ejercicio')
-  if (!sociedad.fechaInscripcion) camposFaltantes.push('fecha de inscripción')
-  if (!sociedad.matriculaPJ) camposFaltantes.push('matrícula PJ')
-  if (!sociedad.plazoDuracion) camposFaltantes.push('plazo de duración')
-  if (sociedad.tipoSocietario === 'S.A.S.' && !sociedad.composicionCapital)
-    camposFaltantes.push('composición del capital')
+  const c = armarCaratula(sociedad, ejercicio)
 
   return (
     <div className="space-y-4">
@@ -97,10 +35,10 @@ export function CaratulaContent({ sociedad, ejercicio }: Props) {
       </div>
 
       {/* Alerta datos faltantes */}
-      {camposFaltantes.length > 0 && (
+      {c.camposFaltantes.length > 0 && (
         <div className="max-w-2xl rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
           <p className="text-xs font-medium text-amber-800">
-            Datos sin completar: {camposFaltantes.join(', ')}.{' '}
+            Datos sin completar: {c.camposFaltantes.join(', ')}.{' '}
             <span className="font-normal text-amber-700">
               Editá el cliente o el ejercicio para completar la carátula.
             </span>
@@ -112,15 +50,15 @@ export function CaratulaContent({ sociedad, ejercicio }: Props) {
       <div className="max-w-2xl rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="px-16 py-12 text-center">
           <p className="text-2xl font-bold tracking-tight text-slate-900 uppercase">
-            {sociedad.razonSocial}
+            {c.razonSocial}
           </p>
-          {domicilio && <p className="mt-2 text-sm text-slate-700">{domicilio}</p>}
-          {provinciaLinea && <p className="mt-0.5 text-sm text-slate-700">{provinciaLinea}</p>}
+          {c.domicilio && <p className="mt-2 text-sm text-slate-700">{c.domicilio}</p>}
+          {c.provinciaLinea && <p className="mt-0.5 text-sm text-slate-700">{c.provinciaLinea}</p>}
 
-          {actPrincipales.length > 0 && (
+          {c.actividadesPrincipales.length > 0 && (
             <div className="mt-6">
-              <p className="text-xs text-slate-500 italic">Actividad Principal:</p>
-              {actPrincipales.map((act, i) => (
+              <p className="text-xs text-slate-500 italic">{TEXTOS_CARATULA.actividadPrincipal}</p>
+              {c.actividadesPrincipales.map((act, i) => (
                 <p
                   key={i}
                   className="mt-0.5 text-sm leading-snug font-bold text-slate-900 uppercase"
@@ -128,9 +66,9 @@ export function CaratulaContent({ sociedad, ejercicio }: Props) {
                   {act}
                 </p>
               ))}
-              {actSecundarias.length > 0 && (
+              {c.actividadesSecundarias.length > 0 && (
                 <div className="mt-3">
-                  {actSecundarias.map((act, i) => (
+                  {c.actividadesSecundarias.map((act, i) => (
                     <p
                       key={i}
                       className="mt-0.5 text-sm leading-snug font-bold text-slate-900 uppercase"
@@ -145,50 +83,42 @@ export function CaratulaContent({ sociedad, ejercicio }: Props) {
 
           <div className="mt-10 mb-2">
             <p className="text-3xl font-bold tracking-widest text-slate-900 uppercase">
-              ESTADOS CONTABLES
+              {TEXTOS_CARATULA.titulo}
             </p>
           </div>
 
-          <p className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-slate-700">{parrafo}</p>
+          <p className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-slate-700">
+            {c.parrafo}
+          </p>
 
           <div className="mt-10 border-t border-slate-200" />
 
           <div className="mt-8">
+            <p className="text-sm text-slate-600">{TEXTOS_CARATULA.inscripcionTitulo}</p>
             <p className="text-sm text-slate-600">
-              Fecha de Inscripción en el Registro Público de Comercio:
-            </p>
-            <p className="text-sm text-slate-600">
-              Del Estatuto Social:{' '}
-              <span className="font-bold text-slate-900">
-                {sociedad.fechaInscripcion ? fechaLargaMinus(sociedad.fechaInscripcion) : '—'}
-              </span>
+              {TEXTOS_CARATULA.inscripcionEstatuto}{' '}
+              <span className="font-bold text-slate-900">{c.inscripcion ?? '—'}</span>
             </p>
           </div>
 
           <div className="mt-8">
-            <p className="text-sm text-slate-600">
-              Inscripción en la Dirección de Personas Jurídicas de Córdoba según
-            </p>
+            <p className="text-sm text-slate-600">{TEXTOS_CARATULA.matriculaTitulo}</p>
             <p className="mt-0.5 text-sm font-bold text-slate-900">
-              Matrícula N° {sociedad.matriculaPJ ?? '—'}
+              {TEXTOS_CARATULA.matricula(c.matriculaPJ)}
             </p>
           </div>
 
           <div className="mt-8">
-            <p className="text-sm text-slate-600">
-              Fecha en que se cumple el plazo de duración de la Sociedad
-            </p>
-            <p className="mt-0.5 text-sm font-bold text-slate-900">
-              {sociedad.plazoDuracion ? fechaLargaMinus(sociedad.plazoDuracion) : '—'}
-            </p>
+            <p className="text-sm text-slate-600">{TEXTOS_CARATULA.plazoTitulo}</p>
+            <p className="mt-0.5 text-sm font-bold text-slate-900">{c.plazoDuracion ?? '—'}</p>
           </div>
 
-          {sociedad.tipoSocietario === 'S.A.S.' && (
+          {c.composicionCapital && (
             <div className="mt-8 pb-2">
-              <p className="text-sm text-slate-600">Composición del Capital</p>
-              <p className="text-xs text-slate-500">(en pesos)</p>
-              {sociedad.composicionCapital ? (
-                sociedad.composicionCapital.split('\n').map((linea, i) => (
+              <p className="text-sm text-slate-600">{TEXTOS_CARATULA.composicionTitulo}</p>
+              <p className="text-xs text-slate-500">{TEXTOS_CARATULA.composicionSubtitulo}</p>
+              {c.composicionCapital.length > 0 ? (
+                c.composicionCapital.map((linea, i) => (
                   <p
                     key={i}
                     className="mx-auto mt-1 max-w-sm text-sm leading-snug font-bold text-slate-900"

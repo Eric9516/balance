@@ -1,65 +1,11 @@
 import { Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { calcularCierre, type BienDeUsoDTO } from '../domain/types'
+import { totalColumnaBDU, type ColumnaBDU } from '../domain/columnas'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
 import { CeldaBloqueada } from '@/components/shared/CeldaBloqueada'
 
-// ─── Modelo de columnas del Anexo I ──────────────────────────────────────────
-
-type CampoEditable =
-  | 'costoInicioReexpresado'
-  | 'costoAjusteInflacion'
-  | 'altas'
-  | 'bajas'
-  | 'depAcumInicio'
-  | 'depAjusteInflacion'
-  | 'depBajas'
-  | 'depEjercicio'
-
-export type ColumnaBDU =
-  | {
-      tipo: 'campo'
-      campo: CampoEditable
-      label: string
-      /** Arrastrada del anterior vinculado (candado) cuando la fila tiene fuente. */
-      inicio?: boolean
-      negativo?: boolean
-    }
-  | { tipo: 'calc'; label: string; calc: (b: BienDeUsoDTO) => number }
-
-export const GRUPOS_BDU = ['origen', 'amortizaciones'] as const
-export type GrupoBDU = (typeof GRUPOS_BDU)[number]
-
-const costoFin = (b: BienDeUsoDTO) => calcularCierre(b).costoFinReexpresado
-const depFin = (b: BienDeUsoDTO) => calcularCierre(b).depAcumFin
-
-export const COLUMNAS_BDU: Record<
-  GrupoBDU,
-  { titulo: string; columnas: ColumnaBDU[]; plegado: ColumnaBDU }
-> = {
-  origen: {
-    titulo: 'Valor de origen',
-    columnas: [
-      { tipo: 'campo', campo: 'costoInicioReexpresado', label: 'Al comienzo', inicio: true },
-      { tipo: 'campo', campo: 'costoAjusteInflacion', label: 'Ajuste por inflación' },
-      { tipo: 'campo', campo: 'altas', label: 'Aumentos' },
-      { tipo: 'campo', campo: 'bajas', label: 'Disminuciones', negativo: true },
-      { tipo: 'calc', label: 'Al cierre', calc: costoFin },
-    ],
-    plegado: { tipo: 'calc', label: 'Valor al cierre', calc: costoFin },
-  },
-  amortizaciones: {
-    titulo: 'Amortizaciones acumuladas',
-    columnas: [
-      { tipo: 'campo', campo: 'depAcumInicio', label: 'Al comienzo', inicio: true },
-      { tipo: 'campo', campo: 'depAjusteInflacion', label: 'Ajuste por inflación' },
-      { tipo: 'campo', campo: 'depBajas', label: 'Bajas', negativo: true },
-      { tipo: 'campo', campo: 'depEjercicio', label: 'Del ejercicio' },
-      { tipo: 'calc', label: 'Al cierre', calc: depFin },
-    ],
-    plegado: { tipo: 'calc', label: 'Amortización al cierre', calc: depFin },
-  },
-}
+// El modelo de columnas del Anexo I vive en domain/columnas.ts (compartido con el documento).
 
 const TD = 'celda border-b border-linea text-right'
 const TD_CALC = 'bg-slate-50/70'
@@ -205,8 +151,7 @@ export function FilaTotal({
   mostrarAnterior: boolean
   editarAnterior: boolean
 }) {
-  const totalCol = (col: ColumnaBDU) =>
-    bienes.reduce((acc, b) => acc + (col.tipo === 'calc' ? col.calc(b) : b[col.campo]), 0)
+  const totalCol = (col: ColumnaBDU) => totalColumnaBDU(col, bienes)
   const totNetoActual = bienes.reduce((acc, b) => acc + calcularCierre(b).netoResidual, 0)
 
   // MANUAL: suma lo cargado en el borrador. VINCULADO: suma lo derivado del anterior.

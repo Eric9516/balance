@@ -86,3 +86,51 @@ export function totalAnteriorFila(
 ): number {
   return movimientos.find((m) => m.tipo === tipo)?.totalAnterior ?? 0
 }
+
+// ─── Filas derivadas del estado ──────────────────────────────────────────────
+
+/** Movimientos que componen "Saldos al inicio modificados". */
+export const TIPOS_INICIO_MODIFICADO: readonly TipoMovimientoPN[] = [
+  'SALDO_INICIO',
+  'AJUSTE_INFLACION',
+  'MODIFICACION_INICIO',
+]
+
+/**
+ * Suma columna a columna los movimientos de los tipos indicados (fila derivada:
+ * saldos al inicio modificados, saldos al cierre). Los tipos ausentes suman cero.
+ */
+export function sumarMovimientosPN(
+  movimientos: EvolucionPNMovimientoDTO[],
+  tipos: readonly TipoMovimientoPN[],
+): EvolucionPNMovimientoDTO {
+  const byTipo = new Map(movimientos.map((mov) => [mov.tipo, mov]))
+  const base = movimientoVacio(movimientos[0]?.ejercicioId ?? '', tipos[0] ?? 'SALDO_INICIO', 0)
+  return tipos.reduce((acc, tipo) => {
+    const mov = byTipo.get(tipo)
+    if (!mov) return acc
+    return {
+      ...acc,
+      capitalSuscripto: acc.capitalSuscripto + mov.capitalSuscripto,
+      ajusteCapital: acc.ajusteCapital + mov.ajusteCapital,
+      aportesIrrevocables: acc.aportesIrrevocables + mov.aportesIrrevocables,
+      reservaLegal: acc.reservaLegal + mov.reservaLegal,
+      otrasReservas: acc.otrasReservas + mov.otrasReservas,
+      rdosNoAsignados: acc.rdosNoAsignados + mov.rdosNoAsignados,
+      totalAnterior: acc.totalAnterior + mov.totalAnterior,
+    }
+  }, base)
+}
+
+/** Saldos al inicio modificados = saldo inicio + ajuste por inflación + modificación de saldos. */
+export function saldoInicioModificadoPN(movimientos: EvolucionPNMovimientoDTO[]) {
+  return sumarMovimientosPN(movimientos, TIPOS_INICIO_MODIFICADO)
+}
+
+/** Saldos al cierre = suma de todos los movimientos. */
+export function saldoCierrePN(movimientos: EvolucionPNMovimientoDTO[]) {
+  return sumarMovimientosPN(
+    movimientos,
+    movimientos.map((mov) => mov.tipo),
+  )
+}

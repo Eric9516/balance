@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ChevronLeft, Tags } from 'lucide-react'
+import { ChevronLeft, Printer, Tags } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ProgresoEjercicio } from '@/components/layout/ProgresoEjercicio'
@@ -21,6 +21,10 @@ import { PatrimonioNetoView } from '@/modules/patrimonio-neto/components/Patrimo
 import { EstadosView } from '@/modules/estados/components/EstadosView'
 import { FlujoEfectivoView } from '@/modules/flujo-efectivo/components/FlujoEfectivoView'
 import { cargarFlujo } from '@/modules/flujo-efectivo/services/flujo.service'
+import { cargarBienesDeUso } from '@/modules/bienes-de-uso/services/bienes-de-uso.service'
+import { cargarCostoVentas } from '@/modules/costo-ventas/services/costo-ventas.service'
+import { cargarGastos } from '@/modules/gastos/services/gastos.service'
+import { ANEXOS_CON_VISTA } from '@/modules/documentos/domain/anexos'
 import { DocumentosView } from '@/modules/documentos/components/DocumentosView'
 import { AnexosTabs, AnexoEnConstruccion, type AnexoTab } from '@/components/shared/AnexosTabs'
 
@@ -33,10 +37,7 @@ import {
   resumenCuentasByEjercicio,
 } from '@/modules/importaciones/repository/cuentas.repository'
 import { findBienesDeUso } from '@/modules/bienes-de-uso/repository/bienes-de-uso.repository'
-import { findCostoVentas } from '@/modules/costo-ventas/repository/costo-ventas.repository'
-import { findGastosDinamicos } from '@/modules/gastos/repository/gastos-dinamico.repository'
 import { findNotasByEjercicio } from '@/modules/notas/repository/notas.repository'
-import { findComparativoByEjercicio } from '@/modules/comparativo-manual/repository/comparativo.repository'
 import { findAjustesByEjercicio } from '@/modules/transicion-rt54/repository/ajustes.repository'
 import { evaluarDocumentos } from '@/modules/documentos/lib/evaluar'
 import { cargarEstadosConPN, totalesAnteriorSSP } from '@/modules/estados/services/estados.service'
@@ -53,27 +54,13 @@ import {
 import {
   editarAnteriorManual,
   mostrarColumnaAnterior,
-  resolverCostoVentasAnterior,
-  resolverGastos,
 } from '@/modules/comparativo-manual/lib/politica'
-import {
-  aplicarArrastreBienesDeUso,
-  derivarArrastreBienesDeUso,
-} from '@/modules/bienes-de-uso/domain/saldosInicio'
-import { aplicarArrastreCostoVentas } from '@/modules/costo-ventas/domain/saldosInicio'
-import { ajustarCostoVentas, getCoeficienteComparativo } from '@/modules/estados/lib/ajuste'
+import { getCoeficienteComparativo } from '@/modules/estados/lib/ajuste'
 import { totalAnteriorFila } from '@/modules/patrimonio-neto/domain/evolucion'
 import { db } from '@/lib/db'
 
-// ─── Anexos: mapeo regla → pestaña ────────────────────────────────────────────
-// Las pestañas del paso "Anexos" son los anexos ACEPTADOS en "Anexos y notas".
-const ANEXO_TABS_META: Record<string, { slug: string; label: string; hasView: boolean }> = {
-  ANEXO_BIENES_USO: { slug: 'bienes-de-uso', label: 'Bs. de Uso', hasView: true },
-  ANEXO_COSTO_VENTAS: { slug: 'costo-ventas', label: 'Cto. Ventas', hasView: true },
-  ANEXO_GASTOS: { slug: 'gastos', label: 'Gastos', hasView: true },
-}
-// Orden fijo de las pestañas (independiente del orden en que se aceptaron).
-const ANEXO_ORDEN = ['ANEXO_BIENES_USO', 'ANEXO_COSTO_VENTAS', 'ANEXO_GASTOS']
+// Las pestañas del paso "Anexos" son los anexos ACEPTADOS en "Anexos y notas", en el
+// orden fijo del catálogo (documentos/domain/anexos.ts, compartido con el documento).
 
 // Pasos que necesitan conocer el ejercicio anterior vinculado.
 const PASOS_CON_ANTERIOR = ['anterior', 'anexos', 'notas', 'patrimonio-neto', 'estados']
@@ -244,8 +231,8 @@ export default async function CuentasPage({ params, searchParams }: Props) {
       />
     )
   } else if (paso === 'anexos') {
-    const tabs: AnexoTab[] = ANEXO_ORDEN.filter((clave) => anexosAceptadosSet.has(clave)).flatMap(
-      (clave) => ANEXO_TABS_META[clave] ?? [],
+    const tabs: AnexoTab[] = ANEXOS_CON_VISTA.filter((a) => anexosAceptadosSet.has(a.clave)).map(
+      ({ slug, label }) => ({ slug, label, hasView: true }),
     )
     const enConfig = anexo === 'configuracion' || tabs.length === 0
     const activeSlug = enConfig
@@ -258,15 +245,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         <DocumentosView documentos={documentosEval} ejercicioId={ejercicioId} sociedadId={id} />
       )
     } else if (activeSlug === 'bienes-de-uso') {
-      const [bienesRaw, bienesAnterior] = await Promise.all([
-        findBienesDeUso(ejercicioId),
-        anteriorId ? findBienesDeUso(anteriorId) : Promise.resolve([]),
-      ])
-      const arrastre = aplicarArrastreBienesDeUso(
-        bienesRaw,
-        anteriorId ? derivarArrastreBienesDeUso(bienesAnterior) : null,
-        modo,
-      )
+      const arrastre = await cargarBienesDeUso(ejercicio)
       anexoContent = (
         <BienesDeUsoView
           bienes={arrastre.bienes}
@@ -282,30 +261,17 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         />
       )
     } else if (activeSlug === 'costo-ventas') {
-      const [datos, cvAnteriorRaw, comparativosCV] = await Promise.all([
-        findCostoVentas(ejercicioId),
-        anteriorId ? findCostoVentas(anteriorId) : Promise.resolve(null),
-        editarAnterior
-          ? findComparativoByEjercicio(ejercicioId, 'COSTO_VENTAS')
-          : Promise.resolve([]),
-      ])
-      const arrastre = aplicarArrastreCostoVentas(datos, cvAnteriorRaw, modo)
-      const datosAnteriores = resolverCostoVentasAnterior(
-        ajustarCostoVentas(cvAnteriorRaw, coeficiente),
-        modo,
-        comparativosCV,
-        ejercicioId,
-      )
+      const costo = await cargarCostoVentas(ejercicio)
       anexoContent = (
         <CostoVentasView
-          datos={arrastre.datos}
-          datosAnteriores={datosAnteriores}
-          existenciaInicialBloqueada={arrastre.existenciaInicialBloqueada}
-          existenciaInicialDerivada={arrastre.existenciaInicialDerivada}
-          advertencias={arrastre.advertencias}
+          datos={costo.datos}
+          datosAnteriores={costo.datosAnteriores}
+          existenciaInicialBloqueada={costo.existenciaInicialBloqueada}
+          existenciaInicialDerivada={costo.existenciaInicialDerivada}
+          advertencias={costo.advertencias}
           mostrarAnterior={mostrarAnterior}
           editarAnterior={editarAnterior}
-          conceptosExtra={comparativosCV.filter((c) => c.esHuerfano)}
+          conceptosExtra={costo.conceptosExtra}
           ejercicioId={ejercicioId}
           sociedadId={id}
           fechaCierre={ejercicio.fechaCierre}
@@ -313,13 +279,9 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         />
       )
     } else if (activeSlug === 'gastos') {
-      const [gastosRaw, comparativosGastos] = await Promise.all([
-        findGastosDinamicos(ejercicioId, anteriorId),
-        editarAnterior ? findComparativoByEjercicio(ejercicioId, 'GASTOS') : Promise.resolve([]),
-      ])
       anexoContent = (
         <GastosView
-          data={resolverGastos(gastosRaw, modo, comparativosGastos)}
+          data={await cargarGastos(ejercicio)}
           ejercicioId={ejercicioId}
           sociedadId={id}
           conComparativo={mostrarAnterior}
@@ -440,6 +402,16 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         action={
           <div className="flex items-center gap-2">
             <StepInfoButton info={PASO_INFO[pasoInfoKey]} />
+            <Button variant="secondary" size="sm" asChild>
+              <a
+                href={`/sociedades/${id}/ejercicios/${ejercicioId}/imprimir`}
+                target="_blank"
+                rel="noopener"
+              >
+                <Printer className="mr-1 h-3.5 w-3.5" />
+                Imprimir / PDF
+              </a>
+            </Button>
             <Button variant="secondary" size="sm" asChild>
               <Link href={`/sociedades/${id}/ejercicios`}>
                 <ChevronLeft className="mr-1 h-3.5 w-3.5" />

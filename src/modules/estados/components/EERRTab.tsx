@@ -2,6 +2,7 @@ import { Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
 import type { EERRData } from '../domain/types'
+import { ETIQUETAS_EERR, etiquetaResultado } from '../domain/lineasEERR'
 import { esRubroHuerfano } from '../lib/rubroHuerfano'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
 import {
@@ -211,7 +212,7 @@ export function EERRTab({
           </thead>
           <tbody>
             <EERRLine
-              label="Ingresos netos por ventas de bienes y servicios"
+              label={ETIQUETAS_EERR.ingresos}
               value={eerr.ingresos}
               valueAnt={eerr.ingresosAnt}
               notaNumero={eerr.notaIngresosNum}
@@ -225,9 +226,7 @@ export function EERRTab({
             />
             <EERRLine
               label={
-                eerr.usaAnexoCosto
-                  ? 'Costo de los bienes vendidos y servicios (Anexo II)'
-                  : 'Costo de los bienes vendidos y servicios'
+                eerr.usaAnexoCosto ? ETIQUETAS_EERR.costoVentasAnexo : ETIQUETAS_EERR.costoVentas
               }
               value={eerr.costoVentas}
               valueAnt={eerr.costoVentasAnt}
@@ -242,7 +241,7 @@ export function EERRTab({
               sociedadId={sociedadId}
             />
             <EERRTotalLine
-              label="UTILIDAD BRUTA DE VENTAS"
+              label={ETIQUETAS_EERR.utilidadBruta}
               value={eerr.utilidadBruta}
               valueAnt={eerr.utilidadBrutaAnt}
               conComparativo={conComparativo}
@@ -250,7 +249,7 @@ export function EERRTab({
             {eerr.seccionesGasto.map((s) => (
               <EERRLine
                 key={s.key}
-                label={`${s.nombre} (Anexo III)`}
+                label={ETIQUETAS_EERR.gastoAnexo(s.nombre)}
                 value={s.total}
                 valueAnt={s.totalAnt}
                 deduccion
@@ -288,7 +287,7 @@ export function EERRTab({
               </tr>
             )}
             <EERRLine
-              label="Resultados financieros y por tenencia"
+              label={ETIQUETAS_EERR.resultadosFinancieros}
               value={eerr.resultadosFinancieros}
               valueAnt={eerr.resultadosFinancierosAnt}
               conComparativo={conComparativo}
@@ -300,13 +299,13 @@ export function EERRTab({
               sociedadId={sociedadId}
             />
             <EERRTotalLine
-              label="RESULTADO ANTES DEL IMPUESTO A LAS GANANCIAS"
+              label={ETIQUETAS_EERR.resultadoAntesIG}
               value={eerr.resultadoAntesIG}
               valueAnt={eerr.resultadoAntesIGAnt}
               conComparativo={conComparativo}
             />
             <EERRLine
-              label="Impuesto a las ganancias"
+              label={ETIQUETAS_EERR.impuestoGanancias}
               value={eerr.impuestoGanancias}
               valueAnt={eerr.impuestoGananciasAnt}
               deduccion
@@ -321,7 +320,7 @@ export function EERRTab({
           </tbody>
           <tfoot>
             <EERRTotalLine
-              label={resultadoPeriodo >= 0 ? 'GANANCIA DEL PERÍODO' : 'PÉRDIDA DEL PERÍODO'}
+              label={etiquetaResultado(resultadoPeriodo)}
               value={Math.abs(eerr.utilidadEjercicio)}
               valueAnt={Math.abs(eerr.utilidadEjercicioAnt)}
               conComparativo={conComparativo}
