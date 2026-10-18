@@ -9,6 +9,10 @@ const EnvSchema = z.object({
     .string({ error: 'Falta DATABASE_URL (ver .env.example)' })
     .regex(/^postgres(ql)?:\/\//, 'DATABASE_URL debe ser una URL de PostgreSQL (postgresql://...)'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  /** Conexiones máximas del pool de pg (Supabase session pooler: mantener bajo). */
+  DB_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
+  /** '1' = loguear en consola las consultas lentas (≥ 50 ms) en desarrollo. */
+  PRISMA_LOG_QUERIES: z.enum(['0', '1']).default('0'),
 })
 
 function cargarEnv() {

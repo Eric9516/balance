@@ -86,6 +86,28 @@ npm run db:seed       # inserta los 30 rubros base de RT 54
 npm run db:studio     # Prisma Studio (opcional)
 ```
 
+### Base de datos: migraciones
+
+El historial de `prisma/migrations` es la única forma válida de actualizar el schema. **No usar `prisma db push`** sobre una base con datos: deja la base adelantada respecto del historial y el siguiente `migrate deploy` falla.
+
+La migración `20261018000323_regularizar_schema_actual` es idempotente: lleva al historial todo lo que en su momento se aplicó con `db push`. Según el estado de la base destino:
+
+| Estado de la base | Qué hacer |
+|---|---|
+| Base nueva (vacía) | `npx prisma migrate deploy` y luego `npm run db:seed`. |
+| Base que ya corrió `migrate` alguna vez (existe `_prisma_migrations`) | `npx prisma migrate deploy`. La regularización no toca lo que ya existe. |
+| Base actualizada solo con `db push` (no existe `_prisma_migrations`) | Marcar como aplicadas las migraciones previas a la regularización, una por una, y recién después `migrate deploy`: |
+
+```bash
+# Solo para bases que nunca corrieron migrate (baselining)
+for m in $(ls prisma/migrations | grep -v migration_lock | grep -v regularizar | sort | head -n 11); do
+  npx prisma migrate resolve --applied "$m"
+done
+npx prisma migrate deploy
+```
+
+Después de cualquier migración: `npx prisma generate`.
+
 ### Desarrollo
 
 ```bash

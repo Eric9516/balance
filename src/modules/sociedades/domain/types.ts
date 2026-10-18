@@ -1,4 +1,4 @@
-import type { Sociedad, TipoPersona } from '@prisma/client'
+import type { Sociedad, TipoPersona, CategoriaEnteRT54 } from '@prisma/client'
 
 export type SociedadDTO = {
   id: string
@@ -15,6 +15,7 @@ export type SociedadDTO = {
   actividadPpal: string | null
   actividadSecundaria: string | null
   clasificacionRT54: string | null
+  categoriaEnte: CategoriaEnteRT54 | null
   fechaInscripcion: Date | null
   matriculaPJ: string | null
   plazoDuracion: Date | null
@@ -45,6 +46,7 @@ export function toSociedadDTO(s: Sociedad): SociedadDTO {
     actividadPpal: s.actividadPpal,
     actividadSecundaria: s.actividadSecundaria,
     clasificacionRT54: s.clasificacionRT54,
+    categoriaEnte: s.categoriaEnte ?? null,
     fechaInscripcion: s.fechaInscripcion,
     matriculaPJ: s.matriculaPJ,
     plazoDuracion: s.plazoDuracion,

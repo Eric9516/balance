@@ -23,6 +23,7 @@ import {
   findCuentasByEjercicio,
   findRubrosBase,
 } from '@/modules/importaciones/repository/cuentas.repository'
+import { marcarComparativoModificado } from '@/modules/ejercicios/repository/ejercicio.repository'
 import type { NotaDTO, DetalleNotaDTO } from '../domain/types'
 import type { AdopcionRT54, CriteriosBienesCambio } from '@prisma/client'
 
@@ -111,6 +112,9 @@ export async function actualizarDetalleAction(
   try {
     await assertDetalleNotaBelongsToCurrentEstudio(detalleId)
     await updateDetalle(detalleId, data)
+    // La columna "ejercicio anterior" de una nota forma parte del comparativo: tocarla
+    // invalida la autorización de saldos del ejercicio anterior.
+    if (data.importeAnterior !== undefined) await marcarComparativoModificado(ejercicioId)
     revalPath(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {

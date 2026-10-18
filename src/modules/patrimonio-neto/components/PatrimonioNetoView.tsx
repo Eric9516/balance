@@ -1,13 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatFecha } from '@/lib/utils/dates'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
+import { CeldaBloqueada } from '@/components/shared/CeldaBloqueada'
+import { AvisosArrastre } from '@/components/shared/AvisosArrastre'
 import { BotonEditar } from '@/components/shared/BotonEditar'
+import { ToggleDensidad, TogglePlegarTodos } from '@/components/shared/ControlesTabla'
 import { useEdicionLote } from '@/components/shared/useEdicionLote'
 import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
+import { useGruposColumnas } from '@/components/shared/useGruposColumnas'
 import { toastSuccess } from '@/modules/errores/components/Toast'
 import { guardarEvolucionPNAction, confirmarPNAction } from '../actions/patrimonio-neto.actions'
 import {
@@ -16,16 +20,7 @@ import {
   type EvolucionPNMovimientoDTO,
 } from '../domain/types'
 
-const APORTE_CAMPOS = [
-  ['capitalSuscripto', 'Capital Suscripto'],
-  ['ajusteCapital', 'Ajuste del Capital'],
-  ['aportesIrrevocables', 'Aportes Irrevocables'],
-] as const
-
-const RESERVA_CAMPOS = [
-  ['reservaLegal', 'Reserva Legal'],
-  ['otrasReservas', 'Otras Reservas'],
-] as const
+// ─── Modelo de columnas ──────────────────────────────────────────────────────
 
 type CampoPN =
   | 'capitalSuscripto'
@@ -35,6 +30,43 @@ type CampoPN =
   | 'otrasReservas'
   | 'rdosNoAsignados'
 type TipoPN = EvolucionPNMovimientoDTO['tipo']
+type Mov = EvolucionPNMovimientoDTO
+
+const GRUPOS = ['aportes', 'resultados'] as const
+type Grupo = (typeof GRUPOS)[number]
+
+type Columna =
+  | { tipo: 'campo'; campo: CampoPN; label: string }
+  | { tipo: 'subtotal'; label: string; calc: (m: Mov) => number }
+
+const sumAportes = (m: Mov) => m.capitalSuscripto + m.ajusteCapital + m.aportesIrrevocables
+const sumReservas = (m: Mov) => m.reservaLegal + m.otrasReservas
+const sumResultados = (m: Mov) => sumReservas(m) + m.rdosNoAsignados
+
+const DETALLE: Record<Grupo, { titulo: string; columnas: Columna[]; plegado: Columna }> = {
+  aportes: {
+    titulo: 'Aporte de los propietarios',
+    columnas: [
+      { tipo: 'campo', campo: 'capitalSuscripto', label: 'Capital suscripto' },
+      { tipo: 'campo', campo: 'ajusteCapital', label: 'Ajuste del capital' },
+      { tipo: 'campo', campo: 'aportesIrrevocables', label: 'Aportes irrevocables' },
+      { tipo: 'subtotal', label: 'Total', calc: sumAportes },
+    ],
+    plegado: { tipo: 'subtotal', label: 'Total aportes', calc: sumAportes },
+  },
+  resultados: {
+    titulo: 'Resultados acumulados',
+    columnas: [
+      { tipo: 'campo', campo: 'reservaLegal', label: 'Reserva legal' },
+      { tipo: 'campo', campo: 'otrasReservas', label: 'Otras reservas' },
+      { tipo: 'subtotal', label: 'Total reservas', calc: sumReservas },
+      { tipo: 'campo', campo: 'rdosNoAsignados', label: 'Resultados no asignados' },
+    ],
+    plegado: { tipo: 'subtotal', label: 'Total resultados', calc: sumResultados },
+  },
+}
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 interface Props {
   data: EvolucionPNData
@@ -42,6 +74,10 @@ interface Props {
   sociedadId: string
   fechaCierre: Date
   fechaCierreAnterior: Date | null
+  /** Si se muestra la columna "Ejercicio anterior" (modos VINCULADO y MANUAL). */
+  mostrarAnterior: boolean
+  /** Denominación del ejercicio anterior vinculado (origen de los valores con candado). */
+  anteriorDenominacion: string | null
   pnConfirmado?: boolean
 }
 
@@ -51,6 +87,8 @@ export function PatrimonioNetoView({
   sociedadId,
   fechaCierre,
   fechaCierreAnterior,
+  mostrarAnterior,
+  anteriorDenominacion,
   pnConfirmado: initialConfirmado = false,
 }: Props) {
   const {
@@ -64,6 +102,7 @@ export function PatrimonioNetoView({
   } = useEdicionLote(
     initialData,
     (borrador) =>
+      // Se envían las filas tal cual: el servidor sanea lo bloqueado (saldo inicio / anterior).
       guardarEvolucionPNAction(
         ejercicioId,
         sociedadId,
@@ -84,6 +123,16 @@ export function PatrimonioNetoView({
   )
   const [confirmado, setConfirmado] = useState(initialConfirmado)
   const { isPending: isPendingConfirmar, ejecutar } = useGuardarAccion()
+  const grupos = useGruposColumnas('eepn', GRUPOS)
+  // En edición se ven todas las columnas: no se puede cargar lo que está plegado.
+  const plegado = (g: Grupo) => !editando && grupos.estaPlegado(g)
+  const columnasDe = (g: Grupo) => (plegado(g) ? [DETALLE[g].plegado] : DETALLE[g].columnas)
+
+  const { bloqueo } = data
+  const movimientos = data.movimientos
+  const byTipo = new Map(movimientos.map((mov) => [mov.tipo, mov]))
+  const totalColumnas =
+    1 + columnasDe('aportes').length + columnasDe('resultados').length + (mostrarAnterior ? 2 : 1)
 
   function setField(index: number, campo: CampoPN | 'totalAnterior', value: number) {
     actualizar((prev) => ({
@@ -94,52 +143,34 @@ export function PatrimonioNetoView({
     }))
   }
 
-  const movimientos = data.movimientos
-  const byTipo = new Map(movimientos.map((mov) => [mov.tipo, mov]))
-
-  function getMov(tipo: TipoPN): EvolucionPNMovimientoDTO {
-    const mov = byTipo.get(tipo)
-    if (!mov) throw new Error(`Movimiento PN faltante: ${tipo}`)
-    return mov
-  }
-
-  function sumAportes(mov: EvolucionPNMovimientoDTO) {
-    return mov.capitalSuscripto + mov.ajusteCapital + mov.aportesIrrevocables
-  }
-
-  function sumReservas(mov: EvolucionPNMovimientoDTO) {
-    return mov.reservaLegal + mov.otrasReservas
-  }
-
-  function sumMovimientos(tipos: TipoPN[]): EvolucionPNMovimientoDTO {
-    return tipos.reduce<EvolucionPNMovimientoDTO>(
-      (acc, tipo) => {
-        const mov = getMov(tipo)
-        return {
-          ...acc,
-          capitalSuscripto: acc.capitalSuscripto + mov.capitalSuscripto,
-          ajusteCapital: acc.ajusteCapital + mov.ajusteCapital,
-          aportesIrrevocables: acc.aportesIrrevocables + mov.aportesIrrevocables,
-          reservaLegal: acc.reservaLegal + mov.reservaLegal,
-          otrasReservas: acc.otrasReservas + mov.otrasReservas,
-          rdosNoAsignados: acc.rdosNoAsignados + mov.rdosNoAsignados,
-          totalAnterior: acc.totalAnterior + mov.totalAnterior,
-        }
-      },
-      {
-        id: '',
-        ejercicioId,
-        tipo: tipos[0] ?? 'SALDO_INICIO',
-        orden: 0,
-        capitalSuscripto: 0,
-        ajusteCapital: 0,
-        aportesIrrevocables: 0,
-        reservaLegal: 0,
-        otrasReservas: 0,
-        rdosNoAsignados: 0,
-        totalAnterior: 0,
-      },
-    )
+  function sumMovimientos(tipos: TipoPN[]): Mov {
+    const base: Mov = {
+      id: '',
+      ejercicioId,
+      tipo: tipos[0] ?? 'SALDO_INICIO',
+      orden: 0,
+      capitalSuscripto: 0,
+      ajusteCapital: 0,
+      aportesIrrevocables: 0,
+      reservaLegal: 0,
+      otrasReservas: 0,
+      rdosNoAsignados: 0,
+      totalAnterior: 0,
+    }
+    return tipos.reduce((acc, tipo) => {
+      const mov = byTipo.get(tipo)
+      if (!mov) return acc
+      return {
+        ...acc,
+        capitalSuscripto: acc.capitalSuscripto + mov.capitalSuscripto,
+        ajusteCapital: acc.ajusteCapital + mov.ajusteCapital,
+        aportesIrrevocables: acc.aportesIrrevocables + mov.aportesIrrevocables,
+        reservaLegal: acc.reservaLegal + mov.reservaLegal,
+        otrasReservas: acc.otrasReservas + mov.otrasReservas,
+        rdosNoAsignados: acc.rdosNoAsignados + mov.rdosNoAsignados,
+        totalAnterior: acc.totalAnterior + mov.totalAnterior,
+      }
+    }, base)
   }
 
   const inicioModificado = sumMovimientos([
@@ -149,181 +180,154 @@ export function PatrimonioNetoView({
   ])
   const saldoCierre = sumMovimientos(movimientos.map((mov) => mov.tipo))
 
-  function renderEditableCell(
+  // ── Celdas ────────────────────────────────────────────────────────────────
+
+  const tdNum = 'celda border-b border-linea text-right'
+  const tdCalc = 'bg-slate-50/70'
+
+  function celda(
+    col: Columna,
+    mov: Mov,
     index: number,
-    campo: CampoPN,
-    mov: EvolucionPNMovimientoDTO,
-    disabled = false,
+    opts: { editable: boolean; fuerte?: boolean },
   ) {
+    const clave = col.tipo === 'campo' ? col.campo : col.label
+    if (col.tipo === 'subtotal') {
+      return (
+        <td key={clave} className={cn(tdNum, tdCalc)}>
+          <CeldaNumero
+            value={col.calc(mov)}
+            editando={false}
+            soloLectura
+            onSave={() => {}}
+            dense
+            className="font-semibold text-slate-900"
+          />
+        </td>
+      )
+    }
+    const bloqueada = bloqueo.saldoInicio && mov.tipo === 'SALDO_INICIO' && opts.editable
     return (
-      <td key={campo} className="border border-slate-300 px-1.5 py-1 text-right">
-        <CeldaNumero
-          value={mov[campo]}
-          editando={editando}
-          soloLectura={disabled}
-          onSave={(v) => setField(index, campo, v)}
-          dense
-        />
+      <td key={clave} className={tdNum}>
+        {bloqueada ? (
+          <CeldaBloqueada value={mov[col.campo]} origen={anteriorDenominacion} dense />
+        ) : (
+          <CeldaNumero
+            value={mov[col.campo]}
+            editando={editando && opts.editable}
+            soloLectura={!opts.editable}
+            onSave={(v) => setField(index, col.campo, v)}
+            dense
+            className={opts.fuerte ? 'font-semibold text-slate-900' : undefined}
+          />
+        )}
       </td>
     )
   }
 
-  function renderMovimientoRow(tipo: TipoPN, label: string, options: { resultado?: boolean } = {}) {
+  function celdasPN(mov: Mov, index: number, opts: { editable: boolean; fuerte?: boolean }) {
+    return (
+      <>
+        <td className={cn(tdNum, tdCalc, 'border-l border-l-slate-300')}>
+          <CeldaNumero
+            value={totalMovimientoPN(mov)}
+            editando={false}
+            soloLectura
+            onSave={() => {}}
+            dense
+            className="font-semibold text-slate-950"
+          />
+        </td>
+        {mostrarAnterior && (
+          <td className={tdNum}>
+            {opts.editable && bloqueo.totalAnterior ? (
+              <CeldaBloqueada value={mov.totalAnterior} origen={anteriorDenominacion} dense />
+            ) : (
+              <CeldaNumero
+                value={mov.totalAnterior}
+                editando={editando && opts.editable}
+                soloLectura={!opts.editable}
+                onSave={(v) => setField(index, 'totalAnterior', v)}
+                dense
+                className={opts.fuerte ? 'font-semibold text-slate-900' : 'text-slate-600'}
+              />
+            )}
+          </td>
+        )}
+      </>
+    )
+  }
+
+  const thRubro =
+    'sticky left-0 z-10 min-w-[16rem] max-w-[20rem] border-b border-linea bg-superficie text-left text-tabla text-slate-800 celda'
+
+  function filaMovimiento(tipo: TipoPN, label: string, opts: { resultado?: boolean } = {}) {
     const index = movimientos.findIndex((mov) => mov.tipo === tipo)
     const mov = movimientos[index]
     if (!mov) return null
-    const disabled = options.resultado
-
+    const editable = !opts.resultado
     return (
-      <tr className="hover:bg-slate-50/60">
-        <td className="sticky left-0 z-10 border border-slate-300 bg-white px-2 py-1 text-left text-[11px] text-slate-800">
+      <tr key={tipo}>
+        <td className={thRubro}>
           {label}
+          {opts.resultado && (
+            <span className="ml-2 text-tabla-sm text-slate-400">(del Estado de Resultados)</span>
+          )}
         </td>
-        {APORTE_CAMPOS.map(([campo]) => renderEditableCell(index, campo, mov, disabled))}
-        <td className="border border-slate-300 bg-slate-50 px-1.5 py-1 text-right">
-          <CeldaNumero
-            value={sumAportes(mov)}
-            editando={false}
-            soloLectura
-            onSave={() => {}}
-            dense
-          />
-        </td>
-        {RESERVA_CAMPOS.map(([campo]) => renderEditableCell(index, campo, mov, disabled))}
-        <td className="border border-slate-300 bg-slate-50 px-1.5 py-1 text-right">
-          <CeldaNumero
-            value={sumReservas(mov)}
-            editando={false}
-            soloLectura
-            onSave={() => {}}
-            dense
-          />
-        </td>
-        {renderEditableCell(index, 'rdosNoAsignados', mov, disabled)}
-        <td className="border border-slate-300 bg-slate-50 px-1.5 py-1 text-right">
-          <CeldaNumero
-            value={totalMovimientoPN(mov)}
-            editando={false}
-            soloLectura
-            onSave={() => {}}
-            dense
-            className="font-semibold text-slate-950"
-          />
-        </td>
-        <td className="border border-slate-300 px-1.5 py-1 text-right">
-          <CeldaNumero
-            value={mov.totalAnterior}
-            editando={editando}
-            onSave={(v) => setField(index, 'totalAnterior', v)}
-            dense
-          />
-        </td>
+        {GRUPOS.map((g) => columnasDe(g).map((col) => celda(col, mov, index, { editable })))}
+        {celdasPN(mov, index, { editable })}
       </tr>
     )
   }
 
-  function renderDerivedRow(label: string, mov: EvolucionPNMovimientoDTO, strong = false) {
+  function filaDerivada(label: string, mov: Mov, final = false) {
     return (
       <tr
         className={cn(
-          'font-semibold',
-          strong ? 'border-y-2 border-slate-900' : 'border-y border-slate-500',
+          '[&>td]:bg-slate-50',
+          final
+            ? '[&>td]:border-y-2 [&>td]:border-y-slate-800'
+            : '[&>td]:border-y [&>td]:border-y-slate-300',
         )}
       >
-        <td className="sticky left-0 z-10 border border-slate-300 bg-white px-2 py-1 text-left text-[11px] text-slate-900">
-          {label}
-        </td>
-        {APORTE_CAMPOS.map(([campo]) => (
-          <td key={campo} className="border border-slate-300 px-1.5 py-1 text-right">
-            <CeldaNumero
-              value={mov[campo]}
-              editando={false}
-              soloLectura
-              onSave={() => {}}
-              dense
-              className={strong ? 'font-semibold text-slate-950' : undefined}
-            />
-          </td>
-        ))}
-        <td className="border border-slate-300 bg-slate-50 px-1.5 py-1 text-right">
-          <CeldaNumero
-            value={sumAportes(mov)}
-            editando={false}
-            soloLectura
-            onSave={() => {}}
-            dense
-            className="font-semibold text-slate-950"
-          />
-        </td>
-        {RESERVA_CAMPOS.map(([campo]) => (
-          <td key={campo} className="border border-slate-300 px-1.5 py-1 text-right">
-            <CeldaNumero
-              value={mov[campo]}
-              editando={false}
-              soloLectura
-              onSave={() => {}}
-              dense
-              className={strong ? 'font-semibold text-slate-950' : undefined}
-            />
-          </td>
-        ))}
-        <td className="border border-slate-300 bg-slate-50 px-1.5 py-1 text-right">
-          <CeldaNumero
-            value={sumReservas(mov)}
-            editando={false}
-            soloLectura
-            onSave={() => {}}
-            dense
-            className="font-semibold text-slate-950"
-          />
-        </td>
-        <td className="border border-slate-300 px-1.5 py-1 text-right">
-          <CeldaNumero
-            value={mov.rdosNoAsignados}
-            editando={false}
-            soloLectura
-            onSave={() => {}}
-            dense
-            className={strong ? 'font-semibold text-slate-950' : undefined}
-          />
-        </td>
-        <td className="border border-slate-300 bg-slate-50 px-1.5 py-1 text-right">
-          <CeldaNumero
-            value={totalMovimientoPN(mov)}
-            editando={false}
-            soloLectura
-            onSave={() => {}}
-            dense
-            className="font-semibold text-slate-950"
-          />
-        </td>
-        <td className="border border-slate-300 px-1.5 py-1 text-right">
-          <CeldaNumero
-            value={mov.totalAnterior}
-            editando={false}
-            soloLectura
-            onSave={() => {}}
-            dense
-            className={strong ? 'font-semibold text-slate-950' : undefined}
-          />
-        </td>
+        <td className={cn(thRubro, 'font-semibold text-slate-900')}>{label}</td>
+        {GRUPOS.map((g) =>
+          columnasDe(g).map((col) => celda(col, mov, -1, { editable: false, fuerte: true })),
+        )}
+        {celdasPN(mov, -1, { editable: false, fuerte: true })}
       </tr>
     )
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  const thGrupo =
+    'border-b border-l border-linea px-3 py-2 text-center text-tabla-sm font-semibold tracking-wide text-slate-600 uppercase'
+  const thCol =
+    'border-b border-linea celda text-right align-bottom text-tabla-sm font-medium text-slate-600'
+
   return (
-    <div className="max-w-full">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-700">
-          El resultado del ejercicio se toma automáticamente del Estado de Resultados.
-          {data.autocompletadoDesdeAnterior && (
-            <span className="ml-1 font-medium">
-              Se autocompletaron saldos iniciales y comparativos desde el ejercicio anterior.
-            </span>
-          )}
+    <div className="max-w-full space-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-2">
+          <p className="text-sm text-slate-600">
+            El resultado del ejercicio se toma automáticamente del Estado de Resultados.
+          </p>
+          <AvisosArrastre
+            bloqueado={bloqueo.saldoInicio || bloqueo.totalAnterior}
+            origen={anteriorDenominacion}
+            advertencias={data.advertencias}
+          />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <ToggleDensidad />
+          <TogglePlegarTodos
+            todosPlegados={grupos.todosPlegados}
+            onPlegar={grupos.plegarTodos}
+            onExpandir={grupos.expandirTodos}
+            disabled={editando}
+          />
           <BotonEditar
             editando={editando}
             onEditar={iniciarEdicion}
@@ -331,8 +335,6 @@ export function PatrimonioNetoView({
             onCancelar={cancelar}
             isPending={isPending}
           />
-
-          {/* Confirmar / Desconfirmar */}
           {!editando && (
             <button
               onClick={() => {
@@ -350,7 +352,7 @@ export function PatrimonioNetoView({
                 'inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors',
                 confirmado
                   ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
+                  : 'border-linea bg-white text-slate-600 hover:bg-slate-50',
               )}
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
@@ -360,112 +362,108 @@ export function PatrimonioNetoView({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-300 bg-white">
-        <table className="w-full min-w-[1280px] border-collapse text-[11px]">
-          <thead>
-            <tr>
-              <th colSpan={11} className="border border-slate-900 bg-white px-3 py-2 text-center">
-                <div className="space-y-0.5">
-                  <p className="text-xs font-bold tracking-wide text-slate-950 uppercase">
-                    Estado de Evolución del Patrimonio Neto
-                  </p>
-                  <p className="text-[10px] font-medium text-slate-700">
-                    (Capital, reservas y otros resultados acumulados)
-                  </p>
-                  <p className="text-[10px] font-normal text-slate-600 italic">
-                    Correspondiente al ejercicio finalizado el {formatFecha(fechaCierre)},
-                    comparativo con {formatFecha(fechaCierreAnterior, 'ejercicio anterior')}
-                  </p>
-                </div>
-              </th>
-            </tr>
-            <tr className="bg-slate-50 text-[10px] text-slate-700 uppercase">
-              <th
-                rowSpan={2}
-                className="sticky left-0 z-20 w-64 border border-slate-900 bg-slate-50 px-2 py-2 text-center font-semibold"
-              >
-                Rubros
-              </th>
-              <th
-                colSpan={4}
-                className="border border-slate-900 px-2 py-1 text-center font-semibold"
-              >
-                Aporte de los propietarios
-              </th>
-              <th
-                colSpan={4}
-                className="border border-slate-900 px-2 py-1 text-center font-semibold"
-              >
-                Resultados acumulados
-              </th>
-              <th
-                colSpan={2}
-                className="border border-slate-900 px-2 py-1 text-center font-semibold"
-              >
-                Patrimonio Neto
-              </th>
-            </tr>
-            <tr className="bg-slate-50 text-[10px] text-slate-700">
-              <th className="w-24 border border-slate-900 px-1 py-1 text-center font-medium">
-                Capital Suscripto
-              </th>
-              <th className="w-24 border border-slate-900 px-1 py-1 text-center font-medium">
-                Ajuste del Capital
-              </th>
-              <th className="w-24 border border-slate-900 px-1 py-1 text-center font-medium">
-                Aportes Irrevocables
-              </th>
-              <th className="w-24 border border-slate-900 px-1 py-1 text-center font-medium">
-                Total
-              </th>
-              <th className="w-24 border border-slate-900 px-1 py-1 text-center font-medium">
-                Reserva Legal
-              </th>
-              <th className="w-24 border border-slate-900 px-1 py-1 text-center font-medium">
-                Otras Reservas
-              </th>
-              <th className="w-24 border border-slate-900 px-1 py-1 text-center font-medium">
-                Total
-              </th>
-              <th className="w-28 border border-slate-900 px-1 py-1 text-center font-medium">
-                Resultados no Asignados
-              </th>
-              <th className="w-28 border border-slate-900 px-1 py-1 text-center font-medium">
-                Ejercicio Actual
-              </th>
-              <th className="w-28 border border-slate-900 px-1 py-1 text-center font-medium">
-                Ejercicio Anterior
-              </th>
-            </tr>
-          </thead>
-          <tbody className={cn(isPending && 'opacity-60')}>
-            {renderMovimientoRow('SALDO_INICIO', 'Saldos al inicio del ejercicio')}
-            {renderMovimientoRow('AJUSTE_INFLACION', 'Aj. por inflación del ejercicio')}
-            {renderMovimientoRow(
-              'MODIFICACION_INICIO',
-              'Modificación de saldos al inicio del ejercicio (Nota 1.6)',
-            )}
-            {renderDerivedRow('Saldos al inicio del ejercicio modificados', inicioModificado)}
-            <tr>
-              <td className="sticky left-0 z-10 border border-slate-300 bg-white px-2 py-2 text-left text-[11px] font-semibold text-slate-800">
-                Distribución de resultados
-              </td>
-              {Array.from({ length: 10 }).map((_, index) => (
-                <td key={index} className="border border-slate-300 px-1.5 py-2" />
-              ))}
-            </tr>
-            {renderMovimientoRow('DISTRIB_HONORARIOS', 'Honorarios')}
-            {renderMovimientoRow('DISTRIB_DIVIDENDOS', 'Dividendos')}
-            {renderMovimientoRow('DISTRIB_RESERVA_LEGAL', 'Reserva Legal')}
-            {renderMovimientoRow('DISTRIB_OTRAS_RESERVAS', 'Otras Reservas')}
-            {renderMovimientoRow('DISTRIB_APORTES_IRREVOCABLES', 'Aportes Irrevocables')}
-            {renderMovimientoRow('RESULTADO_EJERCICIO', 'Resultado del Ejercicio', {
-              resultado: true,
-            })}
-            {renderDerivedRow('Saldos al cierre del Ejercicio', saldoCierre, true)}
-          </tbody>
-        </table>
-      </div>
+      <section className="overflow-hidden rounded-xl border border-linea bg-superficie">
+        <header className="border-b border-linea px-5 py-4 text-center">
+          <h2 className="font-serif text-lg font-semibold text-tinta">
+            Estado de Evolución del Patrimonio Neto
+          </h2>
+          <p className="mt-0.5 text-sm text-slate-500">
+            Correspondiente al ejercicio finalizado el {formatFecha(fechaCierre)}
+            {mostrarAnterior &&
+              `, comparativo con ${formatFecha(fechaCierreAnterior, 'el ejercicio anterior')}`}
+          </p>
+        </header>
+
+        <div className="max-h-[calc(100vh-15rem)] overflow-auto">
+          <table className="w-full border-separate border-spacing-0 tabla-trabajo">
+            <thead className="sticky top-0 z-20 bg-superficie">
+              <tr>
+                <th
+                  rowSpan={2}
+                  className={cn(
+                    thRubro,
+                    'z-30 align-bottom text-tabla-sm font-semibold text-slate-600 uppercase',
+                  )}
+                >
+                  Rubros
+                </th>
+                {GRUPOS.map((g) => {
+                  const cerrado = plegado(g)
+                  const Icono = cerrado ? ChevronRight : ChevronLeft
+                  return (
+                    <th key={g} colSpan={columnasDe(g).length} className={thGrupo}>
+                      <button
+                        type="button"
+                        onClick={() => grupos.alternar(g)}
+                        disabled={editando}
+                        className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-slate-100 disabled:hover:bg-transparent"
+                        title={cerrado ? 'Ver detalle' : 'Mostrar solo el total'}
+                      >
+                        {DETALLE[g].titulo}
+                        {!editando && <Icono className="h-3.5 w-3.5 text-slate-400" />}
+                      </button>
+                    </th>
+                  )
+                })}
+                <th colSpan={mostrarAnterior ? 2 : 1} className={cn(thGrupo, 'border-l-slate-300')}>
+                  Patrimonio neto
+                </th>
+              </tr>
+              <tr>
+                {GRUPOS.map((g) =>
+                  columnasDe(g).map((col, i) => (
+                    <th
+                      key={`${g}-${i}`}
+                      className={cn(thCol, 'min-w-[8.5rem]', i === 0 && 'border-l border-l-linea')}
+                    >
+                      {col.label}
+                    </th>
+                  )),
+                )}
+                <th className={cn(thCol, 'min-w-[9rem] border-l border-l-slate-300')}>
+                  <div className="font-semibold text-slate-800">Ejercicio actual</div>
+                  <div className="font-normal text-slate-400 tabular-nums">
+                    {formatFecha(fechaCierre)}
+                  </div>
+                </th>
+                {mostrarAnterior && (
+                  <th className={cn(thCol, 'min-w-[9rem]')}>
+                    <div className="font-semibold text-slate-800">Ejercicio anterior</div>
+                    {fechaCierreAnterior && (
+                      <div className="font-normal text-slate-400 tabular-nums">
+                        {formatFecha(fechaCierreAnterior)}
+                      </div>
+                    )}
+                  </th>
+                )}
+              </tr>
+            </thead>
+            <tbody className={cn(isPending && 'opacity-60')}>
+              {filaMovimiento('SALDO_INICIO', 'Saldos al inicio del ejercicio')}
+              {filaMovimiento('AJUSTE_INFLACION', 'Ajuste por inflación del ejercicio')}
+              {filaMovimiento('MODIFICACION_INICIO', 'Modificación de saldos al inicio (Nota 1.6)')}
+              {filaDerivada('Saldos al inicio modificados', inicioModificado)}
+              <tr>
+                <td
+                  colSpan={totalColumnas}
+                  className="border-b border-linea bg-superficie px-3 pt-4 pb-1.5 text-tabla-sm font-semibold tracking-wide text-slate-500 uppercase"
+                >
+                  Distribución de resultados
+                </td>
+              </tr>
+              {filaMovimiento('DISTRIB_HONORARIOS', 'Honorarios')}
+              {filaMovimiento('DISTRIB_DIVIDENDOS', 'Dividendos')}
+              {filaMovimiento('DISTRIB_RESERVA_LEGAL', 'Reserva legal')}
+              {filaMovimiento('DISTRIB_OTRAS_RESERVAS', 'Otras reservas')}
+              {filaMovimiento('DISTRIB_APORTES_IRREVOCABLES', 'Aportes irrevocables')}
+              {filaMovimiento('RESULTADO_EJERCICIO', 'Resultado del ejercicio', {
+                resultado: true,
+              })}
+              {filaDerivada('Saldos al cierre del ejercicio', saldoCierre, true)}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   )
 }

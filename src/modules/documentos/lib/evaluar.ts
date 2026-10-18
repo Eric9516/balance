@@ -7,7 +7,7 @@ import {
   hayCuentasEnMonedaExtranjera,
   findDocumentosByEjercicio,
   findTitulosNotas,
-  getEjercicioAnteriorId,
+  getContextoEjercicio,
   findReglasAceptadasAnterior,
 } from '../repository/documento.repository'
 
@@ -33,7 +33,7 @@ const EPSILON = 0.005
  *  - Es PURO respecto de la DB: sólo lee, nunca escribe.
  */
 export async function evaluarDocumentos(ejercicioId: string): Promise<DocumentoEvaluado[]> {
-  const ejercicioAnteriorId = await getEjercicioAnteriorId(ejercicioId)
+  const { ejercicioAnteriorId, esPrimeraAdopcion } = await getContextoEjercicio(ejercicioId)
   const [
     saldos,
     nombres,
@@ -55,7 +55,13 @@ export async function evaluarDocumentos(ejercicioId: string): Promise<DocumentoE
   ])
 
   const tiene = (cod: string) => Math.abs(saldos.get(cod) ?? 0) > EPSILON
-  const ctx: EvalCtx = { saldos, tiene, costoVentasCargado, hayMonedaExtranjera: hayME }
+  const ctx: EvalCtx = {
+    saldos,
+    tiene,
+    costoVentasCargado,
+    hayMonedaExtranjera: hayME,
+    esPrimeraAdopcion,
+  }
 
   const decididos = new Map(
     decididosList.filter((d) => d.reglaClave).map((d) => [d.reglaClave!, d]),

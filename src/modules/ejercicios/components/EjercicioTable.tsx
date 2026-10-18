@@ -1,16 +1,79 @@
 import Link from 'next/link'
-import { Pencil, Table2, Link2 } from 'lucide-react'
+import {
+  AlertTriangle,
+  Link2,
+  Pencil,
+  PenLine,
+  Sparkles,
+  Table2,
+  type LucideIcon,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EjercicioEstadoButton } from './EjercicioEstadoButton'
 import { EjercicioEliminarButton } from './EjercicioEliminarButton'
-import { ESTADO_LABELS, ESTADO_BADGE_VARIANTS, type EjercicioContableDTO } from '../domain/types'
+import {
+  CATEGORIA_ENTE_LABELS,
+  ESTADO_LABELS,
+  ESTADO_BADGE_VARIANTS,
+  type EjercicioContableDTO,
+} from '../domain/types'
 import { formatFecha } from '@/lib/utils/dates'
 
 interface EjercicioTableProps {
   ejercicios: EjercicioContableDTO[]
   sociedadId: string
 }
+
+// ─── Chip del modo del ejercicio anterior ────────────────────────────────────
+
+function Chip({
+  icon: Icon,
+  tono = 'neutro',
+  children,
+}: {
+  icon: LucideIcon
+  tono?: 'neutro' | 'atencion'
+  children: React.ReactNode
+}) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px]',
+        tono === 'atencion'
+          ? 'border-amber-200 bg-amber-50 text-amber-700'
+          : 'border-slate-200 bg-slate-50 text-slate-500',
+      )}
+    >
+      <Icon className="h-2.5 w-2.5" />
+      {children}
+    </span>
+  )
+}
+
+function ChipModoAnterior({ ejercicio }: { ejercicio: EjercicioContableDTO }) {
+  switch (ejercicio.modoAnterior) {
+    case 'VINCULADO':
+      return <Chip icon={Link2}>Vinculado</Chip>
+    case 'MANUAL':
+      return (
+        <Chip icon={PenLine}>
+          Saldos manuales{ejercicio.comparativoAutorizadoEn != null ? ' · autorizado' : ''}
+        </Chip>
+      )
+    case 'SIN_ANTERIOR':
+      return <Chip icon={Sparkles}>Primer ejercicio</Chip>
+    default:
+      return (
+        <Chip icon={AlertTriangle} tono="atencion">
+          Ejercicio anterior sin definir
+        </Chip>
+      )
+  }
+}
+
+// ─── Tabla ────────────────────────────────────────────────────────────────────
 
 export function EjercicioTable({ ejercicios, sociedadId }: EjercicioTableProps) {
   if (ejercicios.length === 0) {
@@ -40,6 +103,10 @@ export function EjercicioTable({ ejercicios, sociedadId }: EjercicioTableProps) 
             ? (idMap.get(e.ejercicioAnteriorId) ?? null)
             : null
 
+        const categoriaLabel = e.categoriaEnte
+          ? CATEGORIA_ENTE_LABELS[e.categoriaEnte]
+          : e.clasificacionEntidad
+
         return (
           <div key={e.id}>
             {/* ── Card del ejercicio ─────────────────────────────────────── */}
@@ -51,10 +118,11 @@ export function EjercicioTable({ ejercicios, sociedadId }: EjercicioTableProps) 
                   {e.numeroEjercicio != null && (
                     <span className="font-mono text-xs text-slate-400">#{e.numeroEjercicio}</span>
                   )}
+                  <ChipModoAnterior ejercicio={e} />
                   {linkedNonAdjacent && (
                     <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] text-slate-500">
                       <Link2 className="h-2.5 w-2.5" />
-                      comp. {linkedNonAdjacent.denominacion}
+                      anterior: {linkedNonAdjacent.denominacion}
                     </span>
                   )}
                 </div>
@@ -64,8 +132,8 @@ export function EjercicioTable({ ejercicios, sociedadId }: EjercicioTableProps) 
                     <span className="mx-1 text-slate-300">→</span>
                     {formatFecha(e.fechaCierre)}
                   </span>
-                  {e.clasificacionEntidad && (
-                    <span className="text-xs text-slate-400">{e.clasificacionEntidad}</span>
+                  {categoriaLabel && (
+                    <span className="text-xs text-slate-400">{categoriaLabel}</span>
                   )}
                   {e.auditorNombre && (
                     <span className="text-xs text-slate-400">{e.auditorNombre}</span>
@@ -146,7 +214,7 @@ export function EjercicioTable({ ejercicios, sociedadId }: EjercicioTableProps) 
                 {/* label */}
                 <div className="flex items-center gap-1.5 py-1.5 pl-1.5">
                   <Link2 className="h-3 w-3 text-slate-400" />
-                  <span className="text-[10px] text-slate-500">toma como comparativo ↓</span>
+                  <span className="text-[10px] text-slate-500">toma como ejercicio anterior ↓</span>
                 </div>
               </div>
             )}

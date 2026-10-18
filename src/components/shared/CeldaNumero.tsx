@@ -39,7 +39,8 @@ export function CeldaNumero({
 }) {
   const [draft, setDraft] = useState('')
   const [focus, setFocus] = useState(false)
-  const tam = dense ? 'text-xs' : 'text-sm'
+  // dense = celda de matriz de trabajo: su tamaño sigue la densidad del estudio.
+  const tam = dense ? 'text-tabla' : 'text-sm'
 
   // ── Modo lectura ──────────────────────────────────────────────────────────
   // `negativo` = estilo deducción (paréntesis), color normal.

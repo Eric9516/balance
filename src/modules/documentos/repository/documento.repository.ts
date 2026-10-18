@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { idAnteriorDerivable } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import { toDocumentoDTO, type DocumentoEjercicioDTO } from '../domain/types'
 import type { TipoDoc } from '../domain/reglas'
 
@@ -74,13 +75,21 @@ export async function findDocumentosByEjercicio(
   return rows.map(toDocumentoDTO)
 }
 
-/** Id del ejercicio anterior vinculado (solo para referencia comparativa). */
-export async function getEjercicioAnteriorId(ejercicioId: string): Promise<string | null> {
+/**
+ * Contexto del ejercicio que afecta la evaluación: anterior derivable (solo modo
+ * VINCULADO, para la referencia blanda) y si es primera adopción de RT 54.
+ */
+export async function getContextoEjercicio(
+  ejercicioId: string,
+): Promise<{ ejercicioAnteriorId: string | null; esPrimeraAdopcion: boolean }> {
   const ej = await db.ejercicioContable.findUnique({
     where: { id: ejercicioId },
-    select: { ejercicioAnteriorId: true },
+    select: { ejercicioAnteriorId: true, modoAnterior: true, adopcionRT54: true },
   })
-  return ej?.ejercicioAnteriorId ?? null
+  return {
+    ejercicioAnteriorId: ej ? idAnteriorDerivable(ej) : null,
+    esPrimeraAdopcion: ej?.adopcionRT54 === 'PRIMERA_ADOPCION',
+  }
 }
 
 /**

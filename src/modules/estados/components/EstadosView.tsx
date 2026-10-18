@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, type ReactNode } from 'react'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { EstadosData } from '../domain/types'
@@ -23,8 +23,14 @@ interface Props {
   ejercicioId: string
   sociedadId: string
   estadosConfirmado?: boolean
-  // Edición manual de la columna anterior (sin balance anterior importado)
+  /** Edición manual de la columna "Ejercicio anterior" (modo MANUAL). */
   editarAnterior?: boolean
+  fechaCierre: Date
+  fechaCierreAnterior: Date | null
+  /** Denominación del ejercicio anterior vinculado (origen de los valores con candado). */
+  anteriorDenominacion: string | null
+  /** Pestaña "Estado de Flujo de Efectivo" (la arma la página con su propio módulo). */
+  flujo?: ReactNode
 }
 
 export function EstadosView({
@@ -33,8 +39,12 @@ export function EstadosView({
   sociedadId,
   estadosConfirmado: initialConfirmado = false,
   editarAnterior = false,
+  fechaCierre,
+  fechaCierreAnterior,
+  anteriorDenominacion,
+  flujo,
 }: Props) {
-  const [tab, setTab] = useState<'ssp' | 'eerr'>('ssp')
+  const [tab, setTab] = useState<'ssp' | 'eerr' | 'flujo'>('ssp')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [confirmado, setConfirmado] = useState(initialConfirmado)
   const [isPending, startTransition] = useTransition()
@@ -77,6 +87,8 @@ export function EstadosView({
   ]
   const comparativo = useComparativoLote(entradasAnterior, ejercicioId, sociedadId)
   const editandoAnterior = editarAnterior && comparativo.editando
+  // Columna anterior visible pero no editable = valores tomados del ejercicio vinculado.
+  const anteriorBloqueado = data.hayEjercicioAnterior && !editarAnterior
 
   function toggleExpand(id: string) {
     setExpanded((s) => {
@@ -125,7 +137,8 @@ export function EstadosView({
             [
               ['ssp', 'Estado de Situación Patrimonial'],
               ['eerr', 'Estado de Resultados'],
-            ] as ['ssp' | 'eerr', string][]
+              ...(flujo ? [['flujo', 'Flujo de Efectivo']] : []),
+            ] as ['ssp' | 'eerr' | 'flujo', string][]
           ).map(([value, label]) => (
             <button
               key={value}
@@ -142,7 +155,7 @@ export function EstadosView({
           ))}
         </div>
         <div className="flex items-center gap-2">
-          {editarAnterior && (
+          {editarAnterior && tab !== 'flujo' && (
             <ToggleEditarAnterior
               editando={comparativo.editando}
               isPending={comparativo.isPending}
@@ -192,6 +205,10 @@ export function EstadosView({
           comparativo={comparativo}
           ejercicioId={ejercicioId}
           sociedadId={sociedadId}
+          fechaCierre={fechaCierre}
+          fechaCierreAnterior={fechaCierreAnterior}
+          anteriorBloqueado={anteriorBloqueado}
+          anteriorDenominacion={anteriorDenominacion}
         />
       )}
       {tab === 'eerr' && (
@@ -202,8 +219,14 @@ export function EstadosView({
           editarAnterior={editandoAnterior}
           ejercicioId={ejercicioId}
           sociedadId={sociedadId}
+          fechaCierre={fechaCierre}
+          fechaCierreAnterior={fechaCierreAnterior}
+          anteriorBloqueado={anteriorBloqueado}
+          anteriorDenominacion={anteriorDenominacion}
         />
       )}
+      {/* Envuelto: el slot llega del servidor y como hijo único no entra en la lista de hermanos. */}
+      {tab === 'flujo' && <div>{flujo}</div>}
     </div>
   )
 }

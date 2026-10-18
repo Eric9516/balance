@@ -299,6 +299,37 @@ CERRADO → (ninguna)
 
 ---
 
+## Sprint 6 — Ejercicio anterior, saldos de inicio y compuerta RT 54
+**Fecha:** 2026-10-18
+
+### Qué se hizo
+
+**Migraciones**
+- `20261018000323_regularizar_schema_actual` — idempotente; lleva al historial todo lo que se había aplicado con `db push` (rubros_grupo, comparativo_manual, documentos_ejercicio, gasto_seccion_config, flags de confirmación, enums). README: sección "Base de datos: migraciones" con el procedimiento de baselining. Se quitó el script `db:push`.
+- `20261018000622_modo_anterior_categoria_ente_transicion` — enums `ModoEjercicioAnterior`, `CategoriaEnteRT54`, `TipoAjusteTransicion`, `ComponentePN`; campos `modoAnterior`, `categoriaEnte`, `comparativoAutorizadoEn/Por` en ejercicio; `categoriaEnte` en sociedad; tabla `ajustes_transicion_rt54`; `comparativo_manual.valor` a Decimal; índices por ejercicio. Backfill de modo y categoría desde los campos legacy (que se conservan hasta una migración posterior).
+- `20261018xxxxxx_indices_complementarios_y_decimal` — índices restantes y `saldoAlAceptar` a Decimal.
+
+**Dominio (puro, con pruebas)**
+- `ejercicios/domain/ejercicioAnterior.ts` — modo efectivo, invariantes, validación del vínculo (misma sociedad, fechas, ciclos, anterior ya usado), elegibles y candidato automático, efectos de cambiar el modo.
+- `comparativo-manual/lib/politica.ts` — única puerta del comparativo por modo (VINCULADO ignora lo manual; MANUAL ignora lo derivado).
+- `patrimonio-neto/domain/saldosInicio.ts` + `evolucion.ts`, `bienes-de-uso/domain/saldosInicio.ts`, `costo-ventas/domain/saldosInicio.ts` — arrastre y bloqueo de saldos de inicio (duro con fuente, editable con advertencia sin fuente).
+- `ejercicios/domain/autorizacion.ts` — compuerta de autorización final (códigos AUT-0xx).
+- `transicion-rt54/lib/generarNota.ts` — borrador de la Nota de primera aplicación RT 54 con conciliaciones.
+
+**Servicios y actions**
+- `estados/services/estados.service.ts` — `cargarEstadosConPN`, única forma de cargar estados + E.E.P.N.
+- `ejercicios/services/autorizacion.service.ts` — arma el contexto, evalúa y persiste en `errores_validacion`.
+- Actions: validación del vínculo al crear/editar, efectos de cambio de modo, `autorizarComparativoAction`, compuerta en confirmar estados/PN y en Revisión/Cierre, saneo de campos bloqueados en E.E.P.N./Anexo I/Anexo II, guardia `NEG-012` para carga manual fuera de MANUAL, guardado de lotes en una transacción, `React.cache` en lecturas repetidas, pool de pg configurado.
+
+**UI**
+- Paso "Ejercicio anterior" (`PasoAnteriorView`) en el stepper: checklist por bloque, cuadre del anterior, compuerta y autorización con declaración.
+- Formulario de ejercicio con tres tarjetas de modo y categoría del ente; candados (`CeldaBloqueada`) en E.E.P.N., Anexo I y II; encabezados "Ejercicio actual / anterior" con fechas; tarjeta de Nota de transición en Notas; `loading.tsx`.
+
+**Pruebas**
+- Unitarias de dominio (vitest) y de integración contra PostgreSQL (`npm run test:int`, base `balancert_test`, migraciones desde cero) con los escenarios adversariales A/B.
+
+---
+
 ## Próximos sprints planificados
 
 ### Sprint 2 — Importación Excel

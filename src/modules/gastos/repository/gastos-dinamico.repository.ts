@@ -45,58 +45,61 @@ export async function findGastosDinamicos(
   ejercicioAnteriorId: string | null,
 ): Promise<GastosSecciones> {
   // ── 1. Secciones personalizadas (RubroGrupo) ────────────────────────────────
-  const gruposAll = await db.rubroGrupo.findMany({
-    where: { activo: true },
-    select: { id: true, nombre: true, sigla: true, esGasto: true, aparecEnEERR: true, orden: true },
-    orderBy: { orden: 'asc' },
-  })
+  // Las seis lecturas dependen solo de los ids: una sola oleada en vez de seis round trips.
+  // Las cuentas de grupos de gasto se filtran por la relación (esGasto) y no por una lista
+  // de ids, para no depender del resultado de gruposAll.
+  const whereGrupoGasto = { rubroBase: { rubroGrupo: { esGasto: true, activo: true } } }
+  const whereLegacy = {
+    rubroBase: { rubroGrupoId: null, seccionEERR: { in: [...SECCIONES_EERR_GASTO] } },
+  }
+  const legacyKeys = Object.keys(EERR_GASTOS_LABELS).map((k) => `legacy:${k}`)
 
-  const gruposGastoIds = gruposAll.filter((g) => g.esGasto).map((g) => g.id)
-
-  // ── 2. Cuentas clasificadas bajo RubroGrupos de gasto (actual) ──────────────
-  const cuentasGrupoActual =
-    gruposGastoIds.length > 0
-      ? await db.cuentaContable.findMany({
-          where: {
-            ejercicioId,
-            rubroBase: { rubroGrupoId: { in: gruposGastoIds } },
-          },
-          select: {
-            id: true,
-            nombre: true,
-            saldoFinal: true,
-            rubroBase: { select: { rubroGrupoId: true } },
-          },
-          orderBy: { nombre: 'asc' },
-        })
-      : []
-
-  // ── 3. Cuentas clasificadas bajo secciones legacy EERR (actual) ─────────────
-  const cuentasLegacyActual = await db.cuentaContable.findMany({
-    where: {
-      ejercicioId,
-      rubroBase: {
-        rubroGrupoId: null,
-        seccionEERR: { in: [...SECCIONES_EERR_GASTO] },
+  const [
+    gruposAll,
+    cuentasGrupoActual,
+    cuentasLegacyActual,
+    cuentasGrupoAnterior,
+    cuentasLegacyAnterior,
+    legacyConfigs,
+  ] = await Promise.all([
+    db.rubroGrupo.findMany({
+      where: { activo: true },
+      select: {
+        id: true,
+        nombre: true,
+        sigla: true,
+        esGasto: true,
+        aparecEnEERR: true,
+        orden: true,
       },
-    },
-    select: {
-      id: true,
-      nombre: true,
-      saldoFinal: true,
-      rubroBase: { select: { seccionEERR: true } },
-    },
-    orderBy: { nombre: 'asc' },
-  })
-
-  // ── 4. Lo mismo para ejercicio anterior ─────────────────────────────────────
-  const cuentasGrupoAnterior =
-    ejercicioAnteriorId && gruposGastoIds.length > 0
-      ? await db.cuentaContable.findMany({
-          where: {
-            ejercicioId: ejercicioAnteriorId,
-            rubroBase: { rubroGrupoId: { in: gruposGastoIds } },
-          },
+      orderBy: { orden: 'asc' },
+    }),
+    // ── 2. Cuentas clasificadas bajo RubroGrupos de gasto (actual) ────────────
+    db.cuentaContable.findMany({
+      where: { ejercicioId, ...whereGrupoGasto },
+      select: {
+        id: true,
+        nombre: true,
+        saldoFinal: true,
+        rubroBase: { select: { rubroGrupoId: true } },
+      },
+      orderBy: { nombre: 'asc' },
+    }),
+    // ── 3. Cuentas clasificadas bajo secciones legacy EERR (actual) ───────────
+    db.cuentaContable.findMany({
+      where: { ejercicioId, ...whereLegacy },
+      select: {
+        id: true,
+        nombre: true,
+        saldoFinal: true,
+        rubroBase: { select: { seccionEERR: true } },
+      },
+      orderBy: { nombre: 'asc' },
+    }),
+    // ── 4. Lo mismo para ejercicio anterior ───────────────────────────────────
+    ejercicioAnteriorId
+      ? db.cuentaContable.findMany({
+          where: { ejercicioId: ejercicioAnteriorId, ...whereGrupoGasto },
           select: {
             nombre: true,
             saldoFinal: true,
@@ -104,25 +107,21 @@ export async function findGastosDinamicos(
           },
           orderBy: { nombre: 'asc' },
         })
-      : []
-
-  const cuentasLegacyAnterior = ejercicioAnteriorId
-    ? await db.cuentaContable.findMany({
-        where: {
-          ejercicioId: ejercicioAnteriorId,
-          rubroBase: {
-            rubroGrupoId: null,
-            seccionEERR: { in: [...SECCIONES_EERR_GASTO] },
+      : Promise.resolve([]),
+    ejercicioAnteriorId
+      ? db.cuentaContable.findMany({
+          where: { ejercicioId: ejercicioAnteriorId, ...whereLegacy },
+          select: {
+            nombre: true,
+            saldoFinal: true,
+            rubroBase: { select: { seccionEERR: true } },
           },
-        },
-        select: {
-          nombre: true,
-          saldoFinal: true,
-          rubroBase: { select: { seccionEERR: true } },
-        },
-        orderBy: { nombre: 'asc' },
-      })
-    : []
+          orderBy: { nombre: 'asc' },
+        })
+      : Promise.resolve([]),
+    // ── 7. Config de secciones legacy (orden + aparecEnEERR) ──────────────────
+    db.gastoSeccionConfig.findMany({ where: { clave: { in: legacyKeys } } }),
+  ])
 
   // ── 5. Mapas de importe anterior por (key_seccion, nombre_cuenta) ────────────
   // key = `grupo:${grupoId}:${cuentaNombre}` o `legacy:${seccionEERR}:${cuentaNombre}`
@@ -160,12 +159,8 @@ export async function findGastosDinamicos(
   })
 
   // ── 7. Config de secciones legacy (orden + aparecEnEERR) ─────────────────────
-  // Solo lectura — los registros se crean al primer toggle/reorden desde las actions.
-  // Si no existe config, se usan los defaults (aparecEnEERR=true, orden=9000+i).
-  const legacyKeys = Object.keys(EERR_GASTOS_LABELS).map((k) => `legacy:${k}`)
-  const legacyConfigs = await db.gastoSeccionConfig.findMany({
-    where: { clave: { in: legacyKeys } },
-  })
+  // Solo lectura (ya cargada en la oleada inicial) — los registros se crean al primer
+  // toggle/reorden desde las actions. Sin config: defaults (aparecEnEERR=true, orden=9999).
   const legacyConfigMap = new Map(legacyConfigs.map((c) => [c.clave, c]))
 
   // ── 8. Construir secciones legacy ────────────────────────────────────────────

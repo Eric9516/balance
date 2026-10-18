@@ -9,6 +9,7 @@ import {
   EliminarFilaAnterior,
   useComparativoLote,
 } from '@/modules/comparativo-manual/components/CeldaAnteriorEditable'
+import { EncabezadosEjercicio } from './SSPTab'
 
 function EERRAmount({ value, deduccion }: { value: number; deduccion?: boolean }) {
   return <span>{deduccion ? `(${formatCurrency(Math.abs(value))})` : formatCurrency(value)}</span>
@@ -153,6 +154,10 @@ export function EERRTab({
   comparativo,
   ejercicioId,
   sociedadId,
+  fechaCierre,
+  fechaCierreAnterior,
+  anteriorBloqueado,
+  anteriorDenominacion,
 }: {
   eerr: EERRData
   conComparativo: boolean
@@ -160,6 +165,11 @@ export function EERRTab({
   comparativo: ReturnType<typeof useComparativoLote>
   ejercicioId: string
   sociedadId: string
+  fechaCierre: Date
+  fechaCierreAnterior: Date | null
+  /** Columna anterior tomada del ejercicio vinculado (candado en el encabezado). */
+  anteriorBloqueado: boolean
+  anteriorDenominacion: string | null
 }) {
   const resultadoPeriodo = eerr.utilidadEjercicio
 
@@ -190,14 +200,13 @@ export function EERRTab({
               <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                 Concepto
               </th>
-              <th className="w-44 px-4 py-3 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
-                Importe
-              </th>
-              {conComparativo && (
-                <th className="w-44 px-4 py-3 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
-                  Comparativo
-                </th>
-              )}
+              <EncabezadosEjercicio
+                fechaCierre={fechaCierre}
+                fechaCierreAnterior={fechaCierreAnterior}
+                mostrarAnterior={conComparativo}
+                anteriorBloqueado={anteriorBloqueado}
+                anteriorDenominacion={anteriorDenominacion}
+              />
             </tr>
           </thead>
           <tbody>
@@ -286,6 +295,7 @@ export function EERRTab({
               editarAnterior={editarAnterior}
               modulo="EERR"
               claveAnterior="RESULTADOS_FINANCIEROS"
+              comparativo={comparativo}
               ejercicioId={ejercicioId}
               sociedadId={sociedadId}
             />
@@ -304,6 +314,7 @@ export function EERRTab({
               editarAnterior={editarAnterior}
               modulo="EERR"
               claveAnterior="IMPUESTO_GANANCIAS"
+              comparativo={comparativo}
               ejercicioId={ejercicioId}
               sociedadId={sociedadId}
             />

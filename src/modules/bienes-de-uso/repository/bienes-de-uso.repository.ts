@@ -117,6 +117,29 @@ export async function updateBienDeUso(
   return toBienDeUsoDTO(row)
 }
 
+/** Persiste todas las filas (ya saneadas) en una sola transacción. */
+export async function updateBienesLote(
+  bienes: (BienInput & {
+    id: string
+    categoria: string
+    netoResidualAnteriorManual: number | null
+  })[],
+): Promise<BienDeUsoDTO[]> {
+  const rows = await db.$transaction(
+    bienes.map((b) =>
+      db.bienDeUsoCategoria.update({
+        where: { id: b.id },
+        data: {
+          ...buildData(b),
+          categoria: b.categoria,
+          netoResidualAnteriorManual: b.netoResidualAnteriorManual,
+        },
+      }),
+    ),
+  )
+  return rows.map(toBienDeUsoDTO)
+}
+
 export async function deleteBienDeUso(id: string): Promise<void> {
   await db.bienDeUsoCategoria.delete({ where: { id } })
 }

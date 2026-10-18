@@ -3,7 +3,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { EjercicioForm } from '@/modules/ejercicios/components/EjercicioForm'
 import {
   findEjercicioById,
-  findEjerciciosBySociedad,
+  findResumenesBySociedad,
 } from '@/modules/ejercicios/repository/ejercicio.repository'
 import { findSociedadById } from '@/modules/sociedades/repository/sociedad.repository'
 import { findAuditoresByEstudio } from '@/modules/auditores/repository/auditor.repository'
@@ -31,20 +31,18 @@ export default async function EditarEjercicioPage({ params }: Props) {
   if (!sociedad || !ejercicio) notFound()
 
   const estudioId = await getCurrentEstudioId()
-  const [auditores, todosEjercicios] = await Promise.all([
+  const [auditores, resumenes, countComparativos] = await Promise.all([
     findAuditoresByEstudio(estudioId),
-    findEjerciciosBySociedad(id),
+    // Resúmenes livianos: el formulario calcula los elegibles (excluye al propio) y el candidato.
+    findResumenesBySociedad(id),
+    // ¿Ya hay importes manuales del ejercicio anterior cargados?
+    db.comparativoManual.count({ where: { ejercicioId } }),
   ])
 
   const auditoresActivos = auditores.filter((a) => a.activo)
-  const ejerciciosAnteriores = todosEjercicios.filter((e) => e.id !== ejercicioId)
 
-  // Ejercicio que usa a este como comparativo (sucesor en la cadena)
-  const sucedidoPor = todosEjercicios.find((e) => e.ejercicioAnteriorId === ejercicioId) ?? null
-
-  // ¿Ya hay comparativos manuales cargados?
-  const countComparativos = await db.comparativoManual.count({ where: { ejercicioId } })
-  const tieneComparativos = countComparativos > 0
+  // Ejercicio que usa a este como ejercicio anterior (sucesor en la cadena)
+  const sucedidoPor = resumenes.find((e) => e.ejercicioAnteriorId === ejercicioId) ?? null
 
   return (
     <div>
@@ -56,10 +54,11 @@ export default async function EditarEjercicioPage({ params }: Props) {
         <EjercicioForm
           sociedadId={id}
           auditores={auditoresActivos}
-          ejerciciosAnteriores={ejerciciosAnteriores}
+          ejerciciosAnteriores={resumenes}
           defaultValues={ejercicio}
           sucedidoPor={sucedidoPor}
-          tieneComparativos={tieneComparativos}
+          tieneComparativos={countComparativos > 0}
+          categoriaEnteDefault={sociedad.categoriaEnte}
         />
       </div>
     </div>

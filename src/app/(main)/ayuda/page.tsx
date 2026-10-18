@@ -398,8 +398,7 @@ export default function AyudaPage() {
           number={11}
           icon={<FileText className="h-5 w-5" />}
           title="Estado de Flujo de Efectivo"
-          description="Método directo. Muestra los cobros y pagos del período agrupados en actividades operativas, de inversión y de financiación."
-          pending
+          description="Método directo, en Estados → Flujo de Efectivo. El efectivo al inicio y al cierre sale del Estado de Situación Patrimonial (no se carga a mano); vos cargás los cobros y pagos de cada actividad y el control avisa si no explican toda la variación del efectivo. Un flujo que no cuadra impide confirmar los estados."
         />
 
         <Step

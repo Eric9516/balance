@@ -55,6 +55,37 @@ enum AdopcionRT54 {
   APLICACION_CONTINUADA
 }
 
+// Cómo se resuelve el ejercicio anterior (saldos de inicio + columna comparativa).
+// null en EjercicioContable.modoAnterior = todavía no configurado (bloquea la autorización final).
+enum ModoEjercicioAnterior {
+  VINCULADO    // el anterior está cargado en el sistema: saldos de inicio y comparativos derivados y bloqueados
+  MANUAL       // sin historial en el sistema: comparativos y saldos de inicio cargados a mano y autorizados
+  SIN_ANTERIOR // primer ejercicio de la sociedad: no hay columna comparativa
+}
+
+// Categoría del ente según RT 54 (flexibiliza notas y mediciones).
+enum CategoriaEnteRT54 {
+  PEQUENA
+  MEDIANA
+  RESTANTE
+}
+
+// Nota de Primera Aplicación RT 54: tipo de partida de la conciliación.
+enum TipoAjusteTransicion {
+  AJUSTE_MEDICION   // modifica el PN al inicio y/o el resultado del ejercicio anterior
+  RECLASIFICACION   // solo exposición: mueve importe entre rubros, sin efecto en PN
+}
+
+// Componente del PN afectado por un ajuste de transición (mismas columnas del E.E.P.N.).
+enum ComponentePN {
+  CAPITAL_SUSCRIPTO
+  AJUSTE_CAPITAL
+  APORTES_IRREVOCABLES
+  RESERVA_LEGAL
+  OTRAS_RESERVAS
+  RDOS_NO_ASIGNADOS
+}
+
 enum CriteriosBienesCambio {
   COSTO_ADQUISICION
   ULTIMA_COMPRA
@@ -143,6 +174,12 @@ enum SeveridadError {
   BAJO
 }
 
+// Densidad visual de las tablas de trabajo, preferencia por estudio.
+enum DensidadTablas {
+  COMODA
+  COMPACTA
+}
+
 enum NivelComparativoSSP {
   SECCION
   RUBRO
@@ -203,6 +240,9 @@ model RubroBase {
   orden              Int                @unique
   activo                Boolean            @default(true)
   generaNotaInformativa Boolean            @default(false)
+  // Efectivo y equivalentes: sus cuentas forman el efectivo al inicio y al cierre del
+  // Estado de Flujo de Efectivo (se deriva del SSP, no se carga a mano).
+  esEfectivo            Boolean            @default(false)
   textoNotaDefault      String?
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
@@ -260,7 +300,11 @@ model EstudioConfiguracion {
   id                     String   @id @default(cuid())
   estudioId              String   @unique
   logoUrl                String?
-  colorPrimario          String   @default("#1a1a2e")
+  // Acento de la interfaz (identidad del estudio). Hex #RRGGBB con contraste suficiente
+  // sobre blanco (validado en dominio: estudios/domain/preferencias.ts).
+  colorPrimario          String   @default("#2F6B55")
+  // Densidad de las tablas de trabajo (EEPN, anexos, estados).
+  densidadTablas         DensidadTablas @default(COMODA)
   monedaDisplay          String   @default("ARS")
   decimalesDisplay       Int      @default(0)
   mostrarNotasEnPreview  Boolean  @default(true)
@@ -305,6 +349,7 @@ model Sociedad {
   actividadPpal       String?
   actividadSecundaria String?
   clasificacionRT54   String?
+  categoriaEnte       CategoriaEnteRT54? // valor por defecto para ejercicios nuevos de la sociedad
   fechaInscripcion    DateTime?
   matriculaPJ         String?
   plazoDuracion       DateTime?
@@ -316,6 +361,7 @@ model Sociedad {
   estudio    Estudio             @relation(fields: [estudioId], references: [id], onDelete: Restrict)
   ejercicios EjercicioContable[]
 
+  @@index([estudioId])
   @@map("sociedades")
 }
 
@@ -340,6 +386,7 @@ model Auditor {
   estudio    Estudio             @relation(fields: [estudioId], references: [id], onDelete: Cascade)
   ejercicios EjercicioContable[]
 
+  @@index([estudioId])
   @@map("auditores")
 }
 
@@ -367,7 +414,19 @@ model EjercicioContable {
   hechosPosterioressTexto   String?
   pnConfirmado                Boolean              @default(false)
   estadosConfirmado           Boolean              @default(false)
-  // ── Balance anterior ─────────────────────────────────────────────────────────
+  // ── Ejercicio anterior ───────────────────────────────────────────────────────
+  // modoAnterior es la única fuente de verdad. Invariantes (dominio):
+  //   VINCULADO    ⇔ ejercicioAnteriorId != null
+  //   MANUAL / SIN_ANTERIOR ⇒ ejercicioAnteriorId == null
+  //   null         = pendiente de configurar
+  modoAnterior                ModoEjercicioAnterior?
+  // Autorización explícita de los saldos del ejercicio anterior cargados a mano (modo MANUAL).
+  // Cualquier escritura posterior sobre comparativos la vuelve a null.
+  comparativoAutorizadoEn     DateTime?
+  comparativoAutorizadoPor    String?
+  // Categoría del ente según RT 54 para este ejercicio (puede diferir de la sociedad).
+  categoriaEnte               CategoriaEnteRT54?
+  // Legacy (reemplazados por modoAnterior; se eliminan en una migración posterior)
   balanceAnteriorDisponible   Boolean              @default(true)
   nivelComparativoSSP         NivelComparativoSSP?
   auditorSnapshot     Json?
@@ -388,7 +447,9 @@ model EjercicioContable {
   costoVentas           CostoVentasEjercicio?
   comparativoManual     ComparativoManual[]
   documentos            DocumentoEjercicio[]
+  ajustesTransicion     AjusteTransicionRT54[]
 
+  @@index([sociedadId, fechaCierre])
   @@map("ejercicios_contables")
 }
 
@@ -434,6 +495,7 @@ model ImportacionExcel {
   mapeoExcel MapeoExcel?       @relation(fields: [mapeoExcelId], references: [id], onDelete: SetNull)
   cuentas    CuentaContable[]
 
+  @@index([ejercicioId])
   @@map("importaciones_excel")
 }
 
@@ -460,6 +522,8 @@ model CuentaContable {
   notaEjercicio NotaEjercicio?    @relation(fields: [notaEjercicioId], references: [id], onDelete: SetNull)
 
   @@unique([ejercicioId, codigo])
+  @@index([ejercicioId, rubroBaseId])
+  @@index([notaEjercicioId])
   @@map("cuentas_contables")
 }
 
@@ -503,6 +567,7 @@ model NotaEjercicio {
   detalles   DetalleNota[]
   cuentas    CuentaContable[]
 
+  @@index([ejercicioId])
   @@map("notas_ejercicio")
 }
 
@@ -519,6 +584,7 @@ model DetalleNota {
 
   nota NotaEjercicio @relation(fields: [notaEjercicioId], references: [id], onDelete: Cascade)
 
+  @@index([notaEjercicioId])
   @@map("detalles_nota")
 }
 
@@ -597,6 +663,7 @@ model FlujoDeCajaItem {
 
   flujo FlujoDeCajaEjercicio @relation(fields: [flujoId], references: [id], onDelete: Cascade)
 
+  @@index([flujoId])
   @@map("flujo_caja_items")
 }
 
@@ -682,6 +749,7 @@ model ErrorValidacion {
 
   ejercicio EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
 
+  @@index([ejercicioId, estado])
   @@map("errores_validacion")
 }
 
@@ -714,7 +782,7 @@ model ComparativoManual {
   modulo      String            // 'SSP' | 'EERR' | 'GASTOS' | 'BDU'
   clave       String            // seccion key, rubroBaseId, o nombre de categoría
   label       String            // nombre para mostrar (clave legible)
-  valor       Float
+  valor       Decimal           @db.Decimal(18, 2)
   esHuerfano  Boolean           @default(false) // true = no existe en el ejercicio actual
   orden       Int               @default(0)
 
@@ -755,7 +823,7 @@ model DocumentoEjercicio {
   titulo         String
   estado         EstadoDocumento @default(SUGERIDO)
   origen         OrigenDocumento @default(AUTOMATICO)
-  saldoAlAceptar Float? // foto del saldo al aceptar — para detectar saldo 0 posterior
+  saldoAlAceptar Decimal?        @db.Decimal(18, 2) // foto del saldo al aceptar — para detectar saldo 0 posterior
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -763,6 +831,38 @@ model DocumentoEjercicio {
 
   @@unique([ejercicioId, reglaClave])
   @@map("documentos_ejercicio")
+}
+
+// ─── Nota de Primera Aplicación RT 54 ─────────────────────────────────────────
+// Partidas de la conciliación entre el PN / resultado anterior según normas
+// previas y según RT 54. Solo tiene sentido cuando adopcionRT54 = PRIMERA_ADOPCION.
+// La fila "Modificación de saldos al inicio" del E.E.P.N. se VALIDA contra la suma
+// de los AJUSTE_MEDICION (no se deriva: esa fila también recibe correcciones de
+// errores y cambios de políticas que no son transición).
+
+model AjusteTransicionRT54 {
+  id          String               @id @default(cuid())
+  ejercicioId String
+  orden       Int
+  tipo        TipoAjusteTransicion
+  concepto    String
+  descripcion String?
+  // AJUSTE_MEDICION: componente del PN afectado + efecto sobre el PN al inicio
+  // y sobre el resultado del ejercicio anterior.
+  componentePN             ComponentePN?
+  importePN                Decimal @default(0) @db.Decimal(18, 2)
+  importeResultadoAnterior Decimal @default(0) @db.Decimal(18, 2)
+  // RECLASIFICACION: rubro de origen y destino del importe reclasificado (sin efecto en PN).
+  rubroOrigen  String?
+  rubroDestino String?
+  importeReclasificado Decimal @default(0) @db.Decimal(18, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ejercicio EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
+
+  @@index([ejercicioId])
+  @@map("ajustes_transicion_rt54")
 }
 
 // Config por sección legacy de gastos (las que no tienen RubroGrupo)

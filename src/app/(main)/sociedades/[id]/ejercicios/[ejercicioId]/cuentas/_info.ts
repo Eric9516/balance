@@ -3,6 +3,7 @@ import type { StepInfo } from '@/components/shared/StepInfoButton'
 export type PasoKey =
   | 'caratula'
   | 'clasificar'
+  | 'anterior'
   | 'documentos'
   | 'anexos'
   // Sub-vistas de "anexos" (no son pasos del stepper; se usan como ?anexo=<slug>)
@@ -18,6 +19,7 @@ export type InfoPasoKey = PasoKey | 'balance'
 export const PASO_TITULO: Record<PasoKey, string> = {
   caratula: 'Carátula',
   clasificar: 'Clasificar cuentas',
+  anterior: 'Ejercicio anterior',
   documentos: 'Anexos y notas',
   anexos: 'Anexos',
   'bienes-de-uso': 'Anexo I - Bienes de Uso',
@@ -70,6 +72,24 @@ export const PASO_INFO: Record<InfoPasoKey, StepInfo> = {
     ],
     notes: ['Una cuenta mal clasificada puede afectar el cuadre del SSP, el EERR, notas y anexos.'],
   },
+  anterior: {
+    title: 'Ejercicio anterior (requisito comparativo RT 54)',
+    purpose:
+      'Resuelve de dónde salen los saldos de inicio y la columna "Ejercicio anterior" de todos los estados, anexos y notas. Hay tres caminos: vincular un ejercicio cargado en el sistema, cargar los saldos a mano y autorizarlos, o declarar que es el primer ejercicio de la sociedad.',
+    sources: [
+      'Vinculado: los saldos al cierre del ejercicio anterior, reexpresados por el coeficiente de inflación del ejercicio.',
+      'Carga manual: los importes que el contador digita en la columna "Ejercicio anterior" de cada estado, anexo y nota.',
+      'Primer ejercicio: no hay comparativo y los estados lo indican expresamente.',
+    ],
+    formulas: [
+      'Vinculado: Saldos al inicio del E.E.P.N. = saldos al cierre del anterior; valor de inicio del Anexo I = valor al cierre del anterior; existencia inicial = existencia final anterior.',
+      'Carga manual: Activo anterior = Pasivo anterior + Patrimonio neto anterior; resultado anterior del EERR = resultado anterior del E.E.P.N.',
+    ],
+    notes: [
+      'Los estados no se pueden confirmar ni el ejercicio pasar a revisión mientras esta configuración esté pendiente.',
+      'En carga manual, cualquier cambio posterior en la columna "Ejercicio anterior" anula la autorización y hay que volver a autorizar.',
+    ],
+  },
   documentos: {
     title: 'Anexos y notas sugeridos',
     purpose:
@@ -107,7 +127,7 @@ export const PASO_INFO: Record<InfoPasoKey, StepInfo> = {
       'Arma el detalle de bienes de uso y calcula su valor residual. Este anexo se completa antes de notas y estados.',
     sources: [
       'Bienes cargados para el ejercicio actual.',
-      'Neto residual del ejercicio anterior cuando existe ejercicio anterior vinculado.',
+      'Con ejercicio anterior vinculado: valor y amortización al comienzo del ejercicio se toman del cierre del anterior (bloqueados).',
     ],
     formulas: [
       'Costo al cierre = Costo al inicio + Altas - Bajas +/- Ajustes',
@@ -120,7 +140,7 @@ export const PASO_INFO: Record<InfoPasoKey, StepInfo> = {
     purpose:
       'Calcula el costo de los bienes vendidos o servicios. El Estado de Resultados toma este anexo cuando está cargado.',
     sources: [
-      'Existencia inicial.',
+      'Existencia inicial (con ejercicio anterior vinculado: la existencia final del anterior, bloqueada).',
       'Compras.',
       'Gastos de fabricación o producción.',
       'Existencia final.',
@@ -160,6 +180,7 @@ export const PASO_INFO: Record<InfoPasoKey, StepInfo> = {
     ],
     notes: [
       'Gastos, costo de ventas y bienes de uso pueden no ir como notas si ya se presentan en sus anexos.',
+      'Si el ejercicio es primera aplicación de la RT 54, acá se arma la Nota de transición con su conciliación.',
     ],
   },
   'patrimonio-neto': {
@@ -167,7 +188,7 @@ export const PASO_INFO: Record<InfoPasoKey, StepInfo> = {
     purpose:
       'Permite cargar los movimientos del Patrimonio Neto y toma automáticamente el resultado del ejercicio desde el Estado de Resultados.',
     sources: [
-      'Saldos al cierre del ejercicio anterior.',
+      'Saldos al cierre del ejercicio anterior (bloqueados cuando el anterior está vinculado y cargado).',
       'Ajuste por inflación y modificaciones de inicio.',
       'Distribuciones y movimientos del ejercicio.',
       'Resultado del ejercicio calculado en el Estado de Resultados.',
@@ -185,7 +206,7 @@ export const PASO_INFO: Record<InfoPasoKey, StepInfo> = {
   estados: {
     title: 'Estados contables',
     purpose:
-      'Muestra el Estado de Situación Patrimonial y el Estado de Resultados usando las cuentas clasificadas y los anexos cargados.',
+      'Muestra el Estado de Situación Patrimonial y el Estado de Resultados usando las cuentas clasificadas y los anexos cargados, siempre con la columna "Ejercicio anterior" (RT 54).',
     sources: [
       'Cuentas clasificadas para SSP, PN y EERR.',
       'Anexo II para costo de ventas si está cargado.',
@@ -200,7 +221,7 @@ export const PASO_INFO: Record<InfoPasoKey, StepInfo> = {
     ],
     notes: [
       'El Patrimonio Neto debe coincidir con el saldo final del Estado de Evolución del Patrimonio Neto.',
-      'Si hay descuadre, primero revisar cuentas sin clasificar, Activo, Pasivo y el cuadro de Patrimonio Neto.',
+      'Confirmar los estados es la autorización final: exige el ejercicio anterior resuelto y la categoría del ente definida.',
     ],
   },
 }

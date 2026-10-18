@@ -55,7 +55,14 @@ export function useEdicionLote<T>(
   }
 
   /** Sincroniza el valor base cuando cambia desde el servidor sin pasar por este hook (ej. revalidate). */
-  function sincronizar(nuevo: T) {
+  function sincronizar(nuevo: T | ((prev: T) => T)) {
+    if (typeof nuevo === 'function') {
+      // Alta/baja estructural ya persistida: se aplica a la base y al borrador en curso.
+      const f = nuevo as (prev: T) => T
+      setGuardado(f)
+      setBorrador(f)
+      return
+    }
     setGuardado(nuevo)
     if (!editando) setBorrador(nuevo)
   }

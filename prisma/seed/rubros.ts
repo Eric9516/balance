@@ -18,6 +18,8 @@ interface RubroSeedData {
   activo: boolean
   generaNotaInformativa?: boolean
   textoNotaDefault?: string | null
+  /** Efectivo y equivalentes (Estado de Flujo de Efectivo). */
+  esEfectivo?: boolean
 }
 
 export const RUBROS_BASE: RubroSeedData[] = [
@@ -32,6 +34,7 @@ export const RUBROS_BASE: RubroSeedData[] = [
     naturalezaEsperada: 'DEUDORA',
     orden: 100,
     activo: true,
+    esEfectivo: true,
   },
   {
     codigo: 'ACT-CTE-02',

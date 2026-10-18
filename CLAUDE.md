@@ -115,6 +115,20 @@ Toda tabla/sección con números editables (anexos, estados, notas, comparativos
 - `@/modules/comparativo-manual/components/CeldaAnteriorEditable` → `useComparativoLote` — mismo patrón de borrador, especializado para la columna "Ejercicio Anterior" (puede mezclar varios módulos SSP/EERR/GASTOS/COSTO_VENTAS bajo un solo Guardar).
 - `@/lib/utils/parseImporte` — único parseo de importes (formato AR/anglo + paréntesis = negativo). **Prohibido** `parseFloat(x.replace(',','.'))` suelto.
 - `@/lib/utils/dates.formatFecha` — único formateo de fechas de cierre (UTC dd/mm/yyyy). NO usar `formatDate` (zona Buenos Aires) para fechas contables.
+- `@/components/shared/CeldaBloqueada` — único modo de mostrar un importe **arrastrado del ejercicio anterior** (modo VINCULADO): candado + valor + origen en tooltip. Nunca un input deshabilitado.
+- `@/components/shared/AvisosArrastre` — leyenda del candado y advertencias de fuentes faltantes en el anterior.
+
+## Convención — Ejercicio anterior (OBLIGATORIA)
+
+`EjercicioContable.modoAnterior` es la **única fuente de verdad** de cómo se resuelve el ejercicio anterior (`VINCULADO` | `MANUAL` | `SIN_ANTERIOR` | null = pendiente). Toda lectura del anterior pasa por `@/modules/ejercicios/domain/ejercicioAnterior` (`modoEfectivo`, `idAnteriorDerivable`) y por la política de `@/modules/comparativo-manual/lib/politica` (`mostrarColumnaAnterior`, `editarAnteriorManual`, `resolverEstados`, …). Reglas:
+
+- **VINCULADO**: saldos de inicio y columna "Ejercicio anterior" se derivan del anterior y se bloquean. Las filas de `comparativo_manual` se ignoran y las actions las rechazan (`NEG-012`). El servidor sanea lo bloqueado al guardar (E.E.P.N., Anexo I, Anexo II) aunque el cliente mande otra cosa.
+- **MANUAL**: la columna anterior se carga a mano y se **autoriza** (`comparativoAutorizadoEn/Por`). Cualquier escritura sobre esa columna la anula (`marcarComparativoModificado`).
+- **SIN_ANTERIOR / pendiente**: sin columna comparativa.
+- La **compuerta** `@/modules/ejercicios/services/autorizacion.service` corre antes de confirmar estados, confirmar E.E.P.N. y pasar a Revisión/Cierre. Nunca agregar una confirmación que la saltee.
+- Los estados y el E.E.P.N. se cargan SOLO vía `@/modules/estados/services/estados.service.cargarEstadosConPN`.
+- El Estado de Flujo de Efectivo se carga SOLO vía `@/modules/flujo-efectivo/services/flujo.service.cargarFlujo`. El efectivo al cierre (y al inicio, si hay comparativo) sale del SSP sumando los rubros con `RubroBase.esEfectivo`; nunca se toma del cliente. La compuerta exige que cuadre (AUT-050).
+- Migraciones: siempre `prisma migrate`; **nunca** `db push` sobre una base con datos (ver README).
 
 **Modelo de interacción estándar:**
 1. La región arranca en modo lectura.

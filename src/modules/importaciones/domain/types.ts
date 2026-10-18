@@ -79,6 +79,8 @@ export type RubroBaseSimple = {
   textoNotaDefault: string | null
   rubroGrupoNombre: string | null
   rubroGrupoEsGasto: boolean
+  /** Efectivo y equivalentes (Estado de Flujo de Efectivo). */
+  esEfectivo: boolean
 }
 
 // ─── Resultado de importación ─────────────────────────────────────────────────

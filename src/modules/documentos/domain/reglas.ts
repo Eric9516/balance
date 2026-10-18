@@ -26,6 +26,8 @@ export type EvalCtx = {
    * desde el repository y la regla NOTA_MONEDA_EXTRANJERA se activa sin tocar nada más.
    */
   hayMonedaExtranjera: boolean
+  /** ¿El ejercicio es la primera aplicación de la RT 54 (Nota I)? */
+  esPrimeraAdopcion: boolean
 }
 
 export type ReglaDoc = {
@@ -123,6 +125,14 @@ export const REGLAS: ReglaDoc[] = [
     // hoy siempre es false hasta que CuentaContable tenga el dato de moneda.
     rubros: [],
     cuando: (c) => c.hayMonedaExtranjera,
+  },
+  {
+    clave: 'NOTA_TRANSICION_RT54',
+    tipo: 'NOTA',
+    titulo: 'Nota de primera aplicación de la RT 54',
+    // Se dispara por la configuración de la Nota I (adopción = primera aplicación).
+    rubros: [],
+    cuando: (c) => c.esPrimeraAdopcion,
   },
 ]
 
