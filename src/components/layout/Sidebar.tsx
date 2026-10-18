@@ -57,7 +57,9 @@ export function Sidebar() {
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-600">
           <Scale className="h-4 w-4 text-white" />
         </div>
-        <span className="text-sm font-semibold tracking-wide text-white">BalanceRT</span>
+        <span className="font-serif text-[17px] font-semibold tracking-tight text-white">
+          Balance<span className="text-blue-300">RT</span>
+        </span>
       </div>
 
       {/* Nav */}

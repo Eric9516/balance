@@ -174,6 +174,12 @@ enum SeveridadError {
   BAJO
 }
 
+// Densidad visual de las tablas de trabajo, preferencia por estudio.
+enum DensidadTablas {
+  COMODA
+  COMPACTA
+}
+
 enum NivelComparativoSSP {
   SECCION
   RUBRO
@@ -234,6 +240,9 @@ model RubroBase {
   orden              Int                @unique
   activo                Boolean            @default(true)
   generaNotaInformativa Boolean            @default(false)
+  // Efectivo y equivalentes: sus cuentas forman el efectivo al inicio y al cierre del
+  // Estado de Flujo de Efectivo (se deriva del SSP, no se carga a mano).
+  esEfectivo            Boolean            @default(false)
   textoNotaDefault      String?
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
@@ -291,7 +300,11 @@ model EstudioConfiguracion {
   id                     String   @id @default(cuid())
   estudioId              String   @unique
   logoUrl                String?
-  colorPrimario          String   @default("#1a1a2e")
+  // Acento de la interfaz (identidad del estudio). Hex #RRGGBB con contraste suficiente
+  // sobre blanco (validado en dominio: estudios/domain/preferencias.ts).
+  colorPrimario          String   @default("#2F6B55")
+  // Densidad de las tablas de trabajo (EEPN, anexos, estados).
+  densidadTablas         DensidadTablas @default(COMODA)
   monedaDisplay          String   @default("ARS")
   decimalesDisplay       Int      @default(0)
   mostrarNotasEnPreview  Boolean  @default(true)
