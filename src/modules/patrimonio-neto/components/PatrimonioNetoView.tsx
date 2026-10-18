@@ -19,52 +19,18 @@ import {
   type EvolucionPNData,
   type EvolucionPNMovimientoDTO,
 } from '../domain/types'
+import {
+  COLUMNAS_PN as DETALLE,
+  GRUPOS_PN as GRUPOS,
+  type CampoPN,
+  type ColumnaPN as Columna,
+  type GrupoPN as Grupo,
+} from '../domain/columnas'
+import { saldoCierrePN, saldoInicioModificadoPN } from '../domain/evolucion'
 
-// ─── Modelo de columnas ──────────────────────────────────────────────────────
-
-type CampoPN =
-  | 'capitalSuscripto'
-  | 'ajusteCapital'
-  | 'aportesIrrevocables'
-  | 'reservaLegal'
-  | 'otrasReservas'
-  | 'rdosNoAsignados'
+// Modelo de columnas y filas derivadas: fuente única con el documento imprimible (domain).
 type TipoPN = EvolucionPNMovimientoDTO['tipo']
 type Mov = EvolucionPNMovimientoDTO
-
-const GRUPOS = ['aportes', 'resultados'] as const
-type Grupo = (typeof GRUPOS)[number]
-
-type Columna =
-  | { tipo: 'campo'; campo: CampoPN; label: string }
-  | { tipo: 'subtotal'; label: string; calc: (m: Mov) => number }
-
-const sumAportes = (m: Mov) => m.capitalSuscripto + m.ajusteCapital + m.aportesIrrevocables
-const sumReservas = (m: Mov) => m.reservaLegal + m.otrasReservas
-const sumResultados = (m: Mov) => sumReservas(m) + m.rdosNoAsignados
-
-const DETALLE: Record<Grupo, { titulo: string; columnas: Columna[]; plegado: Columna }> = {
-  aportes: {
-    titulo: 'Aporte de los propietarios',
-    columnas: [
-      { tipo: 'campo', campo: 'capitalSuscripto', label: 'Capital suscripto' },
-      { tipo: 'campo', campo: 'ajusteCapital', label: 'Ajuste del capital' },
-      { tipo: 'campo', campo: 'aportesIrrevocables', label: 'Aportes irrevocables' },
-      { tipo: 'subtotal', label: 'Total', calc: sumAportes },
-    ],
-    plegado: { tipo: 'subtotal', label: 'Total aportes', calc: sumAportes },
-  },
-  resultados: {
-    titulo: 'Resultados acumulados',
-    columnas: [
-      { tipo: 'campo', campo: 'reservaLegal', label: 'Reserva legal' },
-      { tipo: 'campo', campo: 'otrasReservas', label: 'Otras reservas' },
-      { tipo: 'subtotal', label: 'Total reservas', calc: sumReservas },
-      { tipo: 'campo', campo: 'rdosNoAsignados', label: 'Resultados no asignados' },
-    ],
-    plegado: { tipo: 'subtotal', label: 'Total resultados', calc: sumResultados },
-  },
-}
 
 // ─── Componente ──────────────────────────────────────────────────────────────
 
@@ -130,7 +96,6 @@ export function PatrimonioNetoView({
 
   const { bloqueo } = data
   const movimientos = data.movimientos
-  const byTipo = new Map(movimientos.map((mov) => [mov.tipo, mov]))
   const totalColumnas =
     1 + columnasDe('aportes').length + columnasDe('resultados').length + (mostrarAnterior ? 2 : 1)
 
@@ -143,42 +108,8 @@ export function PatrimonioNetoView({
     }))
   }
 
-  function sumMovimientos(tipos: TipoPN[]): Mov {
-    const base: Mov = {
-      id: '',
-      ejercicioId,
-      tipo: tipos[0] ?? 'SALDO_INICIO',
-      orden: 0,
-      capitalSuscripto: 0,
-      ajusteCapital: 0,
-      aportesIrrevocables: 0,
-      reservaLegal: 0,
-      otrasReservas: 0,
-      rdosNoAsignados: 0,
-      totalAnterior: 0,
-    }
-    return tipos.reduce((acc, tipo) => {
-      const mov = byTipo.get(tipo)
-      if (!mov) return acc
-      return {
-        ...acc,
-        capitalSuscripto: acc.capitalSuscripto + mov.capitalSuscripto,
-        ajusteCapital: acc.ajusteCapital + mov.ajusteCapital,
-        aportesIrrevocables: acc.aportesIrrevocables + mov.aportesIrrevocables,
-        reservaLegal: acc.reservaLegal + mov.reservaLegal,
-        otrasReservas: acc.otrasReservas + mov.otrasReservas,
-        rdosNoAsignados: acc.rdosNoAsignados + mov.rdosNoAsignados,
-        totalAnterior: acc.totalAnterior + mov.totalAnterior,
-      }
-    }, base)
-  }
-
-  const inicioModificado = sumMovimientos([
-    'SALDO_INICIO',
-    'AJUSTE_INFLACION',
-    'MODIFICACION_INICIO',
-  ])
-  const saldoCierre = sumMovimientos(movimientos.map((mov) => mov.tipo))
+  const inicioModificado = saldoInicioModificadoPN(movimientos)
+  const saldoCierre = saldoCierrePN(movimientos)
 
   // ── Celdas ────────────────────────────────────────────────────────────────
 

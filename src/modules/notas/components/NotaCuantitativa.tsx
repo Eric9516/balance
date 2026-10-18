@@ -17,7 +17,7 @@ import {
   actualizarDetalleAction,
   eliminarDetalleAction,
 } from '../actions/notas.actions'
-import type { NotaDTO } from '../domain/types'
+import { totalesNota, type NotaDTO } from '../domain/types'
 
 // Persiste todos los detalles editados de la nota + los campos de la nota, de una vez.
 async function guardarNota(
@@ -133,12 +133,7 @@ export function NotaCuantitativa({
   } = useEdicionLote(notaInicial, (borrador) => guardarNota(ejercicioId, sociedadId, borrador))
   const { isPending: isPendingAcciones, ejecutar } = useGuardarAccion()
 
-  const totalActual = nota.detalles
-    .filter((d) => !d.esTotal)
-    .reduce((acc, d) => acc + d.importeActual, 0)
-  const totalAnterior = nota.detalles
-    .filter((d) => !d.esTotal)
-    .reduce((acc, d) => acc + d.importeAnterior, 0)
+  const { actual: totalActual, anterior: totalAnterior } = totalesNota(nota)
 
   // ── Borrador: campo de nota (criterio, textoApertura) — se persiste al Guardar
   function saveNotaField(field: 'criterioMedicion' | 'textoApertura', value: string) {

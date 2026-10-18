@@ -4,6 +4,14 @@ import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatFecha } from '@/lib/utils/dates'
 import type { RubroFila } from '../domain/types'
+import {
+  SECCIONES_PASIVO,
+  SSP_STRUCTURE,
+  patrimonioNetoSSP,
+  rubrosDeSeccion,
+  sumarSeccion,
+  sumarSecciones,
+} from '../domain/estructuraSSP'
 import { calcularCuadreSP } from '../lib/cuadre'
 import { esRubroHuerfano } from '../lib/rubroHuerfano'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
@@ -13,26 +21,6 @@ import {
   EliminarFilaAnterior,
   useComparativoLote,
 } from '@/modules/comparativo-manual/components/CeldaAnteriorEditable'
-
-// ─── Constantes de estructura ─────────────────────────────────────────────────
-
-const SSP_STRUCTURE = [
-  {
-    bloque: 'ACTIVO',
-    sections: ['ACTIVO_CORRIENTE', 'ACTIVO_NO_CORRIENTE'],
-    totalLabel: 'TOTAL ACTIVO',
-  },
-  {
-    bloque: 'PASIVO',
-    sections: ['PASIVO_CORRIENTE', 'PASIVO_NO_CORRIENTE'],
-    totalLabel: 'TOTAL PASIVO',
-  },
-  {
-    bloque: 'PATRIMONIO NETO',
-    sections: ['PATRIMONIO_NETO'],
-    totalLabel: 'TOTAL PATRIMONIO NETO',
-  },
-] as const
 
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
 
@@ -326,24 +314,18 @@ export function SSPTab({
   anteriorBloqueado: boolean
   anteriorDenominacion: string | null
 }) {
-  const getSeccionRubros = (seccionKey: string) =>
-    sspRubros.filter((r) => r.seccionSSP === seccionKey)
-
-  const seccionTotal = (seccionKey: string) =>
-    getSeccionRubros(seccionKey).reduce((acc, r) => acc + r.displayValue, 0)
-
-  const seccionTotalAnt = (seccionKey: string) =>
-    getSeccionRubros(seccionKey).reduce((acc, r) => acc + r.displayValueAnt, 0)
-
-  const bloqueTotal = (sections: readonly string[]) =>
-    sections.reduce((acc, s) => acc + seccionTotal(s), 0)
+  // Estructura y sumas: fuente única con el documento imprimible (domain/estructuraSSP).
+  const getSeccionRubros = (seccionKey: string) => rubrosDeSeccion(sspRubros, seccionKey)
+  const seccionTotal = (seccionKey: string) => sumarSeccion(sspRubros, seccionKey, 'actual')
+  const seccionTotalAnt = (seccionKey: string) => sumarSeccion(sspRubros, seccionKey, 'anterior')
+  const bloqueTotal = (sections: readonly string[]) => sumarSecciones(sspRubros, sections, 'actual')
   const bloqueTotalAnt = (sections: readonly string[]) =>
-    sections.reduce((acc, s) => acc + seccionTotalAnt(s), 0)
+    sumarSecciones(sspRubros, sections, 'anterior')
 
-  const totalPasivo = bloqueTotal(['PASIVO_CORRIENTE', 'PASIVO_NO_CORRIENTE'])
-  const totalPasivoAnt = bloqueTotalAnt(['PASIVO_CORRIENTE', 'PASIVO_NO_CORRIENTE'])
-  const totalPN = patrimonioNetoFinal ?? bloqueTotal(['PATRIMONIO_NETO'])
-  const totalPNAnt = patrimonioNetoFinalAnt ?? bloqueTotalAnt(['PATRIMONIO_NETO'])
+  const totalPasivo = bloqueTotal(SECCIONES_PASIVO)
+  const totalPasivoAnt = bloqueTotalAnt(SECCIONES_PASIVO)
+  const totalPN = patrimonioNetoSSP(sspRubros, patrimonioNetoFinal, 'actual')
+  const totalPNAnt = patrimonioNetoSSP(sspRubros, patrimonioNetoFinalAnt, 'anterior')
   const totalPasivoPN = totalPasivo + totalPN
   const totalPasivoPNAnt = totalPasivoAnt + totalPNAnt
   const { diferencia: diferenciaCuadre, cuadrado } = calcularCuadreSP(

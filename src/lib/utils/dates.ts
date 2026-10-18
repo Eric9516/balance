@@ -30,6 +30,39 @@ export function formatFecha(d: Date | string | null | undefined, fallback = '-')
   })
 }
 
+const MESES_LARGOS = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+]
+
+/**
+ * Fecha larga en castellano y UTC: "31 de diciembre de 2025". Con `mesMayuscula`,
+ * "31 de Diciembre de 2025" (uso de la carátula). Fechas contables, como formatFecha.
+ */
+export function formatFechaLarga(
+  d: Date | string | null | undefined,
+  opciones: { mesMayuscula?: boolean } = {},
+  fallback = '—',
+): string {
+  if (!d) return fallback
+  const date = typeof d === 'string' ? new Date(d) : d
+  if (isNaN(date.getTime())) return fallback
+  const dia = String(date.getUTCDate()).padStart(2, '0')
+  const mes = MESES_LARGOS[date.getUTCMonth()] ?? ''
+  const mesTexto = opciones.mesMayuscula ? mes.charAt(0).toUpperCase() + mes.slice(1) : mes
+  return `${dia} de ${mesTexto} de ${date.getUTCFullYear()}`
+}
+
 /** Valor para `<input type="date">` (yyyy-mm-dd, UTC). '' si la fecha es null/undefined/inválida. */
 export function toDateInputValue(d: Date | string | null | undefined): string {
   if (!d) return ''

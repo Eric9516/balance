@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatFecha, toDateInputValue } from './dates'
+import { formatFecha, formatFechaLarga, toDateInputValue } from './dates'
 
 describe('formatFecha', () => {
   it('formatea en UTC: una fecha de cierre a medianoche UTC no se corre de día', () => {
@@ -10,6 +10,18 @@ describe('formatFecha', () => {
   it('usa el fallback para valores vacíos o inválidos', () => {
     expect(formatFecha(null)).toBe('-')
     expect(formatFecha('no-es-fecha', 'Sin fecha')).toBe('Sin fecha')
+  })
+})
+
+describe('formatFechaLarga', () => {
+  it('escribe la fecha en castellano y en UTC', () => {
+    expect(formatFechaLarga(new Date('2025-12-31T00:00:00.000Z'))).toBe('31 de diciembre de 2025')
+    expect(formatFechaLarga('2026-03-05', { mesMayuscula: true })).toBe('05 de Marzo de 2026')
+  })
+
+  it('usa el fallback para valores vacíos o inválidos', () => {
+    expect(formatFechaLarga(null)).toBe('—')
+    expect(formatFechaLarga('basura', {}, 'Sin fecha')).toBe('Sin fecha')
   })
 })
 

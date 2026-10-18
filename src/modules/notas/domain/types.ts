@@ -51,3 +51,14 @@ export function toNotaDTO(n: NotaRaw): NotaDTO {
       })),
   }
 }
+
+// ─── Totales ──────────────────────────────────────────────────────────────────
+
+/** Total de una nota cuantitativa: suma de sus filas de detalle (sin la fila de total). */
+export function totalesNota(nota: Pick<NotaDTO, 'detalles'>): { actual: number; anterior: number } {
+  const filas = nota.detalles.filter((d) => !d.esTotal)
+  return {
+    actual: filas.reduce((acc, d) => acc + d.importeActual, 0),
+    anterior: filas.reduce((acc, d) => acc + d.importeAnterior, 0),
+  }
+}
