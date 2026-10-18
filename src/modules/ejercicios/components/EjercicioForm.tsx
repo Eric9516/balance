@@ -93,7 +93,9 @@ function TarjetaModo({
   return (
     <label
       className={cn(
-        'block rounded-xl border p-4 transition-all has-focus-visible:ring-2 has-focus-visible:ring-blue-200',
+        // relative: el radio sr-only (absolute) queda dentro de la tarjeta; sin esto, al
+        // enfocarlo el navegador desplaza la ventana entera y descuadra el layout.
+        'relative block rounded-xl border p-4 transition-all has-focus-visible:ring-2 has-focus-visible:ring-blue-200',
         disabled
           ? 'cursor-not-allowed border-slate-200 bg-slate-50 opacity-60'
           : checked
