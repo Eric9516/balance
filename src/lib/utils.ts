@@ -8,7 +8,7 @@ const twMerge = extendTailwindMerge({
     classGroups: {
       'font-size': [{ text: ['tabla', 'tabla-sm'] }],
       'text-color': [{ text: ['tinta', 'tinta-suave', 'acento', 'positivo', 'negativo'] }],
-      'bg-color': [{ bg: ['papel', 'superficie', 'acento', 'acento-suave'] }],
+      'bg-color': [{ bg: ['papel', 'superficie', 'acento', 'acento-suave', 'encabezado'] }],
       'border-color': [{ border: ['linea'] }],
     },
   },

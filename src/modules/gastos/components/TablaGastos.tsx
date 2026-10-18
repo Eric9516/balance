@@ -128,7 +128,7 @@ export function TablaGastos({
             )
 
             return (
-              <tr key={nombre} className="border-b border-slate-100 hover:bg-slate-50/40">
+              <tr key={nombre} className="border-b border-slate-100 hover:bg-acento-suave">
                 <td className="px-4 py-2 text-sm text-slate-700">{nombre}</td>
                 {cols.map((s) => {
                   const fila = s.filas.find((f) => f.cuentaNombre === nombre)

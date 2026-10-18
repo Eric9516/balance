@@ -198,7 +198,7 @@ export function FilaCuenta({
     <tr
       className={cn(
         'group border-b border-slate-100 transition-colors last:border-0',
-        isSelected ? 'bg-blue-50/70' : 'hover:bg-slate-50/60',
+        isSelected ? 'bg-blue-50/70' : 'hover:bg-acento-suave',
       )}
     >
       <td className="px-4 py-2.5">

@@ -255,7 +255,7 @@ export function NotaTransicionCard({
               return (
                 <tr
                   key={a.id}
-                  className="group border-b border-slate-50 align-top hover:bg-slate-50/40"
+                  className="group border-b border-slate-50 align-top hover:bg-acento-suave"
                 >
                   {/* Tipo */}
                   <td className="px-3 py-1.5">

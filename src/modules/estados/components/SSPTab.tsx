@@ -180,7 +180,7 @@ function RubroExpandableRow({
   // ── Fila huérfana (solo período anterior): sin expand, con borrar ───────────
   if (huerfano) {
     return (
-      <tr className="border-b border-slate-100 hover:bg-slate-50/60">
+      <tr className="border-b border-slate-100 hover:bg-acento-suave">
         <td className="px-4 py-2.5">
           <div className="flex items-center gap-2">
             <span className="inline-block rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-amber-600 uppercase">
@@ -222,7 +222,7 @@ function RubroExpandableRow({
 
   return (
     <>
-      <tr className="border-b border-slate-100 transition-colors hover:bg-slate-50/60">
+      <tr className="border-b border-slate-100 transition-colors hover:bg-acento-suave">
         <td className="cursor-pointer px-4 py-2.5" onClick={onToggle}>
           <div className="flex items-center gap-1.5">
             <span className="flex-shrink-0 text-slate-400">
@@ -387,7 +387,7 @@ export function SSPTab({
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50">
+            <tr className="border-b border-slate-100 bg-encabezado">
               <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                 Concepto
               </th>
@@ -493,7 +493,7 @@ export function SSPTab({
 
                   {/* Para PN: una sola línea con el total y referencia al E.E.P.N. */}
                   {esPN && (
-                    <tr className="border-b border-slate-100 hover:bg-slate-50/60">
+                    <tr className="border-b border-slate-100 hover:bg-acento-suave">
                       <td className="px-4 py-2.5 text-sm text-slate-700">
                         Patrimonio Neto
                         <span className="ml-2 text-xs text-slate-400">(Ver E.E.P.N.)</span>
