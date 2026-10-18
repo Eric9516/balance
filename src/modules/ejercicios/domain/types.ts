@@ -4,7 +4,11 @@ import type {
   AdopcionRT54,
   CriteriosBienesCambio,
   NivelComparativoSSP,
+  ModoEjercicioAnterior,
+  CategoriaEnteRT54,
 } from '@prisma/client'
+
+export type { ModoEjercicioAnterior, CategoriaEnteRT54 }
 
 export type EjercicioContableDTO = {
   id: string
@@ -13,6 +17,11 @@ export type EjercicioContableDTO = {
   auditorId: string | null
   auditorNombre: string | null
   ejercicioAnteriorId: string | null
+  // Ejercicio anterior: única fuente de verdad del modo. null = pendiente de configurar.
+  modoAnterior: ModoEjercicioAnterior | null
+  comparativoAutorizadoEn: Date | null
+  comparativoAutorizadoPor: string | null
+  categoriaEnte: CategoriaEnteRT54 | null
   numeroEjercicio: number | null
   fechaInicio: Date
   fechaCierre: Date
@@ -60,6 +69,35 @@ export const CLASIFICACION_ENTIDAD_OPTIONS = [
   'Otra entidad',
 ]
 
+// ─── Ejercicio anterior ───────────────────────────────────────────────────────
+
+export const MODO_ANTERIOR_LABELS: Record<ModoEjercicioAnterior, string> = {
+  VINCULADO: 'Vinculado a un ejercicio cargado en el sistema',
+  MANUAL: 'Saldos del ejercicio anterior cargados manualmente',
+  SIN_ANTERIOR: 'Primer ejercicio de la sociedad (sin comparativo)',
+}
+
+// ─── Categoría del ente (RT 54) ───────────────────────────────────────────────
+
+export const CATEGORIA_ENTE_LABELS: Record<CategoriaEnteRT54, string> = {
+  PEQUENA: 'Entidad pequeña',
+  MEDIANA: 'Entidad mediana',
+  RESTANTE: 'Entidad restante',
+}
+
+export const CATEGORIA_ENTE_DESCRIPCIONES: Record<CategoriaEnteRT54, string> = {
+  PEQUENA:
+    'Accede a las simplificaciones de medición y exposición previstas para entidades pequeñas.',
+  MEDIANA: 'Accede a las simplificaciones previstas para entidades medianas.',
+  RESTANTE: 'Aplica el modelo completo de la norma, sin simplificaciones.',
+}
+
+export const CATEGORIA_ENTE_OPTIONS = [
+  'PEQUENA',
+  'MEDIANA',
+  'RESTANTE',
+] as const satisfies readonly CategoriaEnteRT54[]
+
 type WithAuditor = EjercicioContable & {
   auditor?: { nombre: string; apellido: string } | null
 }
@@ -72,6 +110,10 @@ export function toEjercicioDTO(e: WithAuditor): EjercicioContableDTO {
     auditorId: e.auditorId,
     auditorNombre: e.auditor ? `${e.auditor.apellido}, ${e.auditor.nombre}` : null,
     ejercicioAnteriorId: e.ejercicioAnteriorId,
+    modoAnterior: e.modoAnterior ?? null,
+    comparativoAutorizadoEn: e.comparativoAutorizadoEn ?? null,
+    comparativoAutorizadoPor: e.comparativoAutorizadoPor ?? null,
+    categoriaEnte: e.categoriaEnte ?? null,
     numeroEjercicio: e.numeroEjercicio,
     fechaInicio: e.fechaInicio,
     fechaCierre: e.fechaCierre,

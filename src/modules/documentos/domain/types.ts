@@ -65,7 +65,7 @@ export function toDocumentoDTO(r: {
   titulo: string
   estado: string
   origen: string
-  saldoAlAceptar: number | null
+  saldoAlAceptar: { toNumber(): number } | number | null
 }): DocumentoEjercicioDTO {
   return {
     id: r.id,
@@ -75,6 +75,6 @@ export function toDocumentoDTO(r: {
     titulo: r.titulo,
     estado: r.estado as EstadoDoc,
     origen: r.origen as OrigenDoc,
-    saldoAlAceptar: r.saldoAlAceptar,
+    saldoAlAceptar: r.saldoAlAceptar == null ? null : Number(r.saldoAlAceptar),
   }
 }

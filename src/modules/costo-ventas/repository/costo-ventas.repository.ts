@@ -1,10 +1,14 @@
+import { cache } from 'react'
 import { db } from '@/lib/db'
 import { toCostoVentasDTO, type CostoVentasDTO } from '../domain/types'
 
-export async function findCostoVentas(ejercicioId: string): Promise<CostoVentasDTO | null> {
-  const row = await db.costoVentasEjercicio.findUnique({ where: { ejercicioId } })
-  return row ? toCostoVentasDTO(row) : null
-}
+/** Memoizado por request (React cache). */
+export const findCostoVentas = cache(
+  async (ejercicioId: string): Promise<CostoVentasDTO | null> => {
+    const row = await db.costoVentasEjercicio.findUnique({ where: { ejercicioId } })
+    return row ? toCostoVentasDTO(row) : null
+  },
+)
 
 export async function upsertCostoVentas(
   ejercicioId: string,

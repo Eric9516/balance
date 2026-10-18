@@ -271,7 +271,30 @@ No pasar `estudioId` como prop desde el layout. Llamar directo donde se necesita
 
 ---
 
-## 15. Prisma generate obligatorio después de migrate
+## 15. Ejercicio anterior: modo único, política única, servidor que sanea
+
+- `modoAnterior` (VINCULADO | MANUAL | SIN_ANTERIOR | null) es la única fuente de verdad. No leer `ejercicioAnteriorId` sin pasar por `idAnteriorDerivable()` (solo devuelve el id en VINCULADO).
+- Lo que entra a estados/anexos desde el anterior pasa por `comparativo-manual/lib/politica.ts`. Nunca mezclar derivado y manual a mano en una página.
+- Lo bloqueado (saldos de inicio del E.E.P.N., inicio del Anexo I, existencia inicial del Anexo II) se **sanea en la action** con las funciones `aplicarArrastre*` del dominio: el cliente puede mandar cualquier cosa, el servidor guarda lo derivado.
+- Toda escritura sobre la columna "Ejercicio anterior" en MANUAL llama a `marcarComparativoModificado()` (anula la autorización y desconfirma estados).
+- Confirmar/avanzar estado pasa por `compuertaAutorizacion()`; devuelve `NEG-030` con el primer bloqueante y cuántos más hay.
+- Importes arrastrados en UI: `CeldaBloqueada` (candado), nunca un input disabled.
+
+```typescript
+// ✅ En una action que guarda un anexo
+const arrastre = aplicarArrastreCostoVentas(datos, anterior, modoEfectivo(ejercicio))
+await upsertCostoVentas(ejercicioId, arrastre.datos ?? datos)
+```
+
+---
+
+## 16. Pruebas de integración contra PostgreSQL
+
+`npm run test:int` usa `vitest.integration.config.mts`: archivos `*.itest.ts`, base `balancert_test` (se crea, migra desde cero y trunca en el globalSetup). `next/cache` y `next/navigation` se mockean con `vi.mock`. Las unitarias (`npm test`) siguen sin base.
+
+---
+
+## 17. Prisma generate obligatorio después de migrate
 
 ```bash
 npx prisma migrate dev --name nombre_migracion

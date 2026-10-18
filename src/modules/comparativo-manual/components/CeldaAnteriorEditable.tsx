@@ -8,7 +8,11 @@ import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
 import { parseImporte } from '@/lib/utils/parseImporte'
 import { actionOk } from '@/modules/errores/types'
 import type { ActionResult } from '@/modules/errores/types'
-import { guardarComparativoAction, eliminarComparativoAction } from '../actions/comparativo.actions'
+import {
+  guardarComparativoAction,
+  guardarLoteComparativoAction,
+  eliminarComparativoAction,
+} from '../actions/comparativo.actions'
 import {
   buildClaveHuerfano,
   type ComparativoManualDTO,
@@ -30,27 +34,25 @@ function aMapa(entradas: ComparativoEntry[]): MapaComparativo {
   return new Map(entradas.map((e) => [e.clave, e]))
 }
 
+// Un solo round trip: todo el borrador va en una transacción del servidor.
 async function guardarLoteComparativo(
   borrador: MapaComparativo,
   ejercicioId: string,
   sociedadId: string,
 ): Promise<ActionResult<MapaComparativo>> {
-  const resultados = await Promise.all(
-    Array.from(borrador.values()).map((e) =>
-      guardarComparativoAction(
-        ejercicioId,
-        sociedadId,
-        e.modulo,
-        e.clave,
-        e.label,
-        e.valor,
-        e.esHuerfano ?? false,
-        e.orden ?? 0,
-      ),
-    ),
+  const resultado = await guardarLoteComparativoAction(
+    ejercicioId,
+    sociedadId,
+    Array.from(borrador.values()).map((e) => ({
+      modulo: e.modulo,
+      clave: e.clave,
+      label: e.label,
+      valor: e.valor,
+      esHuerfano: e.esHuerfano ?? false,
+      orden: e.orden ?? 0,
+    })),
   )
-  const fallo = resultados.find((r) => !r.ok)
-  if (fallo && !fallo.ok) return fallo
+  if (!resultado.ok) return resultado
   return actionOk(borrador)
 }
 

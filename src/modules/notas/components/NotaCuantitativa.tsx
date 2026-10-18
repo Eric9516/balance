@@ -193,17 +193,6 @@ export function NotaCuantitativa({
         </div>
 
         <div className="ml-4 flex flex-shrink-0 items-center gap-2">
-          {/* Fechas — columnas del PDF */}
-          <div className="text-right">
-            <p className="text-xs font-semibold text-slate-500 tabular-nums">
-              {formatFecha(fechaCierre)}
-            </p>
-            {mostrarAnterior && (
-              <p className="text-xs text-slate-400 tabular-nums">
-                {fechaCierreAnterior ? formatFecha(fechaCierreAnterior) : 'Ej. anterior'}
-              </p>
-            )}
-          </div>
           {/* Editar — control único de la app */}
           <BotonEditar
             editando={editando}
@@ -242,6 +231,33 @@ export function NotaCuantitativa({
 
       {/* Tabla de detalles */}
       <table className="w-full">
+        {/* Encabezado de columnas — como en el PDF: ejercicio + fecha de cierre */}
+        <thead>
+          <tr className="border-b border-slate-100">
+            <th className="px-5 py-1.5" />
+            <th className="w-36 px-3 py-1.5 text-right align-bottom">
+              <p className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase">
+                Ejercicio actual
+              </p>
+              <p className="text-xs font-semibold text-slate-500 tabular-nums">
+                {formatFecha(fechaCierre)}
+              </p>
+            </th>
+            {mostrarAnterior && (
+              <th className="w-36 px-3 py-1.5 text-right align-bottom">
+                <p className="text-[10px] font-semibold tracking-wide text-slate-400 uppercase">
+                  Ejercicio anterior
+                </p>
+                {fechaCierreAnterior && (
+                  <p className="text-xs text-slate-400 tabular-nums">
+                    {formatFecha(fechaCierreAnterior)}
+                  </p>
+                )}
+              </th>
+            )}
+            <th className="w-8" />
+          </tr>
+        </thead>
         <tbody>
           {filasData.map((det) => (
             <tr key={det.id} className="group border-b border-slate-50 hover:bg-slate-50/40">

@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import type { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { toCuentaDTO, type CuentaContableDTO, type RubroBaseSimple } from '../domain/types'
@@ -62,20 +63,43 @@ export async function replaceCuentas(
   })
 }
 
-export async function findCuentasByEjercicio(ejercicioId: string): Promise<CuentaContableDTO[]> {
-  const rows = await db.cuentaContable.findMany({
-    where: { ejercicioId },
-    include: { rubroBase: rubroSelect },
-    orderBy: { codigo: 'asc' },
-  })
-  return rows.map(toCuentaDTO)
-}
+/** Memoizado por request: la página y los servicios lo piden varias veces en un render. */
+export const findCuentasByEjercicio = cache(
+  async (ejercicioId: string): Promise<CuentaContableDTO[]> => {
+    const rows = await db.cuentaContable.findMany({
+      where: { ejercicioId },
+      include: { rubroBase: rubroSelect },
+      orderBy: { codigo: 'asc' },
+    })
+    return rows.map(toCuentaDTO)
+  },
+)
 
 export async function countCuentasByEjercicio(ejercicioId: string): Promise<number> {
   return db.cuentaContable.count({ where: { ejercicioId } })
 }
 
-export async function findRubrosBase(): Promise<RubroBaseSimple[]> {
+/** Totales livianos para el stepper: una sola consulta agregada en vez de traer las filas. */
+export async function resumenCuentasByEjercicio(
+  ejercicioId: string,
+): Promise<{ total: number; sinClasificar: number }> {
+  const grupos = await db.cuentaContable.groupBy({
+    by: ['rubroBaseId'],
+    where: { ejercicioId },
+    _count: { _all: true },
+  })
+  let total = 0
+  let sinClasificar = 0
+  for (const g of grupos) {
+    total += g._count._all
+    if (g.rubroBaseId === null) sinClasificar += g._count._all
+  }
+  return { total, sinClasificar }
+}
+
+export const findRubrosBase = cache(_findRubrosBase)
+
+async function _findRubrosBase(): Promise<RubroBaseSimple[]> {
   const rows = await db.rubroBase.findMany({
     where: { activo: true },
     select: {

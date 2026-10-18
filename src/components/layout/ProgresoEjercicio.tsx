@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { AlertTriangle, CheckCircle2, Circle, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { ModoAnteriorEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
 
-type EstadoPaso = 'completado' | 'activo' | 'pendiente' | 'bloqueado'
+type EstadoPaso = 'completado' | 'activo' | 'pendiente' | 'bloqueado' | 'atencion'
 
 interface Paso {
   pasoKey: string
@@ -30,6 +31,7 @@ function PasoItem({
     ),
     pendiente: <Circle className="h-5 w-5 text-slate-300" />,
     bloqueado: <Lock className="h-4 w-4 text-slate-300" />,
+    atencion: <AlertTriangle className="h-4 w-4 text-amber-500" />,
   }
 
   const labelColor: Record<EstadoPaso, string> = {
@@ -37,6 +39,7 @@ function PasoItem({
     activo: 'text-blue-700',
     pendiente: 'text-slate-400',
     bloqueado: 'text-slate-300',
+    atencion: 'text-amber-700',
   }
 
   const inner = (
@@ -48,6 +51,7 @@ function PasoItem({
           paso.estado === 'activo' && 'border-blue-200 bg-blue-50',
           paso.estado === 'pendiente' && 'border-slate-200 bg-white',
           paso.estado === 'bloqueado' && 'border-slate-100 bg-white',
+          paso.estado === 'atencion' && 'border-amber-200 bg-amber-50',
           esActivo && 'ring-2 ring-blue-400 ring-offset-1',
         )}
       >
@@ -100,12 +104,35 @@ interface Props {
   sinClasificar: number
   pasoActivo?: string
   tieneNotas?: boolean
-  tieneEjercicioAnterior?: boolean
   pnConfirmado?: boolean
   estadosConfirmado?: boolean
   anexosAceptados?: number
   anexosCompletos?: boolean
-  requiereComparativoManual?: boolean
+  /** Modo del ejercicio anterior (única fuente de verdad del comparativo). */
+  modoAnterior: ModoAnteriorEfectivo
+  /** En MANUAL: los saldos del anterior ya fueron autorizados. */
+  comparativoAutorizado?: boolean
+  /** En VINCULADO: existe el vínculo al anterior. */
+  tieneVinculo?: boolean
+}
+
+function describirAnterior(
+  modo: ModoAnteriorEfectivo,
+  autorizado: boolean,
+  tieneVinculo: boolean,
+): { descripcion: string; completado: boolean; atencion: boolean } {
+  switch (modo) {
+    case 'VINCULADO':
+      return { descripcion: 'Vinculado', completado: tieneVinculo, atencion: !tieneVinculo }
+    case 'MANUAL':
+      return autorizado
+        ? { descripcion: 'Autorizado', completado: true, atencion: false }
+        : { descripcion: 'Carga manual', completado: false, atencion: false }
+    case 'SIN_ANTERIOR':
+      return { descripcion: 'Primer ejercicio', completado: true, atencion: false }
+    case 'PENDIENTE':
+      return { descripcion: 'Sin definir', completado: false, atencion: true }
+  }
 }
 
 export function ProgresoEjercicio({
@@ -115,12 +142,13 @@ export function ProgresoEjercicio({
   sinClasificar,
   pasoActivo,
   tieneNotas = false,
-  tieneEjercicioAnterior = false,
   pnConfirmado = false,
   estadosConfirmado = false,
   anexosAceptados = 0,
   anexosCompletos = false,
-  requiereComparativoManual = false,
+  modoAnterior,
+  comparativoAutorizado = false,
+  tieneVinculo = false,
 }: Props) {
   const base = `/sociedades/${sociedadId}/ejercicios/${ejercicioId}/cuentas`
   const balanceImportado = totalCuentas > 0
@@ -132,6 +160,16 @@ export function ProgresoEjercicio({
     if (!disponible) return 'bloqueado'
     return pasoKey === pasoActivoResuelto ? 'activo' : 'pendiente'
   }
+
+  const anterior = describirAnterior(modoAnterior, comparativoAutorizado, tieneVinculo)
+  const estadoAnterior: EstadoPaso =
+    pasoActivoResuelto === 'anterior'
+      ? 'activo'
+      : anterior.completado
+        ? 'completado'
+        : anterior.atencion
+          ? 'atencion'
+          : 'pendiente'
 
   const pasos: Paso[] = [
     {
@@ -164,6 +202,13 @@ export function ProgresoEjercicio({
           ? estadoPaso('clasificar', true, true)
           : estadoPaso('clasificar', true),
       href: balanceImportado ? `${base}?paso=clasificar` : undefined,
+    },
+    {
+      pasoKey: 'anterior',
+      label: 'Ej. anterior',
+      descripcion: anterior.descripcion,
+      estado: estadoAnterior,
+      href: `${base}?paso=anterior`,
     },
     {
       pasoKey: 'anexos',
@@ -219,31 +264,17 @@ export function ProgresoEjercicio({
         </div>
       </div>
 
-      {!tieneEjercicioAnterior && !requiereComparativoManual && balanceImportado && (
+      {/* Único aviso transversal: el ejercicio anterior todavía no está definido. */}
+      {modoAnterior === 'PENDIENTE' && pasoActivoResuelto !== 'anterior' && (
         <div className="flex items-center gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5">
           <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-500" />
           <p className="text-xs text-amber-700">
-            <strong>Sin ejercicio anterior vinculado</strong> - los estados, notas y anexos no
-            mostrarán columna comparativa. Vinculá el ejercicio anterior desde{' '}
-            <Link
-              href={`/sociedades/${sociedadId}/ejercicios`}
-              className="underline hover:text-amber-900"
-            >
-              Ejercicios
+            <strong>Falta definir el ejercicio anterior.</strong> Sin esa definición no hay columna
+            comparativa y los estados no se pueden confirmar.{' '}
+            <Link href={`${base}?paso=anterior`} className="underline hover:text-amber-900">
+              Resolverlo ahora
             </Link>
             .
-          </p>
-        </div>
-      )}
-
-      {requiereComparativoManual && balanceImportado && (
-        <div className="flex items-center gap-2.5 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5">
-          <AlertTriangle className="h-4 w-4 flex-shrink-0 text-blue-500" />
-          <p className="text-xs text-blue-700">
-            <strong>Sin balance anterior importado</strong> - completá los importes del ejercicio
-            anterior directamente en la columna <em>&quot;Ejercicio Anterior&quot;</em> de cada
-            anexo, nota y estado. Podés agregar filas para clasificaciones que el ejercicio actual
-            no tiene.
           </p>
         </div>
       )}

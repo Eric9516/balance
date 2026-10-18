@@ -35,7 +35,9 @@ export type EvolucionPNData = {
   resultadoEjercicio: number
   totalActual: number
   totalAnterior: number
-  autocompletadoDesdeAnterior: boolean
+  /** Qué viene bloqueado desde el ejercicio anterior (modo VINCULADO con fuente). */
+  bloqueo: { saldoInicio: boolean; totalAnterior: boolean }
+  advertencias: string[]
 }
 
 export type EvolucionPNInput = Omit<EvolucionPNMovimientoDTO, 'id' | 'ejercicioId'>
