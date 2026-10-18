@@ -21,8 +21,8 @@ export function AvisosArrastre({
       {bloqueado && (
         <p className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-600">
           <Lock className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" />
-          Los importes con candado vienen de {origen ?? 'el ejercicio anterior vinculado'} y no se
-          editan acá.
+          Los importes con candado vienen{' '}
+          {origen ? `de ${origen}` : 'del ejercicio anterior vinculado'} y no se editan acá.
         </p>
       )}
       {advertencias.map((a) => (
