@@ -15,12 +15,12 @@ const EJERCICIOS_INFO: StepInfo = {
     'Lista todos los períodos contables de esta sociedad. Desde acá se crea cada ejercicio, se trabaja sobre sus cuentas, anexos y estados, y se vincula con el anterior para generar balances con columna comparativa.',
   sources: [
     'Datos del ejercicio: fechas de inicio y cierre, número de ejercicio, auditor asignado.',
-    'Vínculo al ejercicio anterior (opcional): habilita la columna comparativa reexpresada por inflación en todos los estados y anexos.',
+    'Ejercicio anterior (requisito comparativo RT 54): vinculado a un ejercicio cargado, saldos cargados manualmente o primer ejercicio de la sociedad.',
   ],
   formulas: ['No aplica — esta pantalla es de gestión, no realiza cálculos contables.'],
   notes: [
-    'Vinculá cada ejercicio al anterior desde "Editar" para que los estados muestren columna comparativa.',
-    'Una vez vinculados, los ejercicios aparecen conectados visualmente en esta lista.',
+    'Cada fila indica cómo se resuelve su ejercicio anterior. Un chip ámbar significa que falta definirlo desde "Editar".',
+    'Los ejercicios vinculados aparecen conectados visualmente en esta lista.',
   ],
 }
 

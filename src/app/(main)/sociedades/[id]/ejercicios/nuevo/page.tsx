@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { EjercicioForm } from '@/modules/ejercicios/components/EjercicioForm'
-import { findEjerciciosBySociedad } from '@/modules/ejercicios/repository/ejercicio.repository'
+import { findResumenesBySociedad } from '@/modules/ejercicios/repository/ejercicio.repository'
 import { findSociedadById } from '@/modules/sociedades/repository/sociedad.repository'
 import { findAuditoresByEstudio } from '@/modules/auditores/repository/auditor.repository'
 import { getCurrentEstudioId } from '@/lib/estudio-context'
@@ -20,7 +20,7 @@ export default async function NuevoEjercicioPage({ params }: Props) {
   const estudioId = await getCurrentEstudioId()
   const [auditores, ejercicios] = await Promise.all([
     findAuditoresByEstudio(estudioId),
-    findEjerciciosBySociedad(id),
+    findResumenesBySociedad(id),
   ])
 
   const auditoresActivos = auditores.filter((a) => a.activo)
@@ -33,6 +33,7 @@ export default async function NuevoEjercicioPage({ params }: Props) {
           sociedadId={id}
           auditores={auditoresActivos}
           ejerciciosAnteriores={ejercicios}
+          categoriaEnteDefault={sociedad.categoriaEnte}
         />
       </div>
     </div>

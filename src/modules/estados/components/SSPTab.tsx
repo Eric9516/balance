@@ -1,7 +1,8 @@
 import React from 'react'
-import { ChevronDown, ChevronRight, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, AlertTriangle, CheckCircle2, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
+import { formatFecha } from '@/lib/utils/dates'
 import type { RubroFila } from '../domain/types'
 import { calcularCuadreSP } from '../lib/cuadre'
 import { esRubroHuerfano } from '../lib/rubroHuerfano'
@@ -34,6 +35,57 @@ const SSP_STRUCTURE = [
 ] as const
 
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
+
+const TH_IMPORTE =
+  'w-44 px-4 py-3 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase'
+const TH_FECHA = 'text-[10px] font-normal tracking-normal text-slate-400'
+
+/**
+ * Encabezados de las columnas de importes: "Ejercicio actual" / "Ejercicio anterior",
+ * cada uno con su fecha de cierre debajo. Compartido por SSP y EERR para no duplicar
+ * la regla. Si la columna anterior viene del ejercicio vinculado (no editable), muestra
+ * un candado con el origen. Va dentro del <tr> del <thead>, después de "Concepto".
+ */
+export function EncabezadosEjercicio({
+  fechaCierre,
+  fechaCierreAnterior,
+  mostrarAnterior,
+  anteriorBloqueado,
+  anteriorDenominacion,
+}: {
+  fechaCierre: Date
+  fechaCierreAnterior: Date | null
+  mostrarAnterior: boolean
+  anteriorBloqueado: boolean
+  anteriorDenominacion: string | null
+}) {
+  const tituloCandado = anteriorDenominacion
+    ? `Tomado de ${anteriorDenominacion}`
+    : 'Tomado del ejercicio anterior vinculado'
+  return (
+    <>
+      <th className={TH_IMPORTE}>
+        <div>Ejercicio actual</div>
+        <div className={TH_FECHA}>{formatFecha(fechaCierre)}</div>
+      </th>
+      {mostrarAnterior && (
+        <th className={TH_IMPORTE}>
+          <div className="flex items-center justify-end gap-1">
+            {anteriorBloqueado && (
+              <span className="inline-flex" title={tituloCandado} aria-label={tituloCandado}>
+                <Lock className="h-3 w-3 text-slate-400" />
+              </span>
+            )}
+            <span>Ejercicio anterior</span>
+          </div>
+          {fechaCierreAnterior && (
+            <div className={TH_FECHA}>{formatFecha(fechaCierreAnterior)}</div>
+          )}
+        </th>
+      )}
+    </>
+  )
+}
 
 function TotalRow({
   label,
@@ -253,6 +305,10 @@ export function SSPTab({
   comparativo,
   ejercicioId,
   sociedadId,
+  fechaCierre,
+  fechaCierreAnterior,
+  anteriorBloqueado,
+  anteriorDenominacion,
 }: {
   sspRubros: RubroFila[]
   patrimonioNetoFinal: number | null
@@ -264,6 +320,11 @@ export function SSPTab({
   comparativo: ReturnType<typeof useComparativoLote>
   ejercicioId: string
   sociedadId: string
+  fechaCierre: Date
+  fechaCierreAnterior: Date | null
+  /** Columna anterior tomada del ejercicio vinculado (candado en el encabezado). */
+  anteriorBloqueado: boolean
+  anteriorDenominacion: string | null
 }) {
   const getSeccionRubros = (seccionKey: string) =>
     sspRubros.filter((r) => r.seccionSSP === seccionKey)
@@ -330,14 +391,13 @@ export function SSPTab({
               <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                 Concepto
               </th>
-              <th className="w-44 px-4 py-3 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
-                Importe
-              </th>
-              {mostrarAnterior && (
-                <th className="w-44 px-4 py-3 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
-                  Ej. Anterior
-                </th>
-              )}
+              <EncabezadosEjercicio
+                fechaCierre={fechaCierre}
+                fechaCierreAnterior={fechaCierreAnterior}
+                mostrarAnterior={mostrarAnterior}
+                anteriorBloqueado={anteriorBloqueado}
+                anteriorDenominacion={anteriorDenominacion}
+              />
             </tr>
           </thead>
           <tbody>
@@ -484,6 +544,7 @@ export function SSPTab({
                       onToggle={() => onToggle(r.id)}
                       mostrarAnterior={mostrarAnterior}
                       editarAnterior={editarAnterior}
+                      comparativo={comparativo}
                       ejercicioId={ejercicioId}
                       sociedadId={sociedadId}
                     />

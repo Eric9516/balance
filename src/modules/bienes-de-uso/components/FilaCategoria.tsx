@@ -3,26 +3,39 @@ import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
 import { calcularCierre, type BienDeUsoDTO } from '../domain/types'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
+import { CeldaBloqueada } from '@/components/shared/CeldaBloqueada'
 
-// ─── Celda numérica de la matriz (densa). `calc` = solo lectura. ───────────────
+const TD_CLS = 'w-36 px-2 py-1'
+const TD_LECTURA_CLS = 'w-36 bg-slate-50 px-2 py-1'
+
+// ─── Celda numérica de la matriz (densa) ──────────────────────────────────────
+// `calc` = calculada (solo lectura). `bloqueada` = arrastrada del ejercicio anterior
+// vinculado: candado y nunca editable, aunque la tabla esté en edición.
 
 function CeldaBDU({
   value,
   editando = false,
   onSave,
   calc = false,
+  bloqueada = false,
   negativo = false,
-  tdClassName,
 }: {
   value: number
   editando?: boolean
   onSave?: (v: number) => void
   calc?: boolean
+  bloqueada?: boolean
   negativo?: boolean
-  tdClassName?: string
 }) {
+  if (bloqueada) {
+    return (
+      <td className={TD_LECTURA_CLS}>
+        <CeldaBloqueada value={value} negativo={negativo} dense />
+      </td>
+    )
+  }
   return (
-    <td className={cn('w-36 px-2 py-1', calc && 'bg-slate-50', tdClassName)}>
+    <td className={cn(TD_CLS, calc && 'bg-slate-50')}>
       <CeldaNumero
         value={value}
         editando={editando}
@@ -35,11 +48,63 @@ function CeldaBDU({
   )
 }
 
+// ─── Celda "Neto residual ejercicio anterior" ─────────────────────────────────
+// - editarAnterior (modo MANUAL): se carga a mano en el borrador.
+// - bloqueada (modo VINCULADO con fuente): arrastrada, con candado.
+// - sin fuente en el anterior: '—' con explicación.
+
+function CeldaNetoAnterior({
+  bien,
+  netoAnterior,
+  bloqueada,
+  editarAnterior,
+  editando,
+  onGuardar,
+}: {
+  bien: BienDeUsoDTO
+  netoAnterior: number | null
+  bloqueada: boolean
+  editarAnterior: boolean
+  editando: boolean
+  onGuardar: (v: number) => void
+}) {
+  if (editarAnterior) {
+    return (
+      <td className={TD_CLS}>
+        <CeldaNumero
+          value={bien.netoResidualAnteriorManual ?? 0}
+          editando={editando}
+          onSave={onGuardar}
+          dense
+        />
+      </td>
+    )
+  }
+  if (bloqueada) {
+    return (
+      <td className={TD_LECTURA_CLS}>
+        <CeldaBloqueada value={netoAnterior ?? 0} dense />
+      </td>
+    )
+  }
+  return (
+    <td
+      className={cn(TD_LECTURA_CLS, 'text-right font-mono text-xs text-slate-300 tabular-nums')}
+      title="Sin dato en el ejercicio anterior"
+    >
+      —
+    </td>
+  )
+}
+
 // ─── Fila de categoría ────────────────────────────────────────────────────────
 
 export function FilaCategoria({
   bien,
   netoAnterior,
+  bloqueada,
+  mostrarAnterior,
+  editarAnterior,
   editando,
   onGuardarCampo,
   onGuardarCategoria,
@@ -47,7 +112,14 @@ export function FilaCategoria({
   onDelete,
 }: {
   bien: BienDeUsoDTO
+  /** Neto residual al cierre del ejercicio anterior (derivado), o null si no hay dato. */
   netoAnterior: number | null
+  /** Las columnas de inicio vienen del ejercicio anterior vinculado (candado). */
+  bloqueada: boolean
+  /** Si se muestra la columna "Neto residual ejercicio anterior". */
+  mostrarAnterior: boolean
+  /** Modo MANUAL: el neto residual anterior se carga a mano en el borrador. */
+  editarAnterior: boolean
   editando: boolean
   onGuardarCampo: (campo: keyof BienDeUsoDTO, valor: number) => void
   onGuardarCategoria: (valor: string) => void
@@ -83,6 +155,7 @@ export function FilaCategoria({
       <CeldaBDU
         value={bien.costoInicioReexpresado}
         editando={editando}
+        bloqueada={bloqueada}
         onSave={(v) => onGuardarCampo('costoInicioReexpresado', v)}
       />
       <CeldaBDU
@@ -103,6 +176,7 @@ export function FilaCategoria({
       <CeldaBDU
         value={bien.depAcumInicio}
         editando={editando}
+        bloqueada={bloqueada}
         onSave={(v) => onGuardarCampo('depAcumInicio', v)}
       />
       <CeldaBDU
@@ -123,23 +197,17 @@ export function FilaCategoria({
       />
       <CeldaBDU value={depAcumFin} calc />
 
-      {/* NETO RESIDUAL */}
+      {/* NETO RESIDUAL — Ejercicio actual | Ejercicio anterior */}
       <CeldaBDU value={netoResidual} calc />
-      {netoAnterior !== null ? (
-        // Viene del ejercicio anterior vinculado → solo lectura
-        <td className="w-36 bg-slate-50 px-2 py-1.5 text-right font-mono text-xs text-slate-500 tabular-nums">
-          {formatCurrency(netoAnterior, { decimales: 2 })}
-        </td>
-      ) : (
-        // Carga manual del neto anterior (mismo control que el resto)
-        <td className="w-36 px-2 py-1">
-          <CeldaNumero
-            value={bien.netoResidualAnteriorManual ?? 0}
-            editando={editando}
-            onSave={(v) => onGuardarNetoAnterior(v)}
-            dense
-          />
-        </td>
+      {mostrarAnterior && (
+        <CeldaNetoAnterior
+          bien={bien}
+          netoAnterior={netoAnterior}
+          bloqueada={bloqueada}
+          editarAnterior={editarAnterior}
+          editando={editando}
+          onGuardar={onGuardarNetoAnterior}
+        />
       )}
 
       {/* Acciones */}
@@ -161,11 +229,13 @@ export function FilaCategoria({
 export function FilaTotal({
   bienes,
   netoAnteriorMap,
-  hayEjercicioAnterior,
+  mostrarAnterior,
+  editarAnterior,
 }: {
   bienes: BienDeUsoDTO[]
   netoAnteriorMap: Map<string, number>
-  hayEjercicioAnterior: boolean
+  mostrarAnterior: boolean
+  editarAnterior: boolean
 }) {
   const sum = (campo: keyof BienDeUsoDTO) =>
     bienes.reduce((acc, b) => acc + (b[campo] as number), 0)
@@ -173,9 +243,14 @@ export function FilaTotal({
   const totCostoFin = bienes.reduce((acc, b) => acc + calcularCierre(b).costoFinReexpresado, 0)
   const totDepFin = bienes.reduce((acc, b) => acc + calcularCierre(b).depAcumFin, 0)
   const totNetoActual = totCostoFin - totDepFin
-  const totNetoAnterior = hayEjercicioAnterior
-    ? Array.from(netoAnteriorMap.values()).reduce((a, b) => a + b, 0)
-    : bienes.reduce((a, b) => a + (b.netoResidualAnteriorManual ?? 0), 0)
+
+  // Modo MANUAL: suma lo cargado en el borrador. Modo VINCULADO: suma lo derivado del anterior.
+  const hayNetoAnterior = editarAnterior
+    ? bienes.some((b) => b.netoResidualAnteriorManual != null)
+    : netoAnteriorMap.size > 0
+  const totNetoAnterior = editarAnterior
+    ? bienes.reduce((acc, b) => acc + (b.netoResidualAnteriorManual ?? 0), 0)
+    : Array.from(netoAnteriorMap.values()).reduce((acc, v) => acc + v, 0)
 
   const cell = (v: number) => (
     <td className="w-36 px-2 py-2 text-right font-mono text-xs font-bold text-slate-900 tabular-nums">
@@ -199,11 +274,11 @@ export function FilaTotal({
       {cell(sum('depEjercicio'))}
       {cell(totDepFin)}
       {cell(totNetoActual)}
-      <td className="w-36 px-2 py-2 text-right font-mono text-xs font-bold text-slate-700 tabular-nums">
-        {netoAnteriorMap.size > 0 || bienes.some((b) => b.netoResidualAnteriorManual != null)
-          ? formatCurrency(totNetoAnterior, { decimales: 2 })
-          : '—'}
-      </td>
+      {mostrarAnterior && (
+        <td className="w-36 px-2 py-2 text-right font-mono text-xs font-bold text-slate-700 tabular-nums">
+          {hayNetoAnterior ? formatCurrency(totNetoAnterior, { decimales: 2 }) : '—'}
+        </td>
+      )}
       <td className="w-20" />
     </tr>
   )

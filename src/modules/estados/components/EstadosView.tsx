@@ -23,8 +23,12 @@ interface Props {
   ejercicioId: string
   sociedadId: string
   estadosConfirmado?: boolean
-  // Edición manual de la columna anterior (sin balance anterior importado)
+  /** Edición manual de la columna "Ejercicio anterior" (modo MANUAL). */
   editarAnterior?: boolean
+  fechaCierre: Date
+  fechaCierreAnterior: Date | null
+  /** Denominación del ejercicio anterior vinculado (origen de los valores con candado). */
+  anteriorDenominacion: string | null
 }
 
 export function EstadosView({
@@ -33,6 +37,9 @@ export function EstadosView({
   sociedadId,
   estadosConfirmado: initialConfirmado = false,
   editarAnterior = false,
+  fechaCierre,
+  fechaCierreAnterior,
+  anteriorDenominacion,
 }: Props) {
   const [tab, setTab] = useState<'ssp' | 'eerr'>('ssp')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -77,6 +84,8 @@ export function EstadosView({
   ]
   const comparativo = useComparativoLote(entradasAnterior, ejercicioId, sociedadId)
   const editandoAnterior = editarAnterior && comparativo.editando
+  // Columna anterior visible pero no editable = valores tomados del ejercicio vinculado.
+  const anteriorBloqueado = data.hayEjercicioAnterior && !editarAnterior
 
   function toggleExpand(id: string) {
     setExpanded((s) => {
@@ -192,6 +201,10 @@ export function EstadosView({
           comparativo={comparativo}
           ejercicioId={ejercicioId}
           sociedadId={sociedadId}
+          fechaCierre={fechaCierre}
+          fechaCierreAnterior={fechaCierreAnterior}
+          anteriorBloqueado={anteriorBloqueado}
+          anteriorDenominacion={anteriorDenominacion}
         />
       )}
       {tab === 'eerr' && (
@@ -202,6 +215,10 @@ export function EstadosView({
           editarAnterior={editandoAnterior}
           ejercicioId={ejercicioId}
           sociedadId={sociedadId}
+          fechaCierre={fechaCierre}
+          fechaCierreAnterior={fechaCierreAnterior}
+          anteriorBloqueado={anteriorBloqueado}
+          anteriorDenominacion={anteriorDenominacion}
         />
       )}
     </div>

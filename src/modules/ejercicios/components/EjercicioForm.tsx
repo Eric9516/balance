@@ -1,22 +1,37 @@
 'use client'
 
+import { useEffect, useState, useTransition } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
-import { useTransition, useState } from 'react'
-import { Info, AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Info, Link2, PenLine, Sparkles, type LucideIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { toastError, toastSuccess } from '@/modules/errores/components/Toast'
+import type { AppError } from '@/modules/errores/types'
 import { CreateEjercicioSchema, type CreateEjercicioInput } from '../schemas/ejercicio.schemas'
 import { crearEjercicio, actualizarEjercicio } from '../actions/ejercicio.actions'
-import { limpiarComparativosAction } from '@/modules/comparativo-manual/actions/comparativo.actions'
-import { CLASIFICACION_ENTIDAD_OPTIONS, type EjercicioContableDTO } from '../domain/types'
+import {
+  CATEGORIA_ENTE_DESCRIPCIONES,
+  CATEGORIA_ENTE_LABELS,
+  CATEGORIA_ENTE_OPTIONS,
+  type CategoriaEnteRT54,
+  type EjercicioContableDTO,
+  type ModoEjercicioAnterior,
+} from '../domain/types'
+import {
+  candidatoAutomatico,
+  efectosCambioModo,
+  elegiblesComoAnterior,
+  esConsecutivo,
+  type EjercicioResumen,
+} from '../domain/ejercicioAnterior'
 import type { AuditorDTO } from '@/modules/auditores/domain/types'
-import { toDateInputValue } from '@/lib/utils/dates'
+import { formatFecha, toDateInputValue } from '@/lib/utils/dates'
 
 function buildAutoDenomin(fechaCierre: string): string {
   if (!fechaCierre) return ''
@@ -28,13 +43,113 @@ function buildAutoDenomin(fechaCierre: string): string {
   return `Ejercicio al ${day}/${month}/${year}`
 }
 
+/** `<input type="date">` (yyyy-mm-dd) → Date a medianoche UTC, como se guardan las fechas contables. */
+function fechaInputToUTC(valor: string | undefined): Date | null {
+  if (!valor) return null
+  const d = new Date(valor + 'T00:00:00.000Z')
+  return isNaN(d.getTime()) ? null : d
+}
+
+/** Campos del formulario sobre los que el servidor puede devolver un error con `campo`. */
+const CAMPOS_FORM: Record<keyof CreateEjercicioInput, true> = {
+  fechaInicio: true,
+  fechaCierre: true,
+  denominacion: true,
+  numeroEjercicio: true,
+  auditorId: true,
+  modoAnterior: true,
+  ejercicioAnteriorId: true,
+  categoriaEnte: true,
+  fechaInformeAuditor: true,
+  indiceInflacionAnterior: true,
+  indiceInflacionActual: true,
+}
+
+function campoDelForm(campo: string | undefined): keyof CreateEjercicioInput | null {
+  return campo && Object.hasOwn(CAMPOS_FORM, campo) ? (campo as keyof CreateEjercicioInput) : null
+}
+
+// ─── Tarjeta seleccionable (modo del ejercicio anterior) ──────────────────────
+
+function TarjetaModo({
+  valor,
+  checked,
+  disabled = false,
+  icon: Icon,
+  label,
+  description,
+  onSelect,
+  children,
+}: {
+  valor: ModoEjercicioAnterior
+  checked: boolean
+  disabled?: boolean
+  icon: LucideIcon
+  label: string
+  description: string
+  onSelect: () => void
+  children?: React.ReactNode
+}) {
+  return (
+    <label
+      className={cn(
+        'block rounded-xl border p-4 transition-all has-focus-visible:ring-2 has-focus-visible:ring-blue-200',
+        disabled
+          ? 'cursor-not-allowed border-slate-200 bg-slate-50 opacity-60'
+          : checked
+            ? 'cursor-pointer border-blue-500 bg-blue-50'
+            : 'cursor-pointer border-slate-200 hover:border-slate-300 hover:bg-slate-50',
+      )}
+    >
+      {/* El radio va primero para que sea el control asociado al label (no el select anidado). */}
+      <input
+        type="radio"
+        name="modoAnterior"
+        value={valor}
+        checked={checked}
+        disabled={disabled}
+        onChange={onSelect}
+        className="sr-only"
+      />
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            'mt-0.5 h-4 w-4 flex-shrink-0 rounded-full border-2 transition-colors',
+            checked ? 'border-blue-600 bg-blue-600' : 'border-slate-300',
+          )}
+        >
+          {checked && <div className="h-full w-full scale-[0.4] rounded-full bg-white" />}
+        </div>
+        <Icon
+          className={cn(
+            'mt-0.5 h-4 w-4 flex-shrink-0',
+            checked ? 'text-blue-600' : 'text-slate-400',
+          )}
+        />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-slate-800">{label}</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{description}</p>
+          {children && <div className="mt-3">{children}</div>}
+        </div>
+      </div>
+    </label>
+  )
+}
+
+// ─── Formulario ───────────────────────────────────────────────────────────────
+
 interface EjercicioFormProps {
   sociedadId: string
   auditores: AuditorDTO[]
-  ejerciciosAnteriores: EjercicioContableDTO[]
+  /** Resúmenes de todos los ejercicios de la sociedad (el propio se excluye acá). */
+  ejerciciosAnteriores: EjercicioResumen[]
   defaultValues?: EjercicioContableDTO
-  sucedidoPor?: EjercicioContableDTO | null
+  /** Ejercicio que tiene a este como anterior (sucesor en la cadena). */
+  sucedidoPor?: Pick<EjercicioResumen, 'denominacion'> | null
+  /** Al editar: ya hay importes manuales del ejercicio anterior cargados. */
   tieneComparativos?: boolean
+  /** Al crear: categoría del ente tomada de la sociedad. */
+  categoriaEnteDefault?: CategoriaEnteRT54 | null
 }
 
 export function EjercicioForm({
@@ -44,11 +159,15 @@ export function EjercicioForm({
   defaultValues,
   sucedidoPor,
   tieneComparativos = false,
+  categoriaEnteDefault = null,
 }: EjercicioFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [pendingValues, setPendingValues] = useState<CreateEjercicioInput | null>(null)
+  // Al crear, el modo sigue al candidato automático hasta que el usuario elige a mano.
+  const [modoElegido, setModoElegido] = useState(false)
   const isEdit = Boolean(defaultValues?.id)
+  const ejercicioId = defaultValues?.id ?? null
 
   const auditorDefault = auditores.find((a) => a.esDefault)
 
@@ -57,6 +176,7 @@ export function EjercicioForm({
     handleSubmit,
     control,
     setValue,
+    setError,
     formState: { errors },
   } = useForm<CreateEjercicioInput>({
     resolver: zodResolver(CreateEjercicioSchema),
@@ -68,9 +188,10 @@ export function EjercicioForm({
           numeroEjercicio:
             defaultValues.numeroEjercicio != null ? String(defaultValues.numeroEjercicio) : '',
           auditorId: defaultValues.auditorId ?? '',
+          modoAnterior: defaultValues.modoAnterior ?? undefined,
           ejercicioAnteriorId: defaultValues.ejercicioAnteriorId ?? '',
+          categoriaEnte: defaultValues.categoriaEnte ?? undefined,
           fechaInformeAuditor: toDateInputValue(defaultValues.fechaInformeAuditor),
-          clasificacionEntidad: defaultValues.clasificacionEntidad ?? '',
           indiceInflacionAnterior:
             defaultValues.indiceInflacionAnterior != null
               ? String(defaultValues.indiceInflacionAnterior)
@@ -79,25 +200,25 @@ export function EjercicioForm({
             defaultValues.indiceInflacionActual != null
               ? String(defaultValues.indiceInflacionActual)
               : '',
-          balanceAnteriorDisponible: defaultValues.balanceAnteriorDisponible,
-          nivelComparativoSSP: defaultValues.nivelComparativoSSP ?? undefined,
         }
       : {
           auditorId: auditorDefault?.id ?? '',
-          clasificacionEntidad: '',
+          // Sin fecha de inicio todavía no hay candidato: arranca en MANUAL y, si al
+          // cargar la fecha aparece un candidato, pasa a VINCULADO (ver efecto más abajo).
+          modoAnterior: 'MANUAL',
           ejercicioAnteriorId: '',
-          balanceAnteriorDisponible: true,
-          nivelComparativoSSP: 'SECCION' as const,
+          categoriaEnte: categoriaEnteDefault ?? undefined,
         },
   })
 
+  const fechaInicio = useWatch({ control, name: 'fechaInicio' })
   const fechaCierre = useWatch({ control, name: 'fechaCierre' })
   const denominacion = useWatch({ control, name: 'denominacion' })
   const indAnterior = useWatch({ control, name: 'indiceInflacionAnterior' })
   const indActual = useWatch({ control, name: 'indiceInflacionActual' })
-  const ejercicioAnteriorId = useWatch({ control, name: 'ejercicioAnteriorId' })
-  const balanceDisponible = useWatch({ control, name: 'balanceAnteriorDisponible' })
-  const nivelSSP = useWatch({ control, name: 'nivelComparativoSSP' }) ?? 'SECCION'
+  const modoAnterior = useWatch({ control, name: 'modoAnterior' })
+  const ejercicioAnteriorId = useWatch({ control, name: 'ejercicioAnteriorId' }) ?? ''
+  const categoriaEnte = useWatch({ control, name: 'categoriaEnte' })
 
   const autoDenominacion = buildAutoDenomin(fechaCierre ?? '')
   const showDenomPreview = !denominacion && autoDenominacion
@@ -109,35 +230,110 @@ export function EjercicioForm({
     return (act / ant).toFixed(4)
   })()
 
-  // Si al editar cambia el modo de balance y hay comparativos cargados, pide confirmación
-  const modoBalanceCambio =
-    isEdit &&
-    tieneComparativos &&
-    defaultValues?.balanceAnteriorDisponible !== undefined &&
-    balanceDisponible !== defaultValues.balanceAnteriorDisponible
+  // ── Ejercicio anterior: elegibles y candidato (dominio puro) ────────────────
+  // Cálculo liviano por render (pocos ejercicios por sociedad). El efecto de abajo
+  // solo depende de primitivos (ids y booleanos), no de la identidad del array.
+  const fechaInicioUTC = fechaInputToUTC(fechaInicio)
+  const elegibles = elegiblesComoAnterior(ejerciciosAnteriores, {
+    id: ejercicioId,
+    fechaInicio: fechaInicioUTC,
+  })
+  const candidato = candidatoAutomatico(elegibles, fechaInicioUTC)
+  const candidatoId = candidato?.id ?? null
+  const sinElegibles = elegibles.length === 0
+  const anteriorSeleccionado = elegibles.find((e) => e.id === ejercicioAnteriorId) ?? null
+  const seleccionElegible = !ejercicioAnteriorId || anteriorSeleccionado != null
+  const esCandidato = candidatoId != null && ejercicioAnteriorId === candidatoId
+  const noConsecutivo =
+    anteriorSeleccionado != null &&
+    fechaInicioUTC != null &&
+    !esConsecutivo(anteriorSeleccionado.fechaCierre, fechaInicioUTC)
+
+  useEffect(() => {
+    // 1. El vínculo dejó de ser elegible (cambió la fecha de inicio): se limpia.
+    if (!seleccionElegible) {
+      setValue('ejercicioAnteriorId', '', { shouldDirty: true })
+      return
+    }
+    // 2. Alta: hasta que el usuario elija, el modo sigue al candidato automático.
+    if (!isEdit && !modoElegido) {
+      if (candidatoId) {
+        if (modoAnterior !== 'VINCULADO') {
+          setValue('modoAnterior', 'VINCULADO', { shouldDirty: true })
+        }
+        if (ejercicioAnteriorId !== candidatoId) {
+          setValue('ejercicioAnteriorId', candidatoId, { shouldDirty: true })
+        }
+      } else if (modoAnterior === 'VINCULADO') {
+        setValue('modoAnterior', 'MANUAL', { shouldDirty: true })
+        setValue('ejercicioAnteriorId', '', { shouldDirty: true })
+      }
+      return
+    }
+    // 3. Vincular sin elección: se preselecciona el candidato.
+    if (modoAnterior === 'VINCULADO' && !ejercicioAnteriorId && candidatoId) {
+      setValue('ejercicioAnteriorId', candidatoId, { shouldDirty: true })
+    }
+  }, [
+    isEdit,
+    modoElegido,
+    modoAnterior,
+    ejercicioAnteriorId,
+    candidatoId,
+    seleccionElegible,
+    setValue,
+  ])
+
+  function elegirModo(modo: ModoEjercicioAnterior) {
+    setModoElegido(true)
+    setValue('modoAnterior', modo, {
+      shouldDirty: true,
+      shouldValidate: Boolean(errors.modoAnterior),
+    })
+    if (modo !== 'VINCULADO') {
+      setValue('ejercicioAnteriorId', '', { shouldDirty: true })
+    }
+  }
+
+  // ── Confirmación al editar: cambiar modo/vínculo borra los importes manuales ─
+  const efectos = efectosCambioModo(
+    {
+      modoAnterior: defaultValues?.modoAnterior ?? null,
+      ejercicioAnteriorId: defaultValues?.ejercicioAnteriorId ?? null,
+    },
+    {
+      modoAnterior: modoAnterior ?? null,
+      ejercicioAnteriorId: modoAnterior === 'VINCULADO' ? ejercicioAnteriorId || null : null,
+    },
+  )
+  const pedirConfirmacion = isEdit && tieneComparativos && efectos.anularAutorizacion
 
   function onSubmit(values: CreateEjercicioInput) {
-    if (modoBalanceCambio) {
+    if (pedirConfirmacion) {
       setPendingValues(values)
       return
     }
     guardar(values)
   }
 
+  function mostrarErrorServidor(error: AppError) {
+    const campo = campoDelForm(error.campo)
+    if (campo) {
+      setError(campo, { type: 'server', message: error.detalle ?? error.mensaje })
+    }
+    toastError(error)
+  }
+
   function guardar(values: CreateEjercicioInput) {
     startTransition(async () => {
-      // Si cambió el modo, limpiar comparativos existentes primero
-      if (isEdit && defaultValues?.id && tieneComparativos && modoBalanceCambio) {
-        await limpiarComparativosAction(defaultValues.id, sociedadId)
-      }
-
+      // El borrado de comparativos y la anulación de la autorización los aplica el servidor.
       const result =
-        isEdit && defaultValues?.id
-          ? await actualizarEjercicio(defaultValues.id, sociedadId, values)
+        isEdit && ejercicioId
+          ? await actualizarEjercicio(ejercicioId, sociedadId, values)
           : await crearEjercicio(sociedadId, values)
 
       if (!result.ok) {
-        toastError(result.error)
+        mostrarErrorServidor(result.error)
         return
       }
 
@@ -146,14 +342,9 @@ export function EjercicioForm({
     })
   }
 
-  const tieneAnteriorSeleccionado = Boolean(ejercicioAnteriorId && ejercicioAnteriorId !== '')
-  // La sección de comparativos siempre aparece — tanto si hay anterior vinculado
-  // como si no (primer ejercicio que se carga sin balance anterior disponible)
-  const mostrarSeccionComparativos = true
-
   return (
     <>
-      {/* Modal de confirmación de borrado de comparativos */}
+      {/* Modal de confirmación: cambiar modo/vínculo borra los importes manuales */}
       {pendingValues && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setPendingValues(null)} />
@@ -162,11 +353,12 @@ export function EjercicioForm({
               <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500" />
               <div>
                 <h3 className="text-sm font-semibold text-slate-900">
-                  Cambiar configuración de comparativos
+                  Cambiar cómo se resuelve el ejercicio anterior
                 </h3>
                 <p className="mt-1 text-sm text-slate-600">
-                  Al cambiar esta opción se van a borrar todos los comparativos manuales que ya
-                  ingresaste. Esta acción no se puede deshacer.
+                  Al cambiar cómo se resuelve el ejercicio anterior se borran los importes manuales
+                  del ejercicio anterior y se anula su autorización. Los estados y el E.E.P.N.
+                  vuelven a estado sin confirmar.
                 </p>
               </div>
             </div>
@@ -182,7 +374,7 @@ export function EjercicioForm({
                 }}
                 disabled={isPending}
               >
-                Sí, cambiar y borrar datos
+                Sí, cambiar y guardar
               </Button>
             </div>
           </div>
@@ -200,14 +392,14 @@ export function EjercicioForm({
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-6">
-            {/* Banner: este ejercicio es comparativo de otro */}
+            {/* Banner: este ejercicio es el anterior de otro */}
             {sucedidoPor && (
               <div className="flex items-start gap-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
                 <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-500" />
                 <p className="text-sm text-blue-700">
-                  <strong>{sucedidoPor.denominacion}</strong> usa este ejercicio como comparativo.
-                  Modificar las fechas o los índices de inflación puede afectar los estados y anexos
-                  de ese ejercicio.
+                  <strong>{sucedidoPor.denominacion}</strong> usa este ejercicio como ejercicio
+                  anterior. Modificar las fechas o los índices de inflación puede afectar los
+                  estados y anexos de ese ejercicio.
                 </p>
               </div>
             )}
@@ -289,10 +481,10 @@ export function EjercicioForm({
               </div>
             </div>
 
-            {/* Auditor y ejercicio anterior */}
+            {/* Auditor firmante */}
             <div className="space-y-4">
               <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                Auditor y comparativo
+                Auditor firmante
               </p>
 
               <div className="space-y-1.5">
@@ -310,108 +502,95 @@ export function EjercicioForm({
                   <p className="text-xs text-red-600">{errors.auditorId.message}</p>
                 )}
               </div>
+            </div>
 
-              {ejerciciosAnteriores.length > 0 && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="ejercicioAnteriorId">
-                    Ejercicio anterior / comparativo{' '}
-                    <span className="font-normal text-slate-400">(opcional)</span>
-                  </Label>
-                  <Select id="ejercicioAnteriorId" {...register('ejercicioAnteriorId')}>
-                    <option value="">— Sin comparativo —</option>
-                    {ejerciciosAnteriores.map((ej) => (
-                      <option key={ej.id} value={ej.id}>
-                        {ej.denominacion}
-                      </option>
-                    ))}
-                  </Select>
-                  <p className="text-xs text-slate-400">
-                    Se usa para la columna del año anterior en los estados contables.
-                  </p>
-                </div>
-              )}
+            {/* Ejercicio anterior */}
+            <div className="space-y-4">
+              <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+                Ejercicio anterior — requisito comparativo RT 54
+              </p>
+              <p className="-mt-2 text-xs text-slate-500">
+                Define de dónde salen los saldos de inicio y la columna &quot;Ejercicio
+                anterior&quot; de los estados contables.
+              </p>
 
-              {/* Pregunta 1: comparativos — aparece siempre */}
-              {mostrarSeccionComparativos && (
-                <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm font-medium text-slate-700">
-                    {tieneAnteriorSeleccionado
-                      ? '¿Tenés el balance de sumas y saldos de ese ejercicio disponible?'
-                      : '¿Contás con datos del período anterior para mostrar como columna comparativa?'}
-                  </p>
-                  <div className="space-y-2">
-                    <label className="flex cursor-pointer items-start gap-2.5">
-                      <input
-                        type="radio"
-                        checked={balanceDisponible !== false}
-                        onChange={() => setValue('balanceAnteriorDisponible', true)}
-                        className="mt-0.5 accent-blue-600"
-                      />
-                      <span className="text-sm text-slate-800">
-                        {tieneAnteriorSeleccionado
-                          ? 'Sí — los comparativos se calculan automáticamente'
-                          : 'Sí, tengo el balance — lo voy a importar como ejercicio anterior'}
-                      </span>
-                    </label>
-                    <label className="flex cursor-pointer items-start gap-2.5">
-                      <input
-                        type="radio"
-                        checked={balanceDisponible === false}
-                        onChange={() => setValue('balanceAnteriorDisponible', false)}
-                        className="mt-0.5 accent-blue-600"
-                      />
-                      <span className="text-sm text-slate-800">
-                        No — los comparativos se ingresan manualmente
-                      </span>
-                    </label>
-                  </div>
-
-                  {/* Pregunta 2: nivel SSP — solo cuando balance no disponible */}
-                  {balanceDisponible === false && (
-                    <div className="mt-3 space-y-2 border-t border-slate-200 pt-3">
-                      <p className="text-sm font-medium text-slate-700">
-                        ¿A qué nivel querés ingresar los comparativos del SSP?
-                      </p>
-                      <div className="space-y-2">
-                        <label className="flex cursor-pointer items-start gap-2.5">
-                          <input
-                            type="radio"
-                            checked={nivelSSP === 'SECCION'}
-                            onChange={() => setValue('nivelComparativoSSP', 'SECCION')}
-                            className="mt-0.5 accent-blue-600"
-                          />
-                          <div>
-                            <span className="text-sm text-slate-800">Por sección</span>
-                            <p className="text-xs text-slate-500">
-                              5 totales fijos: Activo Corriente, Activo No Corriente, Pasivo
-                              Corriente, Pasivo No Corriente, Patrimonio Neto
-                            </p>
-                          </div>
-                        </label>
-                        <label className="flex cursor-pointer items-start gap-2.5">
-                          <input
-                            type="radio"
-                            checked={nivelSSP === 'RUBRO'}
-                            onChange={() => setValue('nivelComparativoSSP', 'RUBRO')}
-                            className="mt-0.5 accent-blue-600"
-                          />
-                          <div>
-                            <span className="text-sm text-slate-800">Por rubro</span>
-                            <p className="text-xs text-slate-500">
-                              Un valor por cada clasificación usada en este ejercicio (Caja y
-                              Bancos, Créditos, Bienes de Uso, etc.) más la opción de agregar los
-                              que existían solo en el período anterior
-                            </p>
-                          </div>
-                        </label>
-                      </div>
-                      <p className="mt-1 text-xs text-slate-400">
-                        El EERR y los Gastos siempre se ingresan por sección — son pocas líneas
-                        fijas.
-                      </p>
+              <div className="space-y-3">
+                <TarjetaModo
+                  valor="VINCULADO"
+                  checked={modoAnterior === 'VINCULADO'}
+                  disabled={sinElegibles}
+                  icon={Link2}
+                  label="Vincular ejercicio cargado en el sistema"
+                  description={
+                    sinElegibles
+                      ? 'No hay ejercicios cargados de esta sociedad que cierren antes del inicio'
+                      : 'Los saldos de inicio y la columna comparativa se derivan del ejercicio vinculado y quedan bloqueados.'
+                  }
+                  onSelect={() => elegirModo('VINCULADO')}
+                >
+                  {modoAnterior === 'VINCULADO' && !sinElegibles && (
+                    <div className="space-y-1.5">
+                      <Select
+                        id="ejercicioAnteriorId"
+                        aria-label="Ejercicio anterior"
+                        error={Boolean(errors.ejercicioAnteriorId)}
+                        {...register('ejercicioAnteriorId', {
+                          onChange: () => setModoElegido(true),
+                        })}
+                      >
+                        <option value="">— Seleccionar ejercicio —</option>
+                        {elegibles.map((e) => (
+                          <option key={e.id} value={e.id}>
+                            {e.denominacion} · cierre {formatFecha(e.fechaCierre)}
+                          </option>
+                        ))}
+                      </Select>
+                      {esCandidato && (
+                        <p className="text-xs text-blue-600">
+                          Detectado automáticamente: cierra el día anterior al inicio
+                        </p>
+                      )}
+                      {noConsecutivo && anteriorSeleccionado && (
+                        <p className="text-xs text-amber-600">
+                          Los ejercicios no son consecutivos: el anterior cierra el{' '}
+                          {formatFecha(anteriorSeleccionado.fechaCierre)} y este empieza el{' '}
+                          {formatFecha(fechaInicioUTC)}. Verificá que no falte un ejercicio
+                          intermedio.
+                        </p>
+                      )}
+                      {errors.ejercicioAnteriorId && (
+                        <p className="text-xs text-red-600">{errors.ejercicioAnteriorId.message}</p>
+                      )}
                     </div>
                   )}
-                </div>
+                </TarjetaModo>
+
+                <TarjetaModo
+                  valor="MANUAL"
+                  checked={modoAnterior === 'MANUAL'}
+                  icon={PenLine}
+                  label="Cargar saldos del ejercicio anterior manualmente"
+                  description="No hay historial en el sistema: cargás a mano los saldos del ejercicio anterior y los autorizás antes de cerrar."
+                  onSelect={() => elegirModo('MANUAL')}
+                />
+
+                <TarjetaModo
+                  valor="SIN_ANTERIOR"
+                  checked={modoAnterior === 'SIN_ANTERIOR'}
+                  icon={Sparkles}
+                  label="Primer ejercicio de la sociedad, sin comparativo"
+                  description="Es el primer ejercicio de la sociedad: los estados se presentan sin columna comparativa."
+                  onSelect={() => elegirModo('SIN_ANTERIOR')}
+                />
+              </div>
+
+              {errors.modoAnterior && (
+                <p className="text-xs text-red-600">{errors.modoAnterior.message}</p>
+              )}
+              {/* Error de vínculo cuando el select no está visible: modo MANUAL con id residual,
+                  o Vincular elegido pero sin ejercicios elegibles (cambió la fecha de inicio). */}
+              {errors.ejercicioAnteriorId && (modoAnterior !== 'VINCULADO' || sinElegibles) && (
+                <p className="text-xs text-red-600">{errors.ejercicioAnteriorId.message}</p>
               )}
             </div>
 
@@ -468,32 +647,33 @@ export function EjercicioForm({
               )}
             </div>
 
-            {/* Clasificación y datos adicionales */}
+            {/* Categoría del ente y cierre */}
             <div className="space-y-4">
               <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                Clasificación y cierre
+                Categoría del ente y cierre
               </p>
 
               <div className="space-y-1.5">
-                <Label htmlFor="clasificacionEntidad">Clasificación de la entidad</Label>
+                <Label htmlFor="categoriaEnte">Categoría del ente (RT 54)</Label>
                 <Select
-                  id="clasificacionEntidad"
-                  error={Boolean(errors.clasificacionEntidad)}
-                  {...register('clasificacionEntidad')}
+                  id="categoriaEnte"
+                  error={Boolean(errors.categoriaEnte)}
+                  {...register('categoriaEnte')}
                 >
                   <option value="">— Seleccionar —</option>
-                  {CLASIFICACION_ENTIDAD_OPTIONS.map((o) => (
+                  {CATEGORIA_ENTE_OPTIONS.map((o) => (
                     <option key={o} value={o}>
-                      {o}
+                      {CATEGORIA_ENTE_LABELS[o]}
                     </option>
                   ))}
                 </Select>
                 <p className="text-xs text-slate-400">
-                  Determina el modelo de presentación por ejercicio. Puede diferir de la
-                  clasificación del cliente.
+                  {categoriaEnte
+                    ? CATEGORIA_ENTE_DESCRIPCIONES[categoriaEnte]
+                    : 'Determina las simplificaciones de medición y exposición que aplica el ejercicio. Puede diferir de la categoría de la sociedad.'}
                 </p>
-                {errors.clasificacionEntidad && (
-                  <p className="text-xs text-red-600">{errors.clasificacionEntidad.message}</p>
+                {errors.categoriaEnte && (
+                  <p className="text-xs text-red-600">{errors.categoriaEnte.message}</p>
                 )}
               </div>
 

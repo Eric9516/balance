@@ -10,6 +10,7 @@ import { crearBienDeUsoAction, eliminarBienDeUsoAction } from '../actions/bienes
 import { guardarLoteBienes } from '../lib/guardarLoteBienes'
 import { calcularCierre, type BienDeUsoDTO } from '../domain/types'
 import { BotonEditar } from '@/components/shared/BotonEditar'
+import { AvisosArrastre } from '@/components/shared/AvisosArrastre'
 import { useEdicionLote } from '@/components/shared/useEdicionLote'
 import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
 import { FilaCategoria, FilaTotal } from './FilaCategoria'
@@ -27,8 +28,16 @@ const CATEGORIAS_DEFAULT = [
 
 interface Props {
   bienes: BienDeUsoDTO[]
+  /** Neto residual al cierre del ejercicio anterior, por nombre de categoría. */
   netoAnteriorMap: Map<string, number>
-  hayEjercicioAnterior: boolean
+  /** ids de filas cuyas columnas de inicio vienen del ejercicio anterior vinculado. */
+  bloqueadas: string[]
+  /** Fuentes faltantes en el anterior (filas que quedan editables). */
+  advertencias: string[]
+  /** Si se muestra la columna "Neto residual ejercicio anterior" (VINCULADO y MANUAL). */
+  mostrarAnterior: boolean
+  /** Solo en modo MANUAL: el neto residual anterior se carga a mano. */
+  editarAnterior: boolean
   ejercicioId: string
   sociedadId: string
   fechaCierre: Date
@@ -38,7 +47,10 @@ interface Props {
 export function BienesDeUsoView({
   bienes: initialBienes,
   netoAnteriorMap,
-  hayEjercicioAnterior,
+  bloqueadas,
+  advertencias,
+  mostrarAnterior,
+  editarAnterior,
   ejercicioId,
   sociedadId,
   fechaCierre,
@@ -93,6 +105,7 @@ export function BienesDeUsoView({
   }
 
   const isPendingTotal = isPending || isPendingAcciones
+  const bloqueadasSet = new Set(bloqueadas)
 
   const thCls =
     'px-2 py-2 text-right text-[10px] font-semibold text-slate-300 uppercase tracking-wide whitespace-nowrap w-36'
@@ -129,12 +142,15 @@ export function BienesDeUsoView({
 
   return (
     <div className="space-y-3">
-      {/* Leyenda + control de edición */}
-      <div className="flex items-center justify-between gap-4">
-        <span className="flex items-center gap-1 text-xs text-slate-400">
-          <span className="inline-block h-3 w-3 rounded border border-slate-200 bg-slate-100" />
-          Calculado automáticamente
-        </span>
+      {/* Leyenda + avisos de arrastre + control de edición */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1 space-y-2">
+          <span className="flex items-center gap-1 text-xs text-slate-400">
+            <span className="inline-block h-3 w-3 rounded border border-slate-200 bg-slate-100" />
+            Calculado automáticamente
+          </span>
+          <AvisosArrastre bloqueado={bloqueadas.length > 0} advertencias={advertencias} />
+        </div>
         <BotonEditar
           editando={editando}
           onEditar={iniciarEdicion}
@@ -152,7 +168,10 @@ export function BienesDeUsoView({
           isPendingTotal && 'opacity-70',
         )}
       >
-        <table className="w-full text-sm" style={{ minWidth: '1760px' }}>
+        <table
+          className="w-full text-sm"
+          style={{ minWidth: mostrarAnterior ? '1760px' : '1616px' }}
+        >
           <thead>
             <tr className="border-b border-slate-700 bg-slate-800">
               <th className="sticky left-0 z-10 min-w-[180px] bg-slate-800 px-3 py-2 text-left text-[10px] font-semibold tracking-wide text-slate-300 uppercase">
@@ -171,7 +190,7 @@ export function BienesDeUsoView({
                 AMORTIZACIONES ACUMULADAS
               </th>
               <th
-                colSpan={2}
+                colSpan={mostrarAnterior ? 2 : 1}
                 className="border-l border-slate-700 px-2 py-2 text-center text-[10px] font-bold tracking-wider text-slate-200 uppercase"
               >
                 NETO RESIDUAL
@@ -195,11 +214,21 @@ export function BienesDeUsoView({
               <th className={thCls}>del ejercicio</th>
               <th className={thCalcCls}>Acumuladas al cierre del ejercicio</th>
               <th className={cn(thCalcCls, 'border-l border-slate-700')}>
-                {formatFecha(fechaCierre)}
+                <div>Ejercicio actual</div>
+                <div className="text-[9px] font-normal text-blue-200/80">
+                  {formatFecha(fechaCierre)}
+                </div>
               </th>
-              <th className={thCls}>
-                {fechaCierreAnterior ? formatFecha(fechaCierreAnterior) : 'Ej. Anterior'}
-              </th>
+              {mostrarAnterior && (
+                <th className={thCls}>
+                  <div>Ejercicio anterior</div>
+                  {fechaCierreAnterior && (
+                    <div className="text-[9px] font-normal text-slate-400">
+                      {formatFecha(fechaCierreAnterior)}
+                    </div>
+                  )}
+                </th>
+              )}
               <th className="w-20" />
             </tr>
           </thead>
@@ -209,6 +238,9 @@ export function BienesDeUsoView({
                 key={bien.id}
                 bien={bien}
                 netoAnterior={netoAnteriorMap.get(bien.categoria) ?? null}
+                bloqueada={bloqueadasSet.has(bien.id)}
+                mostrarAnterior={mostrarAnterior}
+                editarAnterior={editarAnterior}
                 editando={editando}
                 onGuardarCampo={(campo, v) => guardarBien({ ...bien, [campo]: v })}
                 onGuardarCategoria={(v) => guardarBien({ ...bien, categoria: v })}
@@ -221,7 +253,8 @@ export function BienesDeUsoView({
             <FilaTotal
               bienes={bienes}
               netoAnteriorMap={netoAnteriorMap}
-              hayEjercicioAnterior={hayEjercicioAnterior}
+              mostrarAnterior={mostrarAnterior}
+              editarAnterior={editarAnterior}
             />
           </tfoot>
         </table>

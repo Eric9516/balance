@@ -12,6 +12,7 @@ import {
 export function TablaGastos({
   secciones,
   huerfanas = [],
+  conComparativo,
   editarAnterior,
   comparativo,
   ejercicioId,
@@ -19,16 +20,21 @@ export function TablaGastos({
 }: {
   secciones: GastosSecciones['secciones']
   huerfanas?: GastosSecciones['secciones']
+  /** false (SIN_ANTERIOR / PENDIENTE): no se renderiza nada del ejercicio anterior. */
+  conComparativo: boolean
   editarAnterior: boolean
   comparativo: ReturnType<typeof useComparativoLote>
   ejercicioId: string
   sociedadId: string
 }) {
-  const editandoAnt = comparativo.editando
-  if (secciones.length === 0 && huerfanas.length === 0) return null
+  // Sin comparativo tampoco hay edición del anterior, aunque el padre la habilite.
+  const editandoAnt = conComparativo && comparativo.editando
+  // Las secciones huérfanas solo existen en el ejercicio anterior.
+  const huerfanasVisibles = conComparativo ? huerfanas : []
+  if (secciones.length === 0 && huerfanasVisibles.length === 0) return null
 
   // Columnas: secciones del ejercicio actual + (en edición) las del anterior.
-  const cols = [...secciones, ...huerfanas]
+  const cols = [...secciones, ...huerfanasVisibles]
 
   // Cuentas únicas como filas — ordenadas alfabéticamente
   const cuentasUnicas = Array.from(
@@ -47,7 +53,8 @@ export function TablaGastos({
 
   // En modo manual no mostramos la columna anterior POR FILA (no hay cuentas del
   // ejercicio anterior); la carga es por total de sección en el pie.
-  const colAnteriorPorFila = !editarAnterior
+  // Sin comparativo no se muestra nada del anterior.
+  const colAnteriorPorFila = conComparativo && !editarAnterior
   const colSpanTotal = cols.length + (colAnteriorPorFila ? 2 : 1)
 
   return (
@@ -154,7 +161,7 @@ export function TablaGastos({
                   ejercicioId={ejercicioId}
                   sociedadId={sociedadId}
                   modulo="GASTOS"
-                  ordenBase={huerfanas.length}
+                  ordenBase={huerfanasVisibles.length}
                   texto="Agregar sección del período anterior"
                   onAdded={(dto) =>
                     comparativo.agregar({
@@ -195,33 +202,35 @@ export function TablaGastos({
             )}
           </tr>
           {/* Fila 2: Total Ejercicio Anterior (editable por sección solo con el lápiz) */}
-          <tr className="border-t border-slate-600 bg-slate-700">
-            <td className="px-4 py-2.5 text-xs font-bold tracking-wide text-slate-200 uppercase">
-              Total Ejercicio Anterior
-            </td>
-            {cols.map((s) => (
-              <td
-                key={s.key}
-                className="border-l border-slate-600 px-2 py-2 text-right font-mono text-sm font-bold tabular-nums"
-              >
-                {editandoAnt ? (
-                  <CeldaNumero
-                    value={comparativo.entradas.get(s.key)?.valor ?? s.totalAnterior}
-                    editando
-                    onSave={(v) => comparativo.setValor(s.key, v)}
-                  />
-                ) : (
-                  <span className="text-slate-200">
-                    {s.totalAnterior ? formatCurrency(s.totalAnterior, { decimales: 2 }) : '–'}
-                  </span>
-                )}
+          {conComparativo && (
+            <tr className="border-t border-slate-600 bg-slate-700">
+              <td className="px-4 py-2.5 text-xs font-bold tracking-wide text-slate-200 uppercase">
+                Total Ejercicio Anterior
               </td>
-            ))}
-            <td className="border-l border-slate-600 px-3 py-2.5 text-right font-mono text-sm font-bold text-slate-200 tabular-nums">
-              {grandTotalAnterior ? formatCurrency(grandTotalAnterior, { decimales: 2 }) : '–'}
-            </td>
-            {colAnteriorPorFila && <td className="border-l border-slate-600" />}
-          </tr>
+              {cols.map((s) => (
+                <td
+                  key={s.key}
+                  className="border-l border-slate-600 px-2 py-2 text-right font-mono text-sm font-bold tabular-nums"
+                >
+                  {editandoAnt ? (
+                    <CeldaNumero
+                      value={comparativo.entradas.get(s.key)?.valor ?? s.totalAnterior}
+                      editando
+                      onSave={(v) => comparativo.setValor(s.key, v)}
+                    />
+                  ) : (
+                    <span className="text-slate-200">
+                      {s.totalAnterior ? formatCurrency(s.totalAnterior, { decimales: 2 }) : '–'}
+                    </span>
+                  )}
+                </td>
+              ))}
+              <td className="border-l border-slate-600 px-3 py-2.5 text-right font-mono text-sm font-bold text-slate-200 tabular-nums">
+                {grandTotalAnterior ? formatCurrency(grandTotalAnterior, { decimales: 2 }) : '–'}
+              </td>
+              {colAnteriorPorFila && <td className="border-l border-slate-600" />}
+            </tr>
+          )}
         </tfoot>
       </table>
     </div>

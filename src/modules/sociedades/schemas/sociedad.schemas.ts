@@ -22,8 +22,10 @@ export const CreateSociedadSchema = z
     // Actividad
     actividadPpal: z.string().min(1, 'La actividad principal es requerida'),
     actividadSecundaria: z.string().optional(),
-    // Datos contables
-    clasificacionRT54: z.string().min(1, 'La clasificación RT 54 es requerida'),
+    // Datos contables — categoría del ente según RT 54 (enum CategoriaEnteRT54)
+    categoriaEnte: z.enum(['PEQUENA', 'MEDIANA', 'RESTANTE'], {
+      error: 'La categoría del ente según RT 54 es requerida',
+    }),
     // Registrales
     fechaInscripcion: z.string().min(1, 'La fecha de inscripción es requerida'),
     matriculaPJ: z.string().min(1, 'La matrícula es requerida'),

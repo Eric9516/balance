@@ -69,6 +69,37 @@ function CeldaConcepto({
   )
 }
 
+// ─── Encabezado de columna comparativa ───────────────────────────────────────
+// Título + fecha de cierre (si la hay), alineado con la columna de importes.
+
+function EncabezadoEjercicio({
+  titulo,
+  fecha,
+  atenuado = false,
+}: {
+  titulo: string
+  fecha: Date | null
+  atenuado?: boolean
+}) {
+  return (
+    <th className="w-36 px-3 py-1.5 text-right align-bottom">
+      <div
+        className={cn(
+          'text-[10px] font-semibold tracking-wide uppercase',
+          atenuado ? 'text-slate-400' : 'text-slate-500',
+        )}
+      >
+        {titulo}
+      </div>
+      {fecha && (
+        <div className="font-mono text-[11px] font-normal text-slate-400 tabular-nums">
+          {formatFecha(fecha)}
+        </div>
+      )}
+    </th>
+  )
+}
+
 // ─── Nota cuantitativa ────────────────────────────────────────────────────────
 
 export function NotaCuantitativa({
@@ -235,25 +266,13 @@ export function NotaCuantitativa({
         <thead>
           <tr className="border-b border-slate-100">
             <th className="px-5 py-1.5" />
-            <th className="w-36 px-3 py-1.5 text-right align-bottom">
-              <p className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase">
-                Ejercicio actual
-              </p>
-              <p className="text-xs font-semibold text-slate-500 tabular-nums">
-                {formatFecha(fechaCierre)}
-              </p>
-            </th>
+            <EncabezadoEjercicio titulo="Ejercicio actual" fecha={fechaCierre} />
             {mostrarAnterior && (
-              <th className="w-36 px-3 py-1.5 text-right align-bottom">
-                <p className="text-[10px] font-semibold tracking-wide text-slate-400 uppercase">
-                  Ejercicio anterior
-                </p>
-                {fechaCierreAnterior && (
-                  <p className="text-xs text-slate-400 tabular-nums">
-                    {formatFecha(fechaCierreAnterior)}
-                  </p>
-                )}
-              </th>
+              <EncabezadoEjercicio
+                titulo="Ejercicio anterior"
+                fecha={fechaCierreAnterior}
+                atenuado
+              />
             )}
             <th className="w-8" />
           </tr>

@@ -29,9 +29,17 @@ interface Props {
   editarAnterior?: boolean
 }
 
-export function GastosView({ data, ejercicioId, sociedadId, editarAnterior = false }: Props) {
+export function GastosView({
+  data,
+  ejercicioId,
+  sociedadId,
+  conComparativo = false,
+  editarAnterior = false,
+}: Props) {
   const [showModal, setShowModal] = useState(false)
   const mounted = useMontado()
+  // Sin columna comparativa (SIN_ANTERIOR / PENDIENTE) no hay nada que editar del anterior.
+  const puedeEditarAnterior = conComparativo && editarAnterior
 
   // Secciones "huérfanas": existieron solo en el período anterior (carga manual).
   const seccionesHuerfanas = data.secciones.filter((s) => esSeccionHuerfana(s.key))
@@ -46,7 +54,7 @@ export function GastosView({ data, ejercicioId, sociedadId, editarAnterior = fal
   const seccionesVisibles = seccionesRegulares.filter((s) => seleccionadas.has(s.key))
   // Las huérfanas (solo del anterior) se muestran como columnas extra cuando falta
   // el balance anterior, para que el dato cargado quede siempre reflejado.
-  const huerfanasVisibles = editarAnterior ? seccionesHuerfanas : []
+  const huerfanasVisibles = puedeEditarAnterior ? seccionesHuerfanas : []
 
   // Columna "Ejercicio Anterior" — borrador independiente, propio Guardar/Cancelar.
   const entradasAnterior: ComparativoEntry[] = [...seccionesVisibles, ...huerfanasVisibles].map(
@@ -87,7 +95,7 @@ export function GastosView({ data, ejercicioId, sociedadId, editarAnterior = fal
           Columnas y filas se calculan automáticamente desde las cuentas clasificadas.
         </p>
         <div className="flex items-center gap-2">
-          {editarAnterior && (
+          {puedeEditarAnterior && (
             <ToggleEditarAnterior
               editando={comparativo.editando}
               isPending={comparativo.isPending}
@@ -144,7 +152,8 @@ export function GastosView({ data, ejercicioId, sociedadId, editarAnterior = fal
           <TablaGastos
             secciones={seccionesVisibles}
             huerfanas={huerfanasVisibles}
-            editarAnterior={editarAnterior}
+            conComparativo={conComparativo}
+            editarAnterior={puedeEditarAnterior}
             comparativo={comparativo}
             ejercicioId={ejercicioId}
             sociedadId={sociedadId}

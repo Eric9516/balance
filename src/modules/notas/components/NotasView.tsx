@@ -21,6 +21,9 @@ interface Props {
   sociedadId: string
   fechaCierre: Date
   fechaCierreAnterior: Date | null
+  /** Si se muestra la columna "Ejercicio anterior" (VINCULADO y MANUAL; no en SIN_ANTERIOR/PENDIENTE). */
+  mostrarAnterior: boolean
+  /** Solo en modo MANUAL: la columna anterior se carga a mano. */
   editarAnterior?: boolean
   tieneCuentasClasificadas: boolean
   configNotaI: ConfigNotaILocal
@@ -32,13 +35,11 @@ export function NotasView({
   sociedadId,
   fechaCierre,
   fechaCierreAnterior,
+  mostrarAnterior,
   editarAnterior = false,
   tieneCuentasClasificadas,
   configNotaI: initialConfig,
 }: Props) {
-  // La columna "ejercicio anterior" se muestra si hay anterior vinculado o si
-  // el contador debe cargarlo a mano (sin balance anterior importado).
-  const mostrarAnterior = !!fechaCierreAnterior || editarAnterior
   const [notas, setNotas] = useState<NotaDTO[]>(initialNotas)
   const [isPendingGen, startGen] = useTransition()
   const [showWizard, setShowWizard] = useState(false)

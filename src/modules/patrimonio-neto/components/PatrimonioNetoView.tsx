@@ -5,6 +5,8 @@ import { CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatFecha } from '@/lib/utils/dates'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
+import { CeldaBloqueada } from '@/components/shared/CeldaBloqueada'
+import { AvisosArrastre } from '@/components/shared/AvisosArrastre'
 import { BotonEditar } from '@/components/shared/BotonEditar'
 import { useEdicionLote } from '@/components/shared/useEdicionLote'
 import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
@@ -42,6 +44,10 @@ interface Props {
   sociedadId: string
   fechaCierre: Date
   fechaCierreAnterior: Date | null
+  /** Si se muestra la columna "Ejercicio anterior" (modos VINCULADO y MANUAL). */
+  mostrarAnterior: boolean
+  /** Denominación del ejercicio anterior vinculado (origen de los valores con candado). */
+  anteriorDenominacion: string | null
   pnConfirmado?: boolean
 }
 
@@ -51,6 +57,8 @@ export function PatrimonioNetoView({
   sociedadId,
   fechaCierre,
   fechaCierreAnterior,
+  mostrarAnterior,
+  anteriorDenominacion,
   pnConfirmado: initialConfirmado = false,
 }: Props) {
   const {
@@ -64,6 +72,7 @@ export function PatrimonioNetoView({
   } = useEdicionLote(
     initialData,
     (borrador) =>
+      // Se envían las filas tal cual: el servidor sanea lo bloqueado (saldo inicio / anterior).
       guardarEvolucionPNAction(
         ejercicioId,
         sociedadId,
@@ -84,6 +93,10 @@ export function PatrimonioNetoView({
   )
   const [confirmado, setConfirmado] = useState(initialConfirmado)
   const { isPending: isPendingConfirmar, ejecutar } = useGuardarAccion()
+
+  const { bloqueo } = data
+  // Columnas de la tabla: 1 (rubros) + 4 (aportes) + 4 (resultados) + 1 (actual) [+ 1 (anterior)].
+  const totalColumnas = mostrarAnterior ? 11 : 10
 
   function setField(index: number, campo: CampoPN | 'totalAnterior', value: number) {
     actualizar((prev) => ({
@@ -155,15 +168,39 @@ export function PatrimonioNetoView({
     mov: EvolucionPNMovimientoDTO,
     disabled = false,
   ) {
+    // "Saldos al inicio" arrastrado desde el anterior vinculado: candado, también en edición.
+    const bloqueada = bloqueo.saldoInicio && mov.tipo === 'SALDO_INICIO'
     return (
       <td key={campo} className="border border-slate-300 px-1.5 py-1 text-right">
-        <CeldaNumero
-          value={mov[campo]}
-          editando={editando}
-          soloLectura={disabled}
-          onSave={(v) => setField(index, campo, v)}
-          dense
-        />
+        {bloqueada ? (
+          <CeldaBloqueada value={mov[campo]} origen={anteriorDenominacion} dense />
+        ) : (
+          <CeldaNumero
+            value={mov[campo]}
+            editando={editando}
+            soloLectura={disabled}
+            onSave={(v) => setField(index, campo, v)}
+            dense
+          />
+        )}
+      </td>
+    )
+  }
+
+  function renderAnteriorCell(index: number, mov: EvolucionPNMovimientoDTO) {
+    if (!mostrarAnterior) return null
+    return (
+      <td className="border border-slate-300 px-1.5 py-1 text-right">
+        {bloqueo.totalAnterior ? (
+          <CeldaBloqueada value={mov.totalAnterior} origen={anteriorDenominacion} dense />
+        ) : (
+          <CeldaNumero
+            value={mov.totalAnterior}
+            editando={editando}
+            onSave={(v) => setField(index, 'totalAnterior', v)}
+            dense
+          />
+        )}
       </td>
     )
   }
@@ -210,14 +247,7 @@ export function PatrimonioNetoView({
             className="font-semibold text-slate-950"
           />
         </td>
-        <td className="border border-slate-300 px-1.5 py-1 text-right">
-          <CeldaNumero
-            value={mov.totalAnterior}
-            editando={editando}
-            onSave={(v) => setField(index, 'totalAnterior', v)}
-            dense
-          />
-        </td>
+        {renderAnteriorCell(index, mov)}
       </tr>
     )
   }
@@ -297,33 +327,37 @@ export function PatrimonioNetoView({
             className="font-semibold text-slate-950"
           />
         </td>
-        <td className="border border-slate-300 px-1.5 py-1 text-right">
-          <CeldaNumero
-            value={mov.totalAnterior}
-            editando={false}
-            soloLectura
-            onSave={() => {}}
-            dense
-            className={strong ? 'font-semibold text-slate-950' : undefined}
-          />
-        </td>
+        {mostrarAnterior && (
+          <td className="border border-slate-300 px-1.5 py-1 text-right">
+            <CeldaNumero
+              value={mov.totalAnterior}
+              editando={false}
+              soloLectura
+              onSave={() => {}}
+              dense
+              className={strong ? 'font-semibold text-slate-950' : undefined}
+            />
+          </td>
+        )}
       </tr>
     )
   }
 
   return (
     <div className="max-w-full">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-700">
-          El resultado del ejercicio se toma automáticamente del Estado de Resultados.
-          {data.autocompletadoDesdeAnterior && (
-            <span className="ml-1 font-medium">
-              Se autocompletaron saldos iniciales y comparativos desde el ejercicio anterior.
-            </span>
-          )}
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-2">
+          <p className="text-xs text-slate-600">
+            El resultado del ejercicio se toma automáticamente del Estado de Resultados.
+          </p>
+          <AvisosArrastre
+            bloqueado={bloqueo.saldoInicio || bloqueo.totalAnterior}
+            origen={anteriorDenominacion}
+            advertencias={data.advertencias}
+          />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <BotonEditar
             editando={editando}
             onEditar={iniciarEdicion}
@@ -364,7 +398,10 @@ export function PatrimonioNetoView({
         <table className="w-full min-w-[1280px] border-collapse text-[11px]">
           <thead>
             <tr>
-              <th colSpan={11} className="border border-slate-900 bg-white px-3 py-2 text-center">
+              <th
+                colSpan={totalColumnas}
+                className="border border-slate-900 bg-white px-3 py-2 text-center"
+              >
                 <div className="space-y-0.5">
                   <p className="text-xs font-bold tracking-wide text-slate-950 uppercase">
                     Estado de Evolución del Patrimonio Neto
@@ -373,8 +410,9 @@ export function PatrimonioNetoView({
                     (Capital, reservas y otros resultados acumulados)
                   </p>
                   <p className="text-[10px] font-normal text-slate-600 italic">
-                    Correspondiente al ejercicio finalizado el {formatFecha(fechaCierre)},
-                    comparativo con {formatFecha(fechaCierreAnterior, 'ejercicio anterior')}
+                    Correspondiente al ejercicio finalizado el {formatFecha(fechaCierre)}
+                    {mostrarAnterior &&
+                      `, comparativo con ${formatFecha(fechaCierreAnterior, 'ejercicio anterior')}`}
                   </p>
                 </div>
               </th>
@@ -399,7 +437,7 @@ export function PatrimonioNetoView({
                 Resultados acumulados
               </th>
               <th
-                colSpan={2}
+                colSpan={mostrarAnterior ? 2 : 1}
                 className="border border-slate-900 px-2 py-1 text-center font-semibold"
               >
                 Patrimonio Neto
@@ -431,11 +469,21 @@ export function PatrimonioNetoView({
                 Resultados no Asignados
               </th>
               <th className="w-28 border border-slate-900 px-1 py-1 text-center font-medium">
-                Ejercicio Actual
+                <div>Ejercicio actual</div>
+                <div className="text-[9px] font-normal text-slate-500">
+                  {formatFecha(fechaCierre)}
+                </div>
               </th>
-              <th className="w-28 border border-slate-900 px-1 py-1 text-center font-medium">
-                Ejercicio Anterior
-              </th>
+              {mostrarAnterior && (
+                <th className="w-28 border border-slate-900 px-1 py-1 text-center font-medium">
+                  <div>Ejercicio anterior</div>
+                  {fechaCierreAnterior && (
+                    <div className="text-[9px] font-normal text-slate-500">
+                      {formatFecha(fechaCierreAnterior)}
+                    </div>
+                  )}
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className={cn(isPending && 'opacity-60')}>
@@ -450,7 +498,7 @@ export function PatrimonioNetoView({
               <td className="sticky left-0 z-10 border border-slate-300 bg-white px-2 py-2 text-left text-[11px] font-semibold text-slate-800">
                 Distribución de resultados
               </td>
-              {Array.from({ length: 10 }).map((_, index) => (
+              {Array.from({ length: totalColumnas - 1 }).map((_, index) => (
                 <td key={index} className="border border-slate-300 px-1.5 py-2" />
               ))}
             </tr>

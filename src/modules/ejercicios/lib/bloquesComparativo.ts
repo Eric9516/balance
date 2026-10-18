@@ -50,7 +50,10 @@ export function armarBloquesComparativo(params: {
     new Set(comparativos.filter((c) => c.modulo === modulo).map((c) => c.clave))
 
   const sspClaves = claves('SSP')
-  const sspRubros = estadosData.sspRubros.filter((r) => !esRubroHuerfano(r.id))
+  // El patrimonio neto anterior no se carga por rubro en el SSP: sale del E.E.P.N.
+  const sspRubros = estadosData.sspRubros.filter(
+    (r) => !esRubroHuerfano(r.id) && r.seccionSSP !== 'PATRIMONIO_NETO',
+  )
   const eerrClaves = claves('EERR')
   const gastosClaves = claves('GASTOS')
   const secciones = estadosData.eerr.seccionesGasto.filter((s) => !esRubroHuerfano(s.key))

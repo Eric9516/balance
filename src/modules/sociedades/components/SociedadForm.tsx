@@ -15,6 +15,12 @@ import { toastError, toastSuccess } from '@/modules/errores/components/Toast'
 import { CreateSociedadSchema, type CreateSociedadInput } from '../schemas/sociedad.schemas'
 import { crearSociedad, actualizarSociedad } from '../actions/sociedad.actions'
 import type { SociedadDTO } from '../domain/types'
+import {
+  CATEGORIA_ENTE_DESCRIPCIONES,
+  CATEGORIA_ENTE_LABELS,
+  CATEGORIA_ENTE_OPTIONS,
+  type CategoriaEnteRT54,
+} from '@/modules/ejercicios/domain/types'
 import { toDateInputValue } from '@/lib/utils/dates'
 
 const TIPO_SOCIETARIO_OPTIONS = [
@@ -27,7 +33,19 @@ const TIPO_SOCIETARIO_OPTIONS = [
   'Otra',
 ]
 const CONDICION_FISCAL_OPTIONS = ['Responsable inscripto', 'Monotributista', 'Unipersonal', 'Otro']
-const CLASIFICACION_RT54_OPTIONS = ['Entidad Pequeña', 'Entidad Mediana']
+
+/**
+ * Mapea el texto libre legacy `clasificacionRT54` al enum CategoriaEnteRT54.
+ * Se usa solo como valor inicial al editar sociedades anteriores al enum.
+ * Devuelve `undefined` (select en "— Seleccionar —") cuando no hay texto.
+ */
+function categoriaDesdeLegacy(texto: string | null | undefined): CategoriaEnteRT54 | undefined {
+  if (!texto) return undefined
+  const t = texto.toLowerCase()
+  if (t.includes('pequeñ')) return 'PEQUENA'
+  if (t.includes('median')) return 'MEDIANA'
+  return 'RESTANTE'
+}
 
 interface SociedadFormProps {
   defaultValues?: SociedadDTO
@@ -59,7 +77,8 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
           codigoPostal: defaultValues.codigoPostal ?? '',
           actividadPpal: defaultValues.actividadPpal ?? '',
           actividadSecundaria: defaultValues.actividadSecundaria ?? '',
-          clasificacionRT54: defaultValues.clasificacionRT54 ?? '',
+          categoriaEnte:
+            defaultValues.categoriaEnte ?? categoriaDesdeLegacy(defaultValues.clasificacionRT54),
           fechaInscripcion: toDateInputValue(defaultValues.fechaInscripcion),
           matriculaPJ: defaultValues.matriculaPJ ?? '',
           plazoDuracion: toDateInputValue(defaultValues.plazoDuracion),
@@ -154,6 +173,7 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
 
   const tipoPersona = useWatch({ control, name: 'tipoPersona' })
   const tipoSocietario = useWatch({ control, name: 'tipoSocietario' })
+  const categoriaEnte = useWatch({ control, name: 'categoriaEnte' })
   const esFisica = tipoPersona === TipoPersona.FISICA
   const esSAS = tipoSocietario === 'S.A.S.'
 
@@ -412,24 +432,26 @@ export function SociedadForm({ defaultValues }: SociedadFormProps) {
             </p>
 
             <div className="space-y-1.5">
-              <Label htmlFor="clasificacionRT54">Clasificación RT 54</Label>
+              <Label htmlFor="categoriaEnte">Categoría del ente (RT 54)</Label>
               <Select
-                id="clasificacionRT54"
-                error={Boolean(errors.clasificacionRT54)}
-                {...register('clasificacionRT54')}
+                id="categoriaEnte"
+                error={Boolean(errors.categoriaEnte)}
+                {...register('categoriaEnte')}
               >
                 <option value="">— Seleccionar —</option>
-                {CLASIFICACION_RT54_OPTIONS.map((o) => (
+                {CATEGORIA_ENTE_OPTIONS.map((o) => (
                   <option key={o} value={o}>
-                    {o}
+                    {CATEGORIA_ENTE_LABELS[o]}
                   </option>
                 ))}
               </Select>
               <p className="text-xs text-slate-400">
-                Se usa en las Notas I para identificar el tipo de entidad según RT 54.
+                {categoriaEnte
+                  ? CATEGORIA_ENTE_DESCRIPCIONES[categoriaEnte]
+                  : 'Se usa como valor por defecto en los ejercicios nuevos y en las Notas I para identificar el tipo de entidad según RT 54.'}
               </p>
-              {errors.clasificacionRT54 && (
-                <p className="text-xs text-red-600">{errors.clasificacionRT54.message}</p>
+              {errors.categoriaEnte && (
+                <p className="text-xs text-red-600">{errors.categoriaEnte.message}</p>
               )}
             </div>
           </div>
