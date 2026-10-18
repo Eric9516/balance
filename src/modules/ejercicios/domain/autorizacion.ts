@@ -44,7 +44,16 @@ export type ContextoAutorizacion = {
   } | null
   /** datos de la sociedad para contrastar "primer ejercicio" */
   sociedad: { fechaInscripcion: Date | null } | null
+  /** Estado de Flujo de Efectivo: control variación neta = suma de actividades */
+  flujo: {
+    lineas: number
+    actual: CuadreFlujo
+    /** null si no hay columna comparativa */
+    anterior: CuadreFlujo | null
+  } | null
 }
+
+export type CuadreFlujo = { variacionNeta: number; sumaActividades: number; cuadra: boolean }
 
 export type ResultadoAutorizacion = {
   bloqueantes: ItemValidacion[]
@@ -208,6 +217,42 @@ export function validarAutorizacionFinal(ctx: ContextoAutorizacion): ResultadoAu
           `La suma de los ajustes de medición de la Nota de transición (${formatCurrency(sumaAjustesMedicion)}) no coincide con la fila "Modificación de saldos al inicio" del E.E.P.N. (${formatCurrency(modificacionInicioEEPN)}). Si la diferencia no es transición RT 54 (por ejemplo, corrección de errores), documentala en la nota.`,
         ),
       )
+    }
+  }
+
+  // ── Estado de Flujo de Efectivo ───────────────────────────────────────────
+  if (ctx.flujo) {
+    const { lineas, actual, anterior } = ctx.flujo
+    if (lineas === 0) {
+      advertencias.push(
+        item(
+          'AUT-052',
+          'CONSISTENCIA_EJERCICIO',
+          'ADVERTENCIA',
+          'No hay Estado de Flujo de Efectivo cargado. Es un estado básico obligatorio: completalo en Estados → Flujo de efectivo.',
+        ),
+      )
+    } else {
+      if (!actual.cuadra) {
+        bloqueantes.push(
+          item(
+            'AUT-050',
+            'CUADRE_BALANCE',
+            'ERROR',
+            `El Estado de Flujo de Efectivo no cuadra: según el balance el efectivo varió ${formatCurrency(actual.variacionNeta)}, pero las actividades suman ${formatCurrency(actual.sumaActividades)} (diferencia ${formatCurrency(actual.variacionNeta - actual.sumaActividades)}). Revisá las líneas en Estados → Flujo de efectivo.`,
+          ),
+        )
+      }
+      if (anterior && !anterior.cuadra) {
+        advertencias.push(
+          item(
+            'AUT-051',
+            'CUADRE_BALANCE',
+            'ADVERTENCIA',
+            `La columna "Ejercicio anterior" del Estado de Flujo de Efectivo no cuadra: el efectivo varió ${formatCurrency(anterior.variacionNeta)} y las actividades suman ${formatCurrency(anterior.sumaActividades)}.`,
+          ),
+        )
+      }
     }
   }
 

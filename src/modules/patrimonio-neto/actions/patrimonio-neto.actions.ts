@@ -87,7 +87,8 @@ export async function confirmarPNAction(
   try {
     await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
     if (confirmado) {
-      const bloqueo = await compuertaAutorizacion(ejercicioId)
+      // El E.E.P.N. no depende del flujo de efectivo: su descuadre se exige al confirmar estados.
+      const bloqueo = await compuertaAutorizacion(ejercicioId, { ignorarCodigos: ['AUT-050'] })
       if (bloqueo) return actionError(bloqueo)
     }
     await db.ejercicioContable.update({

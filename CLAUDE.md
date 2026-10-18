@@ -127,6 +127,7 @@ Toda tabla/sección con números editables (anexos, estados, notas, comparativos
 - **SIN_ANTERIOR / pendiente**: sin columna comparativa.
 - La **compuerta** `@/modules/ejercicios/services/autorizacion.service` corre antes de confirmar estados, confirmar E.E.P.N. y pasar a Revisión/Cierre. Nunca agregar una confirmación que la saltee.
 - Los estados y el E.E.P.N. se cargan SOLO vía `@/modules/estados/services/estados.service.cargarEstadosConPN`.
+- El Estado de Flujo de Efectivo se carga SOLO vía `@/modules/flujo-efectivo/services/flujo.service.cargarFlujo`. El efectivo al cierre (y al inicio, si hay comparativo) sale del SSP sumando los rubros con `RubroBase.esEfectivo`; nunca se toma del cliente. La compuerta exige que cuadre (AUT-050).
 - Migraciones: siempre `prisma migrate`; **nunca** `db push` sobre una base con datos (ver README).
 
 **Modelo de interacción estándar:**

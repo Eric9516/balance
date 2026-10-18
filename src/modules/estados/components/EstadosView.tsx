@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, type ReactNode } from 'react'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { EstadosData } from '../domain/types'
@@ -29,6 +29,8 @@ interface Props {
   fechaCierreAnterior: Date | null
   /** Denominación del ejercicio anterior vinculado (origen de los valores con candado). */
   anteriorDenominacion: string | null
+  /** Pestaña "Estado de Flujo de Efectivo" (la arma la página con su propio módulo). */
+  flujo?: ReactNode
 }
 
 export function EstadosView({
@@ -40,8 +42,9 @@ export function EstadosView({
   fechaCierre,
   fechaCierreAnterior,
   anteriorDenominacion,
+  flujo,
 }: Props) {
-  const [tab, setTab] = useState<'ssp' | 'eerr'>('ssp')
+  const [tab, setTab] = useState<'ssp' | 'eerr' | 'flujo'>('ssp')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [confirmado, setConfirmado] = useState(initialConfirmado)
   const [isPending, startTransition] = useTransition()
@@ -134,7 +137,8 @@ export function EstadosView({
             [
               ['ssp', 'Estado de Situación Patrimonial'],
               ['eerr', 'Estado de Resultados'],
-            ] as ['ssp' | 'eerr', string][]
+              ...(flujo ? [['flujo', 'Flujo de Efectivo']] : []),
+            ] as ['ssp' | 'eerr' | 'flujo', string][]
           ).map(([value, label]) => (
             <button
               key={value}
@@ -151,7 +155,7 @@ export function EstadosView({
           ))}
         </div>
         <div className="flex items-center gap-2">
-          {editarAnterior && (
+          {editarAnterior && tab !== 'flujo' && (
             <ToggleEditarAnterior
               editando={comparativo.editando}
               isPending={comparativo.isPending}
@@ -221,6 +225,8 @@ export function EstadosView({
           anteriorDenominacion={anteriorDenominacion}
         />
       )}
+      {/* Envuelto: el slot llega del servidor y como hijo único no entra en la lista de hermanos. */}
+      {tab === 'flujo' && <div>{flujo}</div>}
     </div>
   )
 }

@@ -5,6 +5,8 @@
  *  B) MANUAL: la compuerta exige autorización explícita y cuadre; cualquier
  *     edición posterior anula la autorización; cambiar de modo limpia lo manual.
  * Más validaciones de vínculo (ciclos, otra sociedad, anterior ya usado, borrado).
+ * Y el Estado de Flujo de Efectivo: efectivo derivado del balance, columna anterior
+ * derivada en VINCULADO, autorización anulada en MANUAL y control en la compuerta.
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 
@@ -53,6 +55,12 @@ import {
 } from '@/modules/comparativo-manual/repository/comparativo.repository'
 import { cargarEstadosConPN } from '@/modules/estados/services/estados.service'
 import { findCuentasByEjercicio } from '@/modules/importaciones/repository/cuentas.repository'
+import {
+  crearItemFlujoAction,
+  guardarFlujoAction,
+  traerConceptosAnteriorAction,
+} from '@/modules/flujo-efectivo/actions/flujo.actions'
+import { findFlujo } from '@/modules/flujo-efectivo/repository/flujo.repository'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -606,5 +614,184 @@ describe('Escenario B — saldos del ejercicio anterior cargados a mano', () => 
     const { pnData } = await cargarEstadosConPN(e!, await findCuentasByEjercicio(ejM))
     expect(pnData.bloqueo.saldoInicio).toBe(false)
     expect(pnData.advertencias[0]).toMatch(/no tiene Estado de Evolución/)
+  })
+})
+
+// ─── Estado de Flujo de Efectivo ──────────────────────────────────────────────
+
+describe('Estado de Flujo de Efectivo', () => {
+  let soc = ''
+  let ej2024 = ''
+  let ej2025 = ''
+  const linea = (f: Awaited<ReturnType<typeof findFlujo>>, concepto: string) =>
+    f!.items.find((i) => i.concepto === concepto)!
+
+  it('primer ejercicio: el cierre sale del balance aunque el cliente mande otro', async () => {
+    soc = (
+      await db.sociedad.create({
+        data: {
+          estudioId: ctx.estudioId,
+          razonSocial: 'Flujo S.A.',
+          cuit: `30${Date.now().toString().slice(-8)}4`,
+        },
+      })
+    ).id
+    ej2024 = ok(
+      await crearEjercicio(
+        soc,
+        inputEjercicio({
+          fechaInicio: '2024-01-01',
+          fechaCierre: '2024-12-31',
+          numeroEjercicio: '1',
+        }),
+      ),
+    ).id
+    await cargarCuentas(ej2024, CUENTAS_2024) // Caja 100.000
+    ok(await crearItemFlujoAction(ej2024, soc, 'ACTIVIDADES_OPERATIVAS', 'Cobros por ventas'))
+    ok(await crearItemFlujoAction(ej2024, soc, 'ACTIVIDADES_OPERATIVAS', 'Pagos a proveedores'))
+    const f = (await findFlujo(ej2024))!
+    ok(
+      await guardarFlujoAction(ej2024, soc, {
+        ...f,
+        saldoInicial: 80_000, // primer ejercicio: editable
+        saldoFinal: 999, // derivado: se ignora
+        items: [
+          { ...linea(f, 'Cobros por ventas'), importe: 200_000, importeAnterior: 5 },
+          { ...linea(f, 'Pagos a proveedores'), importe: -180_000 },
+        ],
+      }),
+    )
+    const g = (await findFlujo(ej2024))!
+    expect(g.saldoInicial).toBe(80_000)
+    expect(g.saldoFinal).toBe(100_000)
+    expect(linea(g, 'Cobros por ventas').importeAnterior).toBe(0) // sin comparativo
+  })
+
+  it('duplicados por sección se rechazan (mayúsculas y acentos no cuentan)', async () => {
+    const r = await crearItemFlujoAction(ej2024, soc, 'ACTIVIDADES_OPERATIVAS', 'COBROS POR VENTAS')
+    expect(fail(r, 'NEG-050')).toMatch(/Ya hay una línea/)
+    ok(await crearItemFlujoAction(ej2024, soc, 'ACTIVIDADES_INVERSION', 'Cobros por ventas'))
+    const f = (await findFlujo(ej2024))!
+    const inv = f.items.find((i) => i.seccion === 'ACTIVIDADES_INVERSION')!
+    // Renombrar al guardar tampoco puede duplicar.
+    const r2 = await guardarFlujoAction(ej2024, soc, {
+      ...f,
+      items: f.items.map((i) =>
+        i.id === inv.id ? { ...i, seccion: 'ACTIVIDADES_OPERATIVAS' as const } : i,
+      ),
+    })
+    ok(r2) // la sección no se toma del cliente: sigue en inversión, sin duplicado
+    expect((await findFlujo(ej2024))!.items.find((i) => i.id === inv.id)?.seccion).toBe(
+      'ACTIVIDADES_INVERSION',
+    )
+    await db.flujoDeCajaItem.delete({ where: { id: inv.id } })
+  })
+
+  it('VINCULADO: inicio, cierre y columna anterior derivados; el cliente no los pisa', async () => {
+    ok(await confirmarEstadosAction(ej2024, soc))
+    ok(await confirmarPNAction(ej2024, soc, true))
+    ok(await avanzarEstadoEjercicio(ej2024, soc, 'BORRADOR', 'EN_PROCESO'))
+    ej2025 = ok(
+      await crearEjercicio(
+        soc,
+        inputEjercicio({ modoAnterior: 'VINCULADO', ejercicioAnteriorId: ej2024 }),
+      ),
+    ).id
+    await cargarCuentas(
+      ej2025,
+      CUENTAS_2024.map(([c, n, v]) => [c, n, c === 'ACT-CTE-01' ? 150_000 : v]),
+    )
+    ok(await crearItemFlujoAction(ej2025, soc, 'ACTIVIDADES_OPERATIVAS', 'cobros por VENTAS'))
+    const f = (await findFlujo(ej2025))!
+    const ajeno = linea((await findFlujo(ej2024))!, 'Cobros por ventas')
+    ok(
+      await guardarFlujoAction(ej2025, soc, {
+        ...f,
+        saldoInicial: 1,
+        saldoFinal: 2,
+        saldoInicialAnterior: 3,
+        saldoFinalAnterior: 4,
+        items: [
+          { ...f.items[0]!, importe: 300_000, importeAnterior: 999 },
+          { ...ajeno, importe: 1 }, // línea de otro ejercicio: se ignora
+        ],
+      }),
+    )
+    const g = (await findFlujo(ej2025))!
+    expect(g.saldoInicial).toBe(125_000) // caja 2024 100.000 × 1,25
+    expect(g.saldoFinal).toBe(150_000)
+    expect(g.saldoFinalAnterior).toBe(125_000)
+    expect(g.saldoInicialAnterior).toBe(100_000) // inicio 2024 80.000 × 1,25
+    expect(g.items).toHaveLength(1)
+    expect(g.items[0]!.importeAnterior).toBe(250_000) // 200.000 × 1,25
+    expect(linea((await findFlujo(ej2024))!, 'Cobros por ventas').importe).toBe(200_000)
+  })
+
+  it('VINCULADO: trae del anterior los conceptos que faltan con su importe derivado', async () => {
+    const creados = ok(await traerConceptosAnteriorAction(ej2025, soc))
+    expect(creados.map((c) => [c.concepto, c.importeAnterior])).toEqual([
+      ['Pagos a proveedores', -225_000],
+    ])
+    expect(ok(await traerConceptosAnteriorAction(ej2025, soc))).toEqual([])
+  })
+
+  it('compuerta: un flujo que no cuadra bloquea los estados pero no el E.E.P.N.', async () => {
+    // Variación 25.000; actividades 300.000 + 0 → no cuadra
+    const r = await confirmarEstadosAction(ej2025, soc)
+    expect(fail(r, 'NEG-030')).toMatch(/Flujo de Efectivo no cuadra/)
+    ok(await confirmarPNAction(ej2025, soc, true))
+
+    const f = (await findFlujo(ej2025))!
+    ok(
+      await guardarFlujoAction(ej2025, soc, {
+        ...f,
+        items: f.items.map((i) =>
+          i.concepto === 'Pagos a proveedores' ? { ...i, importe: -275_000 } : i,
+        ),
+      }),
+    )
+    ok(await confirmarEstadosAction(ej2025, soc))
+    // Cualquier cambio posterior en el flujo desconfirma los estados.
+    const g = (await findFlujo(ej2025))!
+    ok(await guardarFlujoAction(ej2025, soc, { ...g, modificacionesEjAnt: 0 }))
+    expect((await findEjercicioById(ej2025))?.estadosConfirmado).toBe(false)
+  })
+
+  it('MANUAL: tocar la columna anterior anula la autorización; la actual no', async () => {
+    const socM = await db.sociedad.create({
+      data: {
+        estudioId: ctx.estudioId,
+        razonSocial: 'Flujo Manual S.R.L.',
+        cuit: `30${Date.now().toString().slice(-8)}5`,
+      },
+    })
+    const ejM = ok(await crearEjercicio(socM.id, inputEjercicio({ modoAnterior: 'MANUAL' }))).id
+    await cargarCuentas(ejM, [['ACT-CTE-01', 'Caja', 500_000]])
+    ok(await crearItemFlujoAction(ejM, socM.id, 'ACTIVIDADES_OPERATIVAS', 'Cobros por ventas'))
+    const autorizar = () =>
+      db.ejercicioContable.update({
+        where: { id: ejM },
+        data: { comparativoAutorizadoEn: new Date(), comparativoAutorizadoPor: 'Ana Pérez' },
+      })
+    await autorizar()
+
+    const f = (await findFlujo(ejM))!
+    ok(await guardarFlujoAction(ejM, socM.id, { ...f, items: [{ ...f.items[0]!, importe: 10 }] }))
+    expect((await findEjercicioById(ejM))?.comparativoAutorizadoEn).not.toBeNull()
+
+    const g = (await findFlujo(ejM))!
+    ok(
+      await guardarFlujoAction(ejM, socM.id, {
+        ...g,
+        items: [{ ...g.items[0]!, importeAnterior: 7 }],
+      }),
+    )
+    expect((await findFlujo(ejM))!.items[0]!.importeAnterior).toBe(7)
+    expect((await findEjercicioById(ejM))?.comparativoAutorizadoEn).toBeNull()
+
+    await autorizar()
+    const h = (await findFlujo(ejM))!
+    ok(await guardarFlujoAction(ejM, socM.id, { ...h, saldoInicialAnterior: 50 }))
+    expect((await findEjercicioById(ejM))?.comparativoAutorizadoEn).toBeNull()
   })
 })

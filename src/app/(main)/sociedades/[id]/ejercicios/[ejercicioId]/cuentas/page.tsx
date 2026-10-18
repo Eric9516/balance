@@ -19,6 +19,8 @@ import { NotasView } from '@/modules/notas/components/NotasView'
 import { NotaTransicionCard } from '@/modules/transicion-rt54/components/NotaTransicionCard'
 import { PatrimonioNetoView } from '@/modules/patrimonio-neto/components/PatrimonioNetoView'
 import { EstadosView } from '@/modules/estados/components/EstadosView'
+import { FlujoEfectivoView } from '@/modules/flujo-efectivo/components/FlujoEfectivoView'
+import { cargarFlujo } from '@/modules/flujo-efectivo/services/flujo.service'
 import { DocumentosView } from '@/modules/documentos/components/DocumentosView'
 import { AnexosTabs, AnexoEnConstruccion, type AnexoTab } from '@/components/shared/AnexosTabs'
 
@@ -394,6 +396,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
   } else if (paso === 'estados') {
     const cuentas = await findCuentasByEjercicio(ejercicioId)
     const { estadosData, pnData } = await cargarEstadosConPN(ejercicio, cuentas)
+    const flujo = await cargarFlujo(ejercicio, estadosData)
     content = (
       <EstadosView
         data={{
@@ -408,6 +411,17 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         fechaCierre={ejercicio.fechaCierre}
         fechaCierreAnterior={fechaCierreAnterior}
         anteriorDenominacion={ejercicioAnterior?.denominacion ?? null}
+        flujo={
+          <FlujoEfectivoView
+            data={flujo}
+            ejercicioId={ejercicioId}
+            sociedadId={id}
+            fechaInicio={ejercicio.fechaInicio}
+            fechaCierre={ejercicio.fechaCierre}
+            fechaCierreAnterior={fechaCierreAnterior}
+            anteriorDenominacion={ejercicioAnterior?.denominacion ?? null}
+          />
+        }
       />
     )
   } else {

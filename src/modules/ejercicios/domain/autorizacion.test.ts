@@ -19,6 +19,7 @@ function ctx(partial: Partial<ContextoAutorizacion> = {}): ContextoAutorizacion 
     resultadoAnterior: null,
     transicion: null,
     sociedad: null,
+    flujo: null,
     ...partial,
   }
 }
@@ -196,5 +197,38 @@ describe('compuerta: primera aplicación RT 54', () => {
       }),
     )
     expect(r.advertencias).toEqual([])
+  })
+})
+
+describe('compuerta: Estado de Flujo de Efectivo', () => {
+  const cuadre = (variacionNeta: number, sumaActividades: number) => ({
+    variacionNeta,
+    sumaActividades,
+    cuadra: Math.abs(variacionNeta - sumaActividades) < 0.005,
+  })
+
+  it('sin líneas: advierte pero no bloquea', () => {
+    const r = validarAutorizacionFinal(
+      ctx({ flujo: { lineas: 0, actual: cuadre(25_000, 0), anterior: null } }),
+    )
+    expect(codigos(r.advertencias)).toContain('AUT-052')
+    expect(r.puedeAutorizar).toBe(true)
+  })
+
+  it('la columna actual descuadrada bloquea; la anterior solo advierte', () => {
+    const r = validarAutorizacionFinal(
+      ctx({ flujo: { lineas: 3, actual: cuadre(25_000, 20_000), anterior: cuadre(10, 0) } }),
+    )
+    expect(codigos(r.bloqueantes)).toEqual(['AUT-050'])
+    expect(r.bloqueantes[0]?.mensaje).toMatch(/diferencia/)
+    expect(codigos(r.advertencias)).toContain('AUT-051')
+  })
+
+  it('cuadrado: no agrega nada', () => {
+    const r = validarAutorizacionFinal(
+      ctx({ flujo: { lineas: 3, actual: cuadre(25_000, 25_000), anterior: cuadre(5, 5) } }),
+    )
+    expect(r.bloqueantes).toEqual([])
+    expect(codigos(r.advertencias)).toEqual([])
   })
 })

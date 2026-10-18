@@ -113,6 +113,7 @@ async function _findRubrosBase(): Promise<RubroBaseSimple[]> {
       orden: true,
       generaNotaInformativa: true,
       textoNotaDefault: true,
+      esEfectivo: true,
       rubroGrupo: {
         select: {
           nombre: true,
@@ -138,5 +139,6 @@ async function _findRubrosBase(): Promise<RubroBaseSimple[]> {
     textoNotaDefault: r.textoNotaDefault ?? null,
     rubroGrupoNombre: r.rubroGrupo?.nombre ?? null,
     rubroGrupoEsGasto: r.rubroGrupo?.esGasto ?? false,
+    esEfectivo: r.esEfectivo,
   }))
 }
