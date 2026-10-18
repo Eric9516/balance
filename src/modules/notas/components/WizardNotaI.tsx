@@ -36,7 +36,7 @@ function RadioOpcion({
   return (
     <label
       className={cn(
-        'flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-all',
+        'relative flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-all',
         checked
           ? 'border-blue-500 bg-blue-50'
           : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50',
