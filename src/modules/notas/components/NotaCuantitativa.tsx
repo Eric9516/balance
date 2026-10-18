@@ -279,7 +279,7 @@ export function NotaCuantitativa({
         </thead>
         <tbody>
           {filasData.map((det) => (
-            <tr key={det.id} className="group border-b border-slate-50 hover:bg-slate-50/40">
+            <tr key={det.id} className="group border-b border-slate-50 hover:bg-acento-suave">
               <td className="px-5 py-1.5">
                 {editando ? (
                   <CeldaConcepto

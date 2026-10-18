@@ -48,7 +48,7 @@ function EERRLine({
   const editable =
     editarAnterior && !!modulo && !!claveAnterior && !!ejercicioId && !!sociedadId && !!comparativo
   return (
-    <tr className="border-b border-slate-100 hover:bg-slate-50/60">
+    <tr className="border-b border-slate-100 hover:bg-acento-suave">
       <td className="px-4 py-2.5 text-sm text-slate-700">
         {esHuerfano && (
           <span className="mr-2 inline-block rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-amber-600 uppercase">
@@ -196,7 +196,7 @@ export function EERRTab({
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50">
+            <tr className="border-b border-slate-100 bg-encabezado">
               <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                 Concepto
               </th>

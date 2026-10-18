@@ -111,7 +111,7 @@ export function CuentasTable({ cuentas, sociedadId, ejercicioId }: CuentasTableP
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50">
+              <tr className="border-b border-slate-100 bg-encabezado">
                 <th className="w-28 px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Código
                 </th>
@@ -136,7 +136,7 @@ export function CuentasTable({ cuentas, sociedadId, ejercicioId }: CuentasTableP
               {cuentas.map((c) => (
                 <tr
                   key={c.id}
-                  className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50"
+                  className="border-b border-slate-100 transition-colors last:border-0 hover:bg-acento-suave"
                 >
                   <td className="px-4 py-2.5 font-mono text-xs text-slate-600">{c.codigo}</td>
                   <td className="px-4 py-2.5 text-slate-900">{c.nombre}</td>

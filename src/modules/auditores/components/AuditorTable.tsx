@@ -65,7 +65,7 @@ export function AuditorTable({ auditores }: AuditorTableProps) {
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50">
+              <tr className="border-b border-slate-100 bg-encabezado">
                 <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   Nombre
                 </th>
@@ -86,7 +86,7 @@ export function AuditorTable({ auditores }: AuditorTableProps) {
                 <tr
                   key={a.id}
                   className={`border-b border-slate-100 transition-colors last:border-0 ${
-                    a.activo ? 'hover:bg-slate-50' : 'bg-slate-50/60 opacity-60'
+                    a.activo ? 'hover:bg-acento-suave' : 'bg-slate-50/60 opacity-60'
                   }`}
                 >
                   <td className="px-4 py-3">

@@ -163,7 +163,7 @@ export function PasoRevision({
               >
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50">
+                    <tr className="border-b border-slate-100 bg-encabezado">
                       <th className="w-10 px-3 py-2">
                         <input
                           type="checkbox"
@@ -198,7 +198,9 @@ export function PasoRevision({
                           key={f._key}
                           className={cn(
                             'cursor-pointer border-b border-slate-100 last:border-0',
-                            seleccionDescartadas.has(f._key) ? 'bg-blue-50' : 'hover:bg-slate-50',
+                            seleccionDescartadas.has(f._key)
+                              ? 'bg-blue-50'
+                              : 'hover:bg-acento-suave',
                           )}
                           onClick={() => onToggleSeleccionDescartada(f._key)}
                         >

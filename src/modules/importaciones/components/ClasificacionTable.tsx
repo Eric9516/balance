@@ -178,7 +178,7 @@ export function ClasificacionTable({ cuentas, rubros, ejercicioId, sociedadId }:
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50">
+              <tr className="border-b border-slate-100 bg-encabezado">
                 <th className="w-10 px-4 py-3">
                   <input
                     ref={selectAllRef}

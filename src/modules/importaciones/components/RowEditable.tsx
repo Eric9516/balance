@@ -27,7 +27,7 @@ export const RowEditable = React.memo(function RowEditable({
   const { saldoFinal } = importesDeFila(fila)
 
   return (
-    <tr className="border-b border-slate-100 hover:bg-slate-50/40">
+    <tr className="border-b border-slate-100 hover:bg-acento-suave">
       <td className="w-28 px-2 py-1">
         <input
           type="text"

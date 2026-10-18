@@ -78,7 +78,7 @@ function FilaDato({
   onSaveAnterior?: (v: number) => void
 }) {
   return (
-    <tr className="border-b border-slate-100 hover:bg-slate-50/40">
+    <tr className="border-b border-slate-100 hover:bg-acento-suave">
       <td className="px-4 py-2.5 text-sm text-slate-700">{label}</td>
       <td className="w-44 px-4 py-2.5">
         {bloqueado ? (
@@ -316,7 +316,7 @@ export function CostoVentasView({
             {/* Conceptos extra del período anterior (solo en carga manual) */}
             {mostrarAnterior &&
               conceptosExtraActuales.map((c) => (
-                <tr key={c.clave} className="group border-b border-slate-100 hover:bg-slate-50/40">
+                <tr key={c.clave} className="group border-b border-slate-100 hover:bg-acento-suave">
                   <td className="px-4 py-2.5 text-sm text-slate-700">
                     <span className="mr-2 inline-block rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-amber-600 uppercase">
                       solo anterior

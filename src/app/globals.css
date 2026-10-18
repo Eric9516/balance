@@ -34,6 +34,8 @@
   --color-tinta: var(--tinta);
   --color-tinta-suave: #4f4c47;
   --color-linea: #e3ded3;
+  /* Encabezado de tablas: papel más oscuro, distinto del fondo de la página */
+  --color-encabezado: #ece7dc;
   --color-acento: var(--acento);
   --color-acento-suave: color-mix(in oklab, var(--acento) 9%, white);
   --color-positivo: #2f6b55;

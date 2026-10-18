@@ -208,7 +208,7 @@ function RubroRow({
   onDelete: (r: RubroBaseDTO) => void
 }) {
   return (
-    <tr className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/50">
+    <tr className="border-b border-slate-100 transition-colors last:border-0 hover:bg-acento-suave">
       <td className="px-4 py-2.5 font-mono text-xs text-slate-500">{rubro.codigo}</td>
       <td className="px-4 py-2.5">
         <div className="flex items-center gap-2">
