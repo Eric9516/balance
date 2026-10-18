@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ChevronLeft, Tags } from 'lucide-react'
+import { ChevronLeft, Printer, Tags } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ProgresoEjercicio } from '@/components/layout/ProgresoEjercicio'
@@ -402,6 +402,16 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         action={
           <div className="flex items-center gap-2">
             <StepInfoButton info={PASO_INFO[pasoInfoKey]} />
+            <Button variant="secondary" size="sm" asChild>
+              <a
+                href={`/sociedades/${id}/ejercicios/${ejercicioId}/imprimir`}
+                target="_blank"
+                rel="noopener"
+              >
+                <Printer className="mr-1 h-3.5 w-3.5" />
+                Imprimir / PDF
+              </a>
+            </Button>
             <Button variant="secondary" size="sm" asChild>
               <Link href={`/sociedades/${id}/ejercicios`}>
                 <ChevronLeft className="mr-1 h-3.5 w-3.5" />

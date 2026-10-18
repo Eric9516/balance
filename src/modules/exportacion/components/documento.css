@@ -1,0 +1,198 @@
+/*
+ * Juego de estados contables imprimible.
+ * En pantalla: hojas A4 blancas sobre el fondo papel (vista previa).
+ * Al imprimir: una hoja por sección, encabezado y pie de firmas repetidos en cada
+ * página (thead/tfoot de la tabla de hoja), numeración en el margen inferior.
+ */
+
+@page {
+  size: A4;
+  margin: 12mm 12mm 15mm;
+
+  @bottom-right {
+    content: 'Página ' counter(page) ' de ' counter(pages);
+    font-family: var(--font-sans);
+    font-size: 8pt;
+    color: #6e6a62;
+  }
+}
+
+@page apaisada {
+  size: A4 landscape;
+}
+
+.documento {
+  color: var(--tinta);
+  font-size: 10pt;
+  line-height: 1.3;
+}
+
+.hoja-apaisada {
+  page: apaisada;
+}
+
+@media screen {
+  .documento {
+    padding: 1.5rem 1rem 4rem;
+  }
+  .hoja {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto 1.25rem;
+    padding: 14mm 12mm;
+    background: #fff;
+    box-shadow:
+      0 1px 3px rgba(27, 35, 51, 0.12),
+      0 10px 28px rgba(27, 35, 51, 0.08);
+  }
+  .hoja-apaisada {
+    width: 297mm;
+    min-height: 210mm;
+  }
+}
+
+@media print {
+  body {
+    background: #fff !important;
+  }
+  .documento {
+    padding: 0;
+  }
+  .hoja {
+    width: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .hoja + .hoja {
+    break-before: page;
+  }
+  .no-imprimir {
+    display: none !important;
+  }
+}
+
+/* Tabla de hoja: encabezado y pie se repiten en cada página impresa. */
+.hoja-tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+.hoja-tabla > thead {
+  display: table-header-group;
+}
+.hoja-tabla > tfoot {
+  display: table-footer-group;
+}
+/* En hojas apaisadas el pie va al final de la sección (sin repetir): con el pie como
+   grupo repetible, Chromium corta la última fila de la tabla a otra hoja. */
+.hoja-apaisada .hoja-tabla > tfoot {
+  display: table-row-group;
+}
+.hoja-tabla > thead > tr > td,
+.hoja-tabla > tbody > tr > td,
+.hoja-tabla > tfoot > tr > td {
+  padding: 0;
+  vertical-align: top;
+}
+
+/* Tablas de importes */
+.doc-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+}
+/* El total de cada tabla va en <tfoot> por semántica, pero se pagina como una fila
+   más: como grupo de pie, Chromium lo manda a otra hoja junto con las firmas. */
+.doc-tabla > tfoot {
+  display: table-row-group;
+}
+.doc-tabla th,
+.doc-tabla td {
+  padding: 2.5pt 5pt;
+  vertical-align: bottom;
+}
+.doc-tabla th {
+  text-align: right;
+  font-weight: 600;
+  border-bottom: 1px solid var(--tinta);
+}
+.doc-tabla th:first-child,
+.doc-tabla th.izq {
+  text-align: left;
+}
+.doc-tabla th .fecha {
+  font-weight: 400;
+  color: #6e6a62;
+  font-size: 8pt;
+}
+.doc-tabla td.num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.doc-tabla tr {
+  break-inside: avoid;
+}
+.doc-tabla tr.fila-bloque td {
+  padding-top: 6pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.doc-tabla tr.fila-seccion td {
+  padding-top: 4pt;
+  font-size: 8pt;
+  font-weight: 600;
+  color: #4f4c47;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.doc-tabla tr.fila-subtotal td {
+  font-weight: 600;
+  border-top: 1px solid #9a9488;
+}
+.doc-tabla tr.fila-total td {
+  font-weight: 700;
+  border-top: 1px solid var(--tinta);
+}
+.doc-tabla tr.fila-final td {
+  font-weight: 700;
+  border-top: 1px solid var(--tinta);
+  border-bottom: 2px solid var(--tinta);
+}
+.doc-tabla td.sangria {
+  padding-left: 14pt;
+}
+.nota-ref {
+  color: #6e6a62;
+  font-size: 8pt;
+}
+
+/* Marca de agua: fija, se repite en cada página impresa. */
+.marca-agua {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.marca-agua span {
+  transform: rotate(-30deg);
+  font-family: var(--font-serif);
+  font-size: 110pt;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(163, 52, 43, 0.13);
+}
+
+/* Cajas de partes pendientes (lugar reservado). */
+.pendiente {
+  border: 1px dashed #9a9488;
+  padding: 10pt 12pt;
+  color: #4f4c47;
+  break-inside: avoid;
+}
