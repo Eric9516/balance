@@ -52,7 +52,10 @@
 }
 
 @media print {
-  body {
+  /* Papel siempre blanco, aunque el navegador imprima los fondos. */
+  html,
+  body,
+  .documento {
     background: #fff !important;
   }
   .documento {
@@ -63,7 +66,7 @@
     min-height: 0;
     margin: 0;
     padding: 0;
-    background: transparent;
+    background: #fff;
     box-shadow: none;
   }
   .hoja + .hoja {
