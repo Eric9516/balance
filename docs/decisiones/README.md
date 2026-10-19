@@ -20,3 +20,5 @@ Cada decisión de arquitectura que sea cara de cambiar después queda escrita ac
 | [0006](0006-fechas-y-zona-horaria.md) | Fechas contables sin hora, instantes con zona horaria y sesión en UTC | Aceptada |
 | [0007](0007-columnas-en-snake-case.md) | Columnas en snake_case | Aceptada |
 | [0008](0008-claves-uuid-v7.md) | Claves UUIDv7 generadas por la base | Aceptada |
+| [0009](0009-importes-exactos.md) | Importes con aritmética exacta | Aceptada |
+| [0010](0010-catalogo-rt54-versionado.md) | Catálogo RT 54 versionado | Propuesta |
