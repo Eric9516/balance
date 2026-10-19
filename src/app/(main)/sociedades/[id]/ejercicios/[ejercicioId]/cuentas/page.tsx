@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { esUuid } from '@/lib/utils/uuid'
 import { ChevronLeft, Printer, Tags } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -83,6 +84,8 @@ export async function generateMetadata({ params, searchParams }: Props) {
 export default async function CuentasPage({ params, searchParams }: Props) {
   const { id, ejercicioId } = await params
   const { paso, anexo } = await searchParams
+  // La primera oleada consulta por estos ids en paralelo: uno mal formado haría fallar a la base.
+  if (!esUuid(id) || !esUuid(ejercicioId)) notFound()
   const base = `/sociedades/${id}/ejercicios/${ejercicioId}/cuentas`
 
   // ── Oleada 1: datos base + insumos del stepper (todo depende solo de los ids) ─

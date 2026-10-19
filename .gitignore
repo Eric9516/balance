@@ -48,3 +48,6 @@ next-env.d.ts
 
 # mediciones de rendimiento (pnpm rendimiento)
 /.rendimiento/
+
+# copias locales de datos reales (nunca a git)
+/.respaldos/

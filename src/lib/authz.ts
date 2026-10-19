@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { esUuid } from '@/lib/utils/uuid'
 import { getCurrentEstudioId } from '@/lib/estudio-context'
 import type { AppError } from '@/modules/errores/types'
 
@@ -12,6 +13,7 @@ function unauthorized(message: string): AppError {
 }
 
 export async function assertEjercicioBelongsToCurrentEstudio(ejercicioId: string): Promise<void> {
+  if (!esUuid(ejercicioId)) throw unauthorized('No tenés permiso para modificar este ejercicio.')
   const estudioId = await getCurrentEstudioId()
   const ejercicio = await db.ejercicioContable.findFirst({
     where: { id: ejercicioId, estudioId },
@@ -23,6 +25,7 @@ export async function assertEjercicioBelongsToCurrentEstudio(ejercicioId: string
 }
 
 export async function assertCuentaBelongsToCurrentEstudio(cuentaId: string): Promise<void> {
+  if (!esUuid(cuentaId)) throw unauthorized('No tenés permiso para modificar esta cuenta.')
   const estudioId = await getCurrentEstudioId()
   const cuenta = await db.cuentaContable.findFirst({
     where: { id: cuentaId, ejercicio: { estudioId } },
@@ -34,6 +37,7 @@ export async function assertCuentaBelongsToCurrentEstudio(cuentaId: string): Pro
 }
 
 export async function assertNotaBelongsToCurrentEstudio(notaId: string): Promise<void> {
+  if (!esUuid(notaId)) throw unauthorized('No tenés permiso para modificar esta nota.')
   const estudioId = await getCurrentEstudioId()
   const nota = await db.notaEjercicio.findFirst({
     where: { id: notaId, ejercicio: { estudioId } },
@@ -45,6 +49,8 @@ export async function assertNotaBelongsToCurrentEstudio(notaId: string): Promise
 }
 
 export async function assertDetalleNotaBelongsToCurrentEstudio(detalleId: string): Promise<void> {
+  if (!esUuid(detalleId))
+    throw unauthorized('No tenés permiso para modificar este detalle de nota.')
   const estudioId = await getCurrentEstudioId()
   const detalle = await db.detalleNota.findFirst({
     where: { id: detalleId, nota: { ejercicio: { estudioId } } },

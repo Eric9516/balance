@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { esUuid } from '@/lib/utils/uuid'
 import { toAuditorDTO, type AuditorDTO } from '../domain/types'
 import type { CreateAuditorInput, UpdateAuditorInput } from '../schemas/auditor.schemas'
 
@@ -11,6 +12,7 @@ export async function findAuditoresByEstudio(estudioId: string): Promise<Auditor
 }
 
 export async function findAuditorById(id: string): Promise<AuditorDTO | null> {
+  if (!esUuid(id)) return null
   const a = await db.auditor.findUnique({ where: { id } })
   return a ? toAuditorDTO(a) : null
 }

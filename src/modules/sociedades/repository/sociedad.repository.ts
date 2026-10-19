@@ -1,5 +1,6 @@
 import { cache } from 'react'
 import { db } from '@/lib/db'
+import { esUuid } from '@/lib/utils/uuid'
 import { normalizarCuit } from '@/lib/utils/cuit'
 import { CATEGORIA_ENTE_LABELS } from '@/modules/ejercicios/domain/types'
 import { toSociedadDTO, type SociedadDTO } from '../domain/types'
@@ -37,6 +38,7 @@ export async function findSociedadesByEstudio(estudioId: string): Promise<Socied
 
 /** Memoizado por request (React cache). */
 export const findSociedadById = cache(async (id: string): Promise<SociedadDTO | null> => {
+  if (!esUuid(id)) return null
   const s = await db.sociedad.findUnique({ where: { id } })
   return s ? toSociedadDTO(s) : null
 })

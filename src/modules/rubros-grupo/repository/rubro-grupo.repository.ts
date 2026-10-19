@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
+import { esUuid } from '@/lib/utils/uuid'
 import { toRubroGrupoDTO, type RubroGrupoDTO } from '../domain/types'
 import type { CreateRubroGrupoInput } from '../schemas/rubro-grupo.schemas'
 
@@ -14,6 +15,7 @@ export async function findAllRubroGrupos(): Promise<RubroGrupoDTO[]> {
 }
 
 export async function findRubroGrupoById(id: string): Promise<RubroGrupoDTO | null> {
+  if (!esUuid(id)) return null
   const g = await db.rubroGrupo.findUnique({ where: { id }, include: withCount })
   return g ? toRubroGrupoDTO(g) : null
 }

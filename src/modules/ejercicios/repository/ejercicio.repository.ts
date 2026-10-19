@@ -1,5 +1,6 @@
 import { cache } from 'react'
 import { db } from '@/lib/db'
+import { esUuid } from '@/lib/utils/uuid'
 import type { EstadoEjercicio, ModoEjercicioAnterior } from '@prisma/client'
 import { CATEGORIA_ENTE_LABELS, toEjercicioDTO, type EjercicioContableDTO } from '../domain/types'
 import type {
@@ -93,6 +94,7 @@ async function completarAuditores(
 export async function findEjerciciosBySociedad(
   sociedadId: string,
 ): Promise<EjercicioContableDTO[]> {
+  if (!esUuid(sociedadId)) return []
   const [rows, auditores] = await Promise.all([
     db.ejercicioContable.findMany({ where: { sociedadId }, orderBy: [{ fechaCierre: 'desc' }] }),
     db.auditor.findMany({
@@ -115,6 +117,7 @@ export async function findEjerciciosBySociedad(
  * El ejercicio y su auditor van EN PARALELO, en un solo viaje a la base.
  */
 export const findEjercicioById = cache(async (id: string): Promise<EjercicioContableDTO | null> => {
+  if (!esUuid(id)) return null
   const [e, auditor] = await Promise.all([
     db.ejercicioContable.findUnique({ where: { id } }),
     db.auditor.findFirst({
@@ -130,6 +133,7 @@ export const findEjercicioById = cache(async (id: string): Promise<EjercicioCont
 
 /** Resúmenes livianos de los ejercicios de una sociedad (para elegir/validar el anterior). */
 export async function findResumenesBySociedad(sociedadId: string): Promise<EjercicioResumen[]> {
+  if (!esUuid(sociedadId)) return []
   return db.ejercicioContable.findMany({
     where: { sociedadId },
     select: resumenSelect,
@@ -138,11 +142,13 @@ export async function findResumenesBySociedad(sociedadId: string): Promise<Ejerc
 }
 
 export async function findResumenById(id: string): Promise<EjercicioResumen | null> {
+  if (!esUuid(id)) return null
   return db.ejercicioContable.findUnique({ where: { id }, select: resumenSelect })
 }
 
 /** Modo y vínculo actuales de un ejercicio. */
 export async function findConfigAnterior(id: string): Promise<ConfigAnterior | null> {
+  if (!esUuid(id)) return null
   return db.ejercicioContable.findUnique({
     where: { id },
     select: { modoAnterior: true, ejercicioAnteriorId: true },
@@ -161,6 +167,7 @@ const MAX_SALTOS_CADENA = 100
  * en el esquema, hay que cambiarlos acá (lo cubre la prueba de integración de la cadena).
  */
 export async function findCadenaAnterior(desdeId: string): Promise<string[]> {
+  if (!esUuid(desdeId)) return []
   const filas = await db.$queryRaw<{ id: string }[]>`
     WITH RECURSIVE cadena (id, nivel) AS (
       SELECT e."ejercicio_anterior_id", 1

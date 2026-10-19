@@ -209,7 +209,7 @@ enum ModuloSistema {
 // aparecEnEERR=true → además aparece como línea de gasto en el EERR
 // aparecEnEERR=false → solo en Anexo III (ej: gastos vinculados al costo, ya incluidos en Costo de Ventas)
 model RubroGrupo {
-  id            String         @id @default(cuid())
+  id            String         @id @default(dbgenerated("uuidv7()")) @db.Uuid
   nombre        String
   sigla         String?        // Ej: "GTO", "GAST" — definida por el contador
   esGasto       Boolean        @default(false) @map("es_gasto")
@@ -228,8 +228,8 @@ model RubroGrupo {
 }
 
 model RubroBase {
-  id                 String             @id @default(cuid())
-  rubroGrupoId       String? @map("rubro_grupo_id")
+  id                 String             @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  rubroGrupoId       String? @map("rubro_grupo_id") @db.Uuid
   codigo             String             @unique
   nombre             String
   descripcion        String?
@@ -256,9 +256,9 @@ model RubroBase {
 }
 
 model RubroActivoEstudio {
-  id        String   @id @default(cuid())
-  estudioId String @map("estudio_id")
-  rubroId   String @map("rubro_id")
+  id        String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  estudioId String @map("estudio_id") @db.Uuid
+  rubroId   String @map("rubro_id") @db.Uuid
   activo    Boolean  @default(true)
   createdAt DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
 
@@ -273,7 +273,7 @@ model RubroActivoEstudio {
 // ─── Estudio ──────────────────────────────────────────────────────────────────
 
 model Estudio {
-  id          String      @id @default(cuid())
+  id          String      @id @default(dbgenerated("uuidv7()")) @db.Uuid
   nombre      String
   cuit        String      @unique
   razonSocial String @map("razon_social")
@@ -299,8 +299,8 @@ model Estudio {
 }
 
 model EstudioConfiguracion {
-  id                     String   @id @default(cuid())
-  estudioId              String   @unique @map("estudio_id")
+  id                     String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  estudioId              String   @unique @map("estudio_id") @db.Uuid
   logoUrl                String? @map("logo_url")
   // Acento de la interfaz (identidad del estudio). Hex #RRGGBB con contraste suficiente
   // sobre blanco (validado en dominio: estudios/domain/preferencias.ts).
@@ -320,8 +320,8 @@ model EstudioConfiguracion {
 }
 
 model UsuarioEstudio {
-  id        String     @id @default(cuid())
-  estudioId String @map("estudio_id")
+  id        String     @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  estudioId String @map("estudio_id") @db.Uuid
   nombre    String
   email     String     @unique
   rol       RolEstudio @default(JUNIOR)
@@ -338,8 +338,8 @@ model UsuarioEstudio {
 // ─── Sociedad / Auditor ───────────────────────────────────────────────────────
 
 model Sociedad {
-  id                  String      @id @default(cuid())
-  estudioId           String @map("estudio_id")
+  id                  String      @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  estudioId           String @map("estudio_id") @db.Uuid
   razonSocial         String @map("razon_social")
   cuit                String      @unique
   tipoPersona         TipoPersona @default(JURIDICA) @map("tipo_persona")
@@ -369,8 +369,8 @@ model Sociedad {
 }
 
 model Auditor {
-  id                 String   @id @default(cuid())
-  estudioId          String @map("estudio_id")
+  id                 String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  estudioId          String @map("estudio_id") @db.Uuid
   nombre             String
   apellido           String
   cuit               String?
@@ -396,11 +396,11 @@ model Auditor {
 // ─── Ejercicio ────────────────────────────────────────────────────────────────
 
 model EjercicioContable {
-  id                  String          @id @default(cuid())
-  estudioId           String @map("estudio_id")
-  sociedadId          String @map("sociedad_id")
-  auditorId           String? @map("auditor_id")
-  ejercicioAnteriorId String?         @unique @map("ejercicio_anterior_id")
+  id                  String          @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  estudioId           String @map("estudio_id") @db.Uuid
+  sociedadId          String @map("sociedad_id") @db.Uuid
+  auditorId           String? @map("auditor_id") @db.Uuid
+  ejercicioAnteriorId String?         @unique @map("ejercicio_anterior_id") @db.Uuid
   numeroEjercicio     Int? @map("numero_ejercicio")
   fechaInicio         DateTime @db.Date @map("fecha_inicio")
   fechaCierre         DateTime @db.Date @map("fecha_cierre")
@@ -460,8 +460,8 @@ model EjercicioContable {
 // ─── Importación ──────────────────────────────────────────────────────────────
 
 model MapeoExcel {
-  id               String   @id @default(cuid())
-  estudioId        String @map("estudio_id")
+  id               String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  estudioId        String @map("estudio_id") @db.Uuid
   nombre           String
   descripcion      String?
   columnasCodigo   String[] @map("columnas_codigo")
@@ -481,9 +481,9 @@ model MapeoExcel {
 }
 
 model ImportacionExcel {
-  id              String            @id @default(cuid())
-  ejercicioId     String @map("ejercicio_id")
-  mapeoExcelId    String? @map("mapeo_excel_id")
+  id              String            @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  ejercicioId     String @map("ejercicio_id") @db.Uuid
+  mapeoExcelId    String? @map("mapeo_excel_id") @db.Uuid
   nombreArchivo   String @map("nombre_archivo")
   hashArchivo     String @map("hash_archivo")
   estado          EstadoImportacion @default(PENDIENTE)
@@ -508,11 +508,11 @@ model ImportacionExcel {
 // ─── Cuentas ──────────────────────────────────────────────────────────────────
 
 model CuentaContable {
-  id                 String   @id @default(cuid())
-  ejercicioId        String @map("ejercicio_id")
-  importacionExcelId String? @map("importacion_excel_id")
-  rubroBaseId        String? @map("rubro_base_id")
-  notaEjercicioId    String? @map("nota_ejercicio_id")
+  id                 String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  ejercicioId        String @map("ejercicio_id") @db.Uuid
+  importacionExcelId String? @map("importacion_excel_id") @db.Uuid
+  rubroBaseId        String? @map("rubro_base_id") @db.Uuid
+  notaEjercicioId    String? @map("nota_ejercicio_id") @db.Uuid
   codigo             String
   nombre             String
   saldoDeudor        Decimal  @default(0) @db.Decimal(18, 2) @map("saldo_deudor")
@@ -538,8 +538,8 @@ model CuentaContable {
 // ─── Notas ────────────────────────────────────────────────────────────────────
 
 model PlantillaNota {
-  id               String   @id @default(cuid())
-  estudioId        String @map("estudio_id")
+  id               String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  estudioId        String @map("estudio_id") @db.Uuid
   titulo           String
   tipo             TipoNota
   contenido        String?
@@ -558,9 +558,9 @@ model PlantillaNota {
 }
 
 model NotaEjercicio {
-  id              String   @id @default(cuid())
-  ejercicioId     String @map("ejercicio_id")
-  plantillaNotaId String? @map("plantilla_nota_id")
+  id              String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  ejercicioId     String @map("ejercicio_id") @db.Uuid
+  plantillaNotaId String? @map("plantilla_nota_id") @db.Uuid
   titulo          String
   tipo            TipoNota
   numero          Int?     // Número que aparece impreso: "Nota N° 2", "Nota N° 3"...
@@ -582,8 +582,8 @@ model NotaEjercicio {
 }
 
 model DetalleNota {
-  id               String   @id @default(cuid())
-  notaEjercicioId  String @map("nota_ejercicio_id")
+  id               String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  notaEjercicioId  String @map("nota_ejercicio_id") @db.Uuid
   orden            Int
   concepto         String
   importeActual    Decimal  @default(0) @db.Decimal(18, 2) @map("importe_actual")
@@ -605,8 +605,8 @@ model DetalleNota {
 // El resultado del ejercicio se copia automáticamente desde el EERR.
 
 model EvolucionPNMovimiento {
-  id          String           @id @default(cuid())
-  ejercicioId String @map("ejercicio_id")
+  id          String           @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  ejercicioId String @map("ejercicio_id") @db.Uuid
   tipo        TipoMovimientoPN
   orden       Int
 
@@ -637,8 +637,8 @@ model EvolucionPNMovimiento {
 // pueden variar año a año (ítems distintos, conceptos nuevos/eliminados).
 
 model FlujoDeCajaEjercicio {
-  id           String   @id @default(cuid())
-  ejercicioId  String   @unique @map("ejercicio_id")
+  id           String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  ejercicioId  String   @unique @map("ejercicio_id") @db.Uuid
   // Saldos de efectivo — bloque superior del estado (PDF página 6)
   // efectivo inicio + modificaciones = efectivo modificado inicio
   // efectivo cierre - efectivo modificado inicio = variación neta (calculada en app)
@@ -659,8 +659,8 @@ model FlujoDeCajaEjercicio {
 }
 
 model FlujoDeCajaItem {
-  id              String       @id @default(cuid())
-  flujoId         String @map("flujo_id")
+  id              String       @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  flujoId         String @map("flujo_id") @db.Uuid
   seccion         SeccionFlujo
   concepto        String
   // Positivo = ingreso de efectivo, negativo = egreso
@@ -683,8 +683,8 @@ model FlujoDeCajaItem {
 // (valor residual anterior = costoFin - depAcumFin del ejercicio previo).
 
 model BienDeUsoCategoria {
-  id          String   @id @default(cuid())
-  ejercicioId String @map("ejercicio_id")
+  id          String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  ejercicioId String @map("ejercicio_id") @db.Uuid
   categoria   String   // Ej: "Inmuebles", "Rodados", "Muebles y Útiles"
   orden       Int
 
@@ -724,8 +724,8 @@ model BienDeUsoCategoria {
 // El comparativo se deriva del ejercicio anterior (mismo modelo, ejercicioAnteriorId).
 
 model CostoVentasEjercicio {
-  id          String   @id @default(cuid())
-  ejercicioId String   @unique @map("ejercicio_id")
+  id          String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  ejercicioId String   @unique @map("ejercicio_id") @db.Uuid
 
   existenciaInicial  Decimal @default(0) @db.Decimal(18, 2) @map("existencia_inicial")
   compras            Decimal @default(0) @db.Decimal(18, 2)
@@ -746,8 +746,8 @@ model CostoVentasEjercicio {
 // ─── Validaciones ─────────────────────────────────────────────────────────────
 
 model ErrorValidacion {
-  id          String              @id @default(cuid())
-  ejercicioId String @map("ejercicio_id")
+  id          String              @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  ejercicioId String @map("ejercicio_id") @db.Uuid
   tipo        TipoValidacion
   severidad   SeveridadValidacion
   estado      EstadoValidacion    @default(ACTIVA)
@@ -766,7 +766,7 @@ model ErrorValidacion {
 // ─── Errores técnicos ─────────────────────────────────────────────────────────
 
 model ErrorTecnicoLog {
-  id        String           @id @default(cuid())
+  id        String           @id @default(dbgenerated("uuidv7()")) @db.Uuid
   tipo      TipoErrorTecnico
   severidad SeveridadError
   modulo    ModuloSistema?
@@ -787,8 +787,8 @@ model ErrorTecnicoLog {
 // del balance importado. Un registro por módulo + clave (sección o rubroBaseId).
 
 model ComparativoManual {
-  id          String            @id @default(cuid())
-  ejercicioId String @map("ejercicio_id")
+  id          String            @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  ejercicioId String @map("ejercicio_id") @db.Uuid
   modulo      String            // 'SSP' | 'EERR' | 'GASTOS' | 'BDU'
   clave       String            // seccion key, rubroBaseId, o nombre de categoría
   label       String            // nombre para mostrar (clave legible)
@@ -826,8 +826,8 @@ enum OrigenDocumento {
 }
 
 model DocumentoEjercicio {
-  id             String          @id @default(cuid())
-  ejercicioId    String @map("ejercicio_id")
+  id             String          @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  ejercicioId    String @map("ejercicio_id") @db.Uuid
   reglaClave     String? @map("regla_clave") // null = documento agregado manualmente
   tipo           TipoDocumento
   titulo         String
@@ -851,8 +851,8 @@ model DocumentoEjercicio {
 // errores y cambios de políticas que no son transición).
 
 model AjusteTransicionRT54 {
-  id          String               @id @default(cuid())
-  ejercicioId String @map("ejercicio_id")
+  id          String               @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  ejercicioId String @map("ejercicio_id") @db.Uuid
   orden       Int
   tipo        TipoAjusteTransicion
   concepto    String

@@ -254,16 +254,41 @@ export async function clavesForaneasSinIndice(
   return r.rows.map((f) => ({ ...f, filas: Number(f.filas) }))
 }
 
+/** Tablas más pesadas, con el tamaño de los datos y el de los índices por separado (en MB). */
 export async function tamanios(
   pg: Client,
-): Promise<{ tabla: string; filas: number; total: string }[]> {
-  const r = await pg.query<{ tabla: string; filas: string; total: string }>(
+): Promise<
+  { tabla: string; filas: number; datosMb: number; indicesMb: number; totalMb: number }[]
+> {
+  const r = await pg.query<{
+    tabla: string
+    filas: string
+    datos: string
+    indices: string
+    total: string
+  }>(
     `SELECT relname AS tabla, GREATEST(reltuples, 0)::bigint AS filas,
-            pg_size_pretty(pg_total_relation_size(oid)) AS total
+            pg_table_size(oid) AS datos, pg_indexes_size(oid) AS indices,
+            pg_total_relation_size(oid) AS total
        FROM pg_class
       WHERE relnamespace = 'public'::regnamespace AND relkind = 'r'
       ORDER BY pg_total_relation_size(oid) DESC
       LIMIT 10`,
   )
-  return r.rows.map((f) => ({ ...f, filas: Number(f.filas) }))
+  const mb = (bytes: string) => Math.round((Number(bytes) / 1024 / 1024) * 10) / 10
+  return r.rows.map((f) => ({
+    tabla: f.tabla,
+    filas: Number(f.filas),
+    datosMb: mb(f.datos),
+    indicesMb: mb(f.indices),
+    totalMb: mb(f.total),
+  }))
+}
+
+/** Tamaño total de la base, en MB. */
+export async function tamanioBase(pg: Client): Promise<number> {
+  const r = await pg.query<{ bytes: string }>(
+    'SELECT pg_database_size(current_database()) AS bytes',
+  )
+  return Math.round((Number(r.rows[0]!.bytes) / 1024 / 1024) * 10) / 10
 }

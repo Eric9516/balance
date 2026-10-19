@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { esUuid } from '@/lib/utils/uuid'
 import { toRubroBaseDTO, type RubroBaseDTO } from '../domain/types'
 import type { CreateRubroBaseInput } from '../schemas/rubro-base.schemas'
 import { esSeccionEERR, esSeccionSSP } from '../domain/secciones'
@@ -18,6 +19,7 @@ export async function findAllRubrosBase(): Promise<RubroBaseDTO[]> {
 }
 
 export async function findRubroBaseById(id: string): Promise<RubroBaseDTO | null> {
+  if (!esUuid(id)) return null
   const r = await db.rubroBase.findUnique({ where: { id }, include: includeGrupo })
   return r ? toRubroBaseDTO(r) : null
 }

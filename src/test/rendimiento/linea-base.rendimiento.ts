@@ -68,6 +68,7 @@ import {
   filasPorTabla,
   iniciarIntermediario,
   repetidas,
+  tamanioBase,
   tamanios,
 } from './medir'
 
@@ -235,6 +236,7 @@ describe(`Rendimiento (escala ${ESCALA})`, () => {
 
     const fkSinIndice = await clavesForaneasSinIndice(pg)
     const masPesadas = await tamanios(pg)
+    const baseMb = await tamanioBase(pg)
 
     // ── Informe ──────────────────────────────────────────────────────────────
     const md: string[] = [
@@ -271,9 +273,14 @@ describe(`Rendimiento (escala ${ESCALA})`, () => {
       '',
       '## Tablas más pesadas',
       '',
-      '| Tabla | Filas | Tamaño con índices |',
-      '|---|---|---|',
-      ...masPesadas.map((t) => `| ${t.tabla} | ${t.filas.toLocaleString('es-AR')} | ${t.total} |`),
+      `Base completa: ${baseMb.toLocaleString('es-AR')} MB.`,
+      '',
+      '| Tabla | Filas | Datos (MB) | Índices (MB) | Total (MB) |',
+      '|---|---|---|---|---|',
+      ...masPesadas.map(
+        (t) =>
+          `| ${t.tabla} | ${t.filas.toLocaleString('es-AR')} | ${t.datosMb} | ${t.indicesMb} | ${t.totalMb} |`,
+      ),
     ]
     const conRepetidas = resultados.filter((r) => r.consultasRepetidas.length > 0)
     if (conRepetidas.length > 0) {
@@ -305,6 +312,7 @@ describe(`Rendimiento (escala ${ESCALA})`, () => {
           resultados,
           fkSinIndice,
           masPesadas,
+          baseMb,
         },
         null,
         2,

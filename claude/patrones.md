@@ -330,3 +330,20 @@ const [rows, rubros] = await Promise.all([
 - Las lecturas que se repiten en un mismo render llevan `cache()` de React, salvo que una acción las lea antes y después de escribir.
 - Recorridos de largo variable (la cadena de anteriores) van en una sola consulta recursiva, no en un bucle.
 - Cada optimización se mide con `pnpm rendimiento` y se prueba con un `.itest.ts` que también pase con el código anterior (ver `src/test/integracion/lecturas-en-paralelo.itest.ts`).
+
+---
+
+## 19. Identificadores: UUIDv7 generado por la base
+
+Todas las tablas usan `id String @id @default(dbgenerated("uuidv7()")) @db.Uuid` y toda columna que referencia un id es `String @db.Uuid`. La app nunca genera identificadores: los pone la base con `uuidv7()` (PostgreSQL 18 la trae de fábrica; en 17 la define la migración `claves_uuid_v7`).
+
+Un texto que no es UUID hace fallar a PostgreSQL si se consulta. Las funciones que reciben ids de afuera validan primero:
+
+```typescript
+export const findSociedadById = cache(async (id: string) => {
+  if (!esUuid(id)) return null // dirección mal formada: "no encontrado", no un error de la base
+  ...
+})
+```
+
+Los controles de permisos (`src/lib/authz.ts`) responden "sin permiso" ante un id mal formado. Ver `docs/decisiones/0008-claves-uuid-v7.md`.

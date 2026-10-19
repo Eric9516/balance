@@ -19,3 +19,4 @@ Cada decisión de arquitectura que sea cara de cambiar después queda escrita ac
 | [0005](0005-medir-antes-de-optimizar.md) | Sobredimensionar lo irreversible y medir el rendimiento con PostgreSQL real y datos grandes | Aceptada |
 | [0006](0006-fechas-y-zona-horaria.md) | Fechas contables sin hora, instantes con zona horaria y sesión en UTC | Aceptada |
 | [0007](0007-columnas-en-snake-case.md) | Columnas en snake_case | Aceptada |
+| [0008](0008-claves-uuid-v7.md) | Claves UUIDv7 generadas por la base | Aceptada |

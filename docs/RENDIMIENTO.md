@@ -91,6 +91,18 @@ Costo de los índices nuevos: `cuentas_contables` pasa de 551 a 578 MB en la esc
 - **En Windows los temporizadores tienen unos 15 ms de resolución**, así que cada viaje simulado de 30 ms cuesta en realidad unos 46. Por eso los viajes se calculan con la ida y vuelta medida, y el estimado con red usa 30 ms por viaje.
 - **La medición no deduplica con `cache()` de React**, que sí lo hace en una página real. Las repetidas que quedan en el informe son el máximo posible.
 
+## Claves UUIDv7 (2026-10-19)
+
+Ver [0008](decisiones/0008-claves-uuid-v7.md). Escala media, misma siembra:
+
+| Medida | Con cuid | Con UUIDv7 | Cambio |
+|---|---|---|---|
+| Base completa | 622,6 MB | 504,2 MB | −19% |
+| `cuentas_contables`, datos | 315,8 MB | 257,8 MB | −18% |
+| `cuentas_contables`, índices | 263,8 MB | 209,2 MB | −21% |
+
+La velocidad local no cambió de forma medible: a esta escala todo entra en memoria y la base de la medición compara texto byte a byte, mientras que Supabase usa reglas de idioma ICU (`en_US.UTF-8`).
+
 ## Próximas mejoras propuestas
 
 | Mejora | Qué cambia | Efecto esperado |
@@ -99,10 +111,10 @@ Costo de los índices nuevos: `cuentas_contables` pasa de 551 a 578 MB en la esc
 | Repetidas que quedan | Catálogo de rubros y grupos de rubros pedidos más de una vez por los servicios | Menos consultas en Estados, Anterior y Documento |
 | Medir con la caché de React | Simular en la medición la deduplicación por pedido de `cache()` | Números más fieles a una página real |
 | Grupos de gasto en los datos sintéticos | Sembrar grupos de rubros, como los que configura un estudio | Medir el camino completo de gastos dinámicos |
-| Claves UUIDv7 (Fase 0, paso 4) | Claves de 16 bytes en vez de texto de 25 caracteres | Filas e índices más chicos en `cuentas_contables` |
 
 ## Pendiente de medir
 
+- Con la misma intercalación que Supabase (ICU, `en_US.UTF-8`): la base de la medición usa `--locale=C`, que compara texto byte a byte.
 - La escala grande completa.
 - Operaciones de escritura además de la importación: clasificar cuentas, guardar anexos y confirmar estados.
 - Borrar un rubro y una importación con datos grandes.
