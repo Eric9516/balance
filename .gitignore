@@ -45,3 +45,6 @@ next-env.d.ts
 
 # logs locales de herramientas
 /.codex-logs/
+
+# mediciones de rendimiento (pnpm rendimiento)
+/.rendimiento/

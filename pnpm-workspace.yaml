@@ -8,6 +8,11 @@ allowBuilds:
   # Solo compilan desde cero si falta el binario ya armado de la plataforma, que viene como dependencia opcional.
   sharp: false
   unrs-resolver: false
+  # PostgreSQL real para medir rendimiento (pnpm rendimiento): su instalación arma los archivos del programa.
+  '@embedded-postgres/windows-x64': true
+  '@embedded-postgres/linux-x64': true
+  '@embedded-postgres/darwin-arm64': true
+  '@embedded-postgres/darwin-x64': true
 
 # Cadena de suministro: no instalar versiones publicadas hace menos de 3 días (en minutos).
 # Una versión comprometida suele detectarse y retirarse en ese plazo.

@@ -85,7 +85,8 @@ Toda modificación de base de datos debe cuidar:
 - **Tipos compactos y correctos:** fechas contables como fecha sin hora, marcas de tiempo con zona horaria, importes como decimal. Nunca `float` ni `number` de JavaScript para calcular importes.
 - **Tablas que van a crecer mucho** (cuentas, historial, movimientos): claves pensadas para poder particionar sin rediseñar.
 - **Los archivos no van en la base.** Excel importados, PDF emitidos, logos y firmas van a almacenamiento de objetos. En la base solo la referencia, los metadatos y su hash. Nunca base64 ni binarios en tablas.
-- **Medir antes de dar por bueno:** `pg_stat_statements`, `EXPLAIN` de cada consulta nueva y pruebas con datos sintéticos grandes. Una consulta que lee entera una tabla grande es un error.
+- **Medir antes de dar por bueno:** `pnpm rendimiento` (PostgreSQL real, datos sintéticos grandes y el código real de la app; ver `docs/RENDIMIENTO.md`), `EXPLAIN` de cada consulta nueva y `pg_stat_statements` en producción. Una consulta que lee entera una tabla grande es un error.
+- **Contar los viajes a la base, no solo el tiempo:** con Supabase en otra ciudad cada ida y vuelta cuesta decenas de milisegundos. Consultas independientes van en paralelo; cada `include` de Prisma agrega un viaje.
 - **Transacciones cortas**, sin llamadas externas adentro.
 
 ### Migraciones
