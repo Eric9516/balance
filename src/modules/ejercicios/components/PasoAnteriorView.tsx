@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import type { EstadoEjercicio } from '@prisma/client'
 import { cn } from '@/lib/utils'
-import { formatCurrency } from '@/lib/utils/currency'
+import { formatCoeficiente, formatCurrency } from '@/lib/utils/currency'
 import { formatFecha } from '@/lib/utils/dates'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -381,7 +381,7 @@ export function PasoAnteriorView({
                   cierre {formatFecha(anterior.fechaCierre)}
                 </span>
                 <span className="font-mono text-xs text-slate-500">
-                  coeficiente {coeficiente.toFixed(4)}
+                  coeficiente {formatCoeficiente(coeficiente)}
                 </span>
                 <Link
                   href={`/sociedades/${sociedadId}/ejercicios/${anterior.id}/cuentas?paso=estados`}

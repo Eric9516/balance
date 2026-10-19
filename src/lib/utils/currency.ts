@@ -32,3 +32,12 @@ export function formatCurrency(
 
   return d.isNegative() ? `(${conSimbolo})` : conSimbolo
 }
+
+/**
+ * Coeficiente de reexpresión para mostrar: 2 decimales en formato argentino (1,32).
+ * Decisión del dueño del producto (2026-10-19): es solo presentación. El cálculo usa siempre el
+ * coeficiente completo (`dividir` de `@/lib/importe`), nunca el valor mostrado.
+ */
+export function formatCoeficiente(coeficiente: number): string {
+  return formatCurrency(coeficiente)
+}

@@ -35,20 +35,6 @@ const PERMITIDOS: Permitido[] = [
       "Solo presentación: el dueño del producto decidió (2026-10-19) que la pantalla y el documento muestran 2 decimales. Cálculos y base conservan el valor completo; con decimales 'todos' (mensajes de control) no redondea.",
   },
   {
-    archivo: 'src/modules/ejercicios/components/PasoAnteriorView.tsx',
-    linea: 'coeficiente {coeficiente.toFixed(4)}',
-    motivo:
-      'Cómo se muestra el coeficiente de reexpresión: espera la decisión del dueño del producto.',
-    pendiente: true,
-  },
-  {
-    archivo: 'src/modules/ejercicios/components/EjercicioForm.tsx',
-    linea: 'return dividir(act, ant).toFixed(4)',
-    motivo:
-      'Vista previa del coeficiente en el formulario: espera la misma decisión que el coeficiente del paso Anterior.',
-    pendiente: true,
-  },
-  {
     archivo: 'src/modules/estudios/domain/preferencias.ts',
     linea:
       'return `El color ${hex.toUpperCase()} es demasiado claro: el texto blanco sobre él tendría contraste ${c.toFixed(1)}:1 y el mínimo es ${CONTRASTE_MINIMO}:1. Elegí un tono más oscuro.`',

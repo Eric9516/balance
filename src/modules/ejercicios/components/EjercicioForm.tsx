@@ -33,6 +33,7 @@ import {
 import type { AuditorDTO } from '@/modules/auditores/domain/types'
 import { formatFecha, toDateInputValue } from '@/lib/utils/dates'
 import { dividir } from '@/lib/importe'
+import { formatCoeficiente } from '@/lib/utils/currency'
 
 function buildAutoDenomin(fechaCierre: string): string {
   if (!fechaCierre) return ''
@@ -227,10 +228,11 @@ export function EjercicioForm({
   const showDenomPreview = !denominacion && autoDenominacion
 
   const coefAnual = (() => {
-    const ant = parseFloat(indAnterior ?? '')
-    const act = parseFloat(indActual ?? '')
+    // Mismo criterio que el servidor al validar y guardar los índices: la coma es el decimal.
+    const ant = parseFloat((indAnterior ?? '').trim().replace(',', '.'))
+    const act = parseFloat((indActual ?? '').trim().replace(',', '.'))
     if (isNaN(ant) || isNaN(act) || ant === 0) return null
-    return dividir(act, ant).toFixed(4)
+    return formatCoeficiente(dividir(act, ant))
   })()
 
   // ── Ejercicio anterior: elegibles y candidato (dominio puro) ────────────────

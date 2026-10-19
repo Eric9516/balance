@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatCurrency } from './currency'
+import { formatCoeficiente, formatCurrency } from './currency'
 
 describe('formatCurrency (formato AR)', () => {
   it.each([
@@ -26,5 +26,13 @@ describe('formatCurrency (formato AR)', () => {
     )
     expect(formatCurrency(5, { decimales: 'todos' })).toBe('5,00')
     expect(formatCurrency(0.1, { decimales: 'todos' })).toBe('0,10')
+  })
+})
+
+describe('formatCoeficiente', () => {
+  it('muestra 2 decimales en formato argentino', () => {
+    expect(formatCoeficiente(1.3155)).toBe('1,32')
+    expect(formatCoeficiente(1)).toBe('1,00')
+    expect(formatCoeficiente(12.345678)).toBe('12,35')
   })
 })
