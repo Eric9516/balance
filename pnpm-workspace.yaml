@@ -12,3 +12,9 @@ allowBuilds:
 # Cadena de suministro: no instalar versiones publicadas hace menos de 3 días (en minutos).
 # Una versión comprometida suele detectarse y retirarse en ese plazo.
 minimumReleaseAge: 4320
+
+# Versiones corregidas de dependencias internas de Next (herramientas de compilación) con fallas conocidas.
+# Quitar cada una cuando Next ya traiga una versión igual o mayor.
+overrides:
+  browserslist: '^4.28.7' # GHSA de crecimiento de memoria y escritura de prototipo
+  baseline-browser-mapping: '^2.11.0' # GHSA-w5vr-8v7q-w6rv: corte del proceso con entrada inválida
