@@ -2,6 +2,8 @@ import Decimal from 'decimal.js'
 
 /**
  * Formato argentino: punto de miles, coma decimal y paréntesis para los negativos.
+ * Por defecto muestra 2 decimales: decisión del dueño del producto (2026-10-19) para pantalla y
+ * documento. Es solo presentación; los cálculos y la base conservan el valor completo.
  * `decimales: 'todos'` muestra el valor completo, SIN redondear (mínimo 2 decimales):
  * es lo que corresponde en mensajes de control, donde la diferencia puede estar en el tercer decimal.
  */

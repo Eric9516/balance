@@ -32,8 +32,7 @@ const PERMITIDOS: Permitido[] = [
     linea:
       "const absVal = d.abs().toFixed(decimales === 'todos' ? Math.max(2, d.decimalPlaces()) : decimales)",
     motivo:
-      "Formato de pantalla y documento. Con decimales 'todos' no redondea; el valor por defecto (2 decimales) espera la decisión de cómo se muestran los importes con más de 2 decimales.",
-    pendiente: true,
+      "Solo presentación: el dueño del producto decidió (2026-10-19) que la pantalla y el documento muestran 2 decimales. Cálculos y base conservan el valor completo; con decimales 'todos' (mensajes de control) no redondea.",
   },
   {
     archivo: 'src/modules/ejercicios/components/PasoAnteriorView.tsx',
