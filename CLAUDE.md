@@ -3,6 +3,16 @@
 
 Este proyecto debe construirse con mentalidad de crecimiento, modularidad, mantenibilidad y escalabilidad.
 
+## Visión y estándar de calidad (FUNDAMENTAL)
+
+BalanceRT es un producto para **vender a estudios contables**. El estándar es ser lo mejor en absolutamente todo: arquitectura, base de datos, seguridad, velocidad, pruebas y experiencia de uso.
+
+- **La base de datos es uno de los puntos fuertes del producto.** Tiene que ser robusta, segura, rápida y eficaz, y nunca puede quedar chica.
+- **Pensar siempre en escala.** La app va a ser muy grande: muchísimos estudios, sociedades, ejercicios, cuentas y archivos. Todo se diseña para que a ese volumen siga rápida.
+- **Buscar SIEMPRE optimizaciones de velocidad de la base**, en cada cambio, y señalarlas aunque no se hayan pedido.
+- **Tecnología y procesos actuales.** Usar la última versión estable de cada herramienta que cumpla la antigüedad mínima de pnpm. Nada experimental sin probar.
+- **Sobredimensionar con criterio** (concilia el principio 8): lo que es caro de cambiar después se hace grande desde ya (identidad, claves, tipos, auditoría, versionado, modelo por estudio). Lo que es barato de agregar (réplicas, particiones, cachés) se agrega cuando una medición lo pida.
+
 ## Principios obligatorios
 
 1. Mantener modularidad.
@@ -44,7 +54,9 @@ Antes de implementar una nueva función, definir:
 9. Cómo se prueba.
 10. Qué riesgo técnico o contable tiene.
 
-## Base de datos
+## Base de datos (OBLIGATORIA)
+
+### Modelo de datos
 
 Toda modificación de base de datos debe cuidar:
 
@@ -55,6 +67,68 @@ Toda modificación de base de datos debe cuidar:
 - Auditoría de acciones importantes.
 - No borrar información sensible sin control.
 - Evitar campos genéricos tipo "otros", "data", "config" salvo justificación clara.
+
+### Seguridad
+
+- **La base es la última barrera.** Permisos, invariantes duras, inmutabilidad y auditoría se hacen cumplir en PostgreSQL (reglas por fila, CHECK, disparadores), no solo en la app. Los **cálculos contables** viven en el dominio de TypeScript: no duplicarlos en SQL.
+- **Toda tabla nueva nace cerrada:** reglas por fila activadas y sin permisos para `anon` ni `authenticated` (ver la migración `20261019001827_cerrar_acceso_anonimo`). Nunca otorgarlos sin una política explícita y probada.
+- **Toda función nueva** lleva `revoke execute ... from public, anon` y un `grant` solo a quien corresponda. `security definer` solo si hace falta, siempre con `set search_path`.
+- **Un ejercicio CERRADO no se modifica.** Reabrirlo solo con una función que exige dueño y motivo, y que queda auditada.
+- **Sin borrado físico de datos contables:** se archivan.
+- **Secretos** (claves, tokens, contraseñas, `DATABASE_URL`) nunca en el repositorio ni en el chat.
+
+### Velocidad y escala
+
+- **Toda clave foránea lleva índice.** Los índices compuestos se diseñan según las consultas reales.
+- **Sin consultas N+1:** traer en lote y solo las columnas necesarias (`select`).
+- **Listas largas paginadas por cursor.** Nunca `offset` grande ni traer todo a memoria.
+- **Tipos compactos y correctos:** fechas contables como fecha sin hora, marcas de tiempo con zona horaria, importes como decimal. Nunca `float` ni `number` de JavaScript para calcular importes.
+- **Tablas que van a crecer mucho** (cuentas, historial, movimientos): claves pensadas para poder particionar sin rediseñar.
+- **Los archivos no van en la base.** Excel importados, PDF emitidos, logos y firmas van a almacenamiento de objetos. En la base solo la referencia, los metadatos y su hash. Nunca base64 ni binarios en tablas.
+- **Medir antes de dar por bueno:** `pg_stat_statements`, `EXPLAIN` de cada consulta nueva y pruebas con datos sintéticos grandes. Una consulta que lee entera una tabla grande es un error.
+- **Transacciones cortas**, sin llamadas externas adentro.
+
+### Migraciones
+
+- Siempre `prisma migrate`; **nunca** `db push` sobre una base con datos. Nunca editar una migración ya aplicada: se agrega una nueva.
+- Cada migración empieza con un comentario que explica qué problema resuelve y cómo revertirla.
+- Tiene que correr igual en PostgreSQL común (CI, pruebas) y en Supabase: lo propio de Supabase (roles `anon`/`authenticated`, esquema `auth`) va dentro de bloques que comprueban si existe.
+- Se prueba la cadena completa desde cero antes de aplicarla en producción.
+- Cambios sin cortes: primero agregar, después migrar los datos, al final quitar. Los índices sobre tablas grandes se crean sin bloquear (`CONCURRENTLY`).
+
+## Modelo de despliegue (decidido)
+
+- **Un proyecto de Supabase por estudio** (base, login y archivos), creado con el correo del estudio y a su nombre. Puede vivir en la cuenta del estudio o en una organización propia: **el código es exactamente el mismo en los dos casos.**
+- **Una instalación de la app por estudio**, con el mismo código y la misma versión para todos. Todo lo propio del estudio sale de su configuración, nunca del código.
+- **Las protecciones no dependen de que el estudio no tenga las claves de administración** de su proyecto: los hashes de las versiones emitidas y del historial se guardan en un servicio central propio, la licencia se verifica en el servidor propio y un chequeo periódico compara cada base contra el esquema esperado.
+- **Actualizaciones por tandas:** primero un estudio de prueba, después uno o dos reales, después el resto. Un panel central registra qué versión tiene cada estudio.
+
+## Proyecto de referencia
+
+`C:\Users\agus_\OneDrive\Desktop\Gestion empresarial` (en la computadora del dueño del proyecto) es la referencia de login, seguridad, robustez de la base y pruebas. Ver sus `docs/SEGURIDAD.md`, `docs/AUDITORIA-BASE-DE-DATOS.md` y `docs/PRUEBAS.md`.
+
+- Se copian **patrones**, no tablas de negocio.
+- **Nunca se modifica** ese proyecto.
+
+## Dependencias (pnpm)
+
+- **pnpm es el único gestor de paquetes**, con la versión fijada en `packageManager`. Nunca npm ni yarn.
+- `pnpm-workspace.yaml`: solo se autorizan los scripts de instalación que hacen falta (`allowBuilds`) y no se instalan versiones publicadas hace menos de 3 días (`minimumReleaseAge`).
+- `pnpm audit --prod` sin vulnerabilidades altas ni críticas.
+- Los paquetes que no vienen de npm van en `vendor/`, con su origen y su huella en `vendor/LEEME.md`.
+
+## Hoja de ruta de la base de datos
+
+Actualizar esta lista al terminar cada fase. Cada fase se hace en avances chicos, probados y reversibles.
+
+- **Urgente (hecho, 2026-10-19):** cierre del acceso anónimo, paso a pnpm, Next 16.4.2, SheetJS 0.20.3 y Prisma como dependencia de desarrollo.
+- **Fase 0, decisiones irreversibles** mientras hay pocos datos: claves UUIDv7, fechas contables sin hora, un tipo de importe con margen amplio, columnas en snake_case, catálogo RT 54 versionado y registro de decisiones de arquitectura.
+- **Fase 1, login:** Supabase Auth, roles, cuenta nueva bloqueada, nunca sin dueño y doble factor para dueños y administradores.
+- **Fase 2, la base como última barrera:** roles de base separados, reglas por fila, CHECK, ejercicio cerrado inmutable, control de versión en lo editable y permisos por defecto de funciones cerrados.
+- **Fase 3, auditoría legal:** historial solo de agregado, particionado por mes, cadena de hashes, retención de 10 años y versión emitida con su hash.
+- **Fase 4, rendimiento y escala:** metas de volumen escritas y medidas con datos sintéticos.
+- **Fase 5, pruebas al nivel de la referencia:** matriz de permisos, pgTAP, deriva de esquema, escala, concurrencia, mutación y pantalla con accesibilidad.
+- **Fase 6, operación:** copias con recuperación a un punto en el tiempo, entornos separados, migraciones aplicadas desde la CI con aprobación, observabilidad, Ley 25.326, revisión OWASP ASVS y prueba de penetración externa.
 
 ## Validaciones y errores
 
