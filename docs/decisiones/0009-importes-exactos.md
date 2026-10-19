@@ -13,6 +13,7 @@ La base guarda los importes como decimales exactos (`numeric`), pero la app los 
 - **Cada operación es exacta.** Un `number` se lee por su representación decimal más corta (0.1 es exactamente 0,10), así que encadenar operaciones no acumula error.
 - **Los importes siguen viajando como `number`** entre el servidor y la pantalla, como antes.
 - **Límite: 70.368.744.177.663,99 pesos (2⁴⁶ − 0,01).** Hasta ahí un `number` distingue todos los centavos; desde 2⁴⁶ la separación entre dos `number` es 1/64 de peso. Un resultado mayor no se redondea en silencio: corta con el error NEG-060, con el importe y el límite en el mensaje.
+- **La base tampoco redondea.** Las columnas eran `numeric(18,2)` (importes) y `numeric(18,6)` (índices de inflación), y PostgreSQL redondeaba en silencio al guardar: un importe reexpresado de 1.250,0125 quedaba en 1.250,01. La migración `20261019163923_importes_sin_redondeo` las pasó a `numeric` sin escala, que guarda el valor exacto. Conserva el tope de tamaño anterior con un CHECK por columna (menos de 16 dígitos enteros en importes, 12 en índices), que además rechaza NaN e infinito: antes la base aceptaba NaN como importe. No reescribió ninguna tabla ni cambió ningún valor guardado (ensayado sobre una copia de los datos reales, dígito por dígito).
 - **Jamás se redondea nada** (decisión del dueño del producto, 2026-10-19; ver CLAUDE.md). El módulo no redondea: los importes reexpresados por el coeficiente conservan todos sus decimales. Quedan por definir con el dueño del producto dos puntos de presentación y cálculo: cómo se muestran los importes con más de 2 decimales y con cuántos dígitos se trabaja el coeficiente.
 
 ### Tres caminos con el mismo resultado
@@ -43,6 +44,6 @@ Con la latencia de Supabase (unos 240 a 300 ms por pantalla) es cerca de 1%. La 
 
 ## Alternativas descartadas
 
-- **Ampliar las columnas de la base a 20 dígitos:** `numeric(18,2)` ya admite importes 100 veces mayores que el límite del `number`; ampliarlas no agrega nada mientras la app trabaje con `number`.
+- **Más decimales con escala fija** (por ejemplo `numeric(28,10)`): solo corre el problema de lugar, porque redondea igual a partir del décimo decimal. `numeric` sin escala ocupa lo mismo por valor y no redondea nunca.
 - **Hacer viajar los importes como texto de punta a punta:** quitaría el límite de 70 billones, pero obliga a cambiar todos los tipos de datos, pantallas y pruebas. Para estudios con clientes PyME el límite está lejos; se reconsidera si un cliente se acerca.
 - **Todo con decimal.js:** exacto, pero tres veces más lento en las pantallas pesadas.

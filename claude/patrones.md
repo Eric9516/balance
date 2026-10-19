@@ -130,7 +130,7 @@ if (input.esDefault === true) { ... }
 
 ## 6. Importes: leer con importe(), calcular con @/lib/importe
 
-Los `Decimal` de Prisma se pasan a `number` en el mapper del DTO con `importe(row.campo)` (nunca `Number(...)`), que además controla el límite de exactitud. Toda cuenta con importes (sumas, restas, totales, reexpresión por coeficiente, diferencias de cuadre) usa `sumar`, `sumarPor`, `restar`, `multiplicar`, `dividir` y `comparaImportes` de `@/lib/importe`, también en las pantallas.
+En el esquema, toda columna `Decimal` se declara `@db.Decimal` sin argumentos (numeric sin escala: la base no redondea al guardar; lo exige `src/lib/sin-redondeos.test.ts`). Los `Decimal` de Prisma se pasan a `number` en el mapper del DTO con `importe(row.campo)` (nunca `Number(...)`), que además controla el límite de exactitud. Toda cuenta con importes (sumas, restas, totales, reexpresión por coeficiente, diferencias de cuadre) usa `sumar`, `sumarPor`, `restar`, `multiplicar`, `dividir` y `comparaImportes` de `@/lib/importe`, también en las pantallas.
 
 ```typescript
 const totalSaldo = sumarPor(cuentas, (c) => c.saldoFinal) // no: cuentas.reduce((a, c) => a + c.saldoFinal, 0)

@@ -406,8 +406,8 @@ model EjercicioContable {
   fechaCierre         DateTime @db.Date @map("fecha_cierre")
   fechaInformeAuditor     DateTime? @db.Date @map("fecha_informe_auditor")
   clasificacionEntidad    String? @map("clasificacion_entidad")
-  indiceInflacionAnterior Decimal?  @db.Decimal(18, 6) @map("indice_inflacion_anterior")
-  indiceInflacionActual   Decimal?  @db.Decimal(18, 6) @map("indice_inflacion_actual")
+  indiceInflacionAnterior Decimal?  @db.Decimal @map("indice_inflacion_anterior")
+  indiceInflacionActual   Decimal?  @db.Decimal @map("indice_inflacion_actual")
   denominacion            String
   estado              EstadoEjercicio @default(BORRADOR)
   // ── Configuración Nota I ──────────────────────────────────────────────────────
@@ -515,9 +515,9 @@ model CuentaContable {
   notaEjercicioId    String? @map("nota_ejercicio_id") @db.Uuid
   codigo             String
   nombre             String
-  saldoDeudor        Decimal  @default(0) @db.Decimal(18, 2) @map("saldo_deudor")
-  saldoAcreedor      Decimal  @default(0) @db.Decimal(18, 2) @map("saldo_acreedor")
-  saldoFinal         Decimal  @default(0) @db.Decimal(18, 2) @map("saldo_final")
+  saldoDeudor        Decimal  @default(0) @db.Decimal @map("saldo_deudor")
+  saldoAcreedor      Decimal  @default(0) @db.Decimal @map("saldo_acreedor")
+  saldoFinal         Decimal  @default(0) @db.Decimal @map("saldo_final")
   clasificadaManual  Boolean  @default(false) @map("clasificada_manual")
   createdAt          DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt          DateTime @updatedAt @db.Timestamptz(3) @map("updated_at")
@@ -586,8 +586,8 @@ model DetalleNota {
   notaEjercicioId  String @map("nota_ejercicio_id") @db.Uuid
   orden            Int
   concepto         String
-  importeActual    Decimal  @default(0) @db.Decimal(18, 2) @map("importe_actual")
-  importeAnterior  Decimal  @default(0) @db.Decimal(18, 2) @map("importe_anterior")
+  importeActual    Decimal  @default(0) @db.Decimal @map("importe_actual")
+  importeAnterior  Decimal  @default(0) @db.Decimal @map("importe_anterior")
   esTotal          Boolean  @default(false) @map("es_total")
   createdAt        DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt        DateTime @updatedAt @db.Timestamptz(3) @map("updated_at")
@@ -611,16 +611,16 @@ model EvolucionPNMovimiento {
   orden       Int
 
   // Componentes del PN
-  capitalSuscripto    Decimal @default(0) @db.Decimal(18, 2) @map("capital_suscripto")
-  ajusteCapital       Decimal @default(0) @db.Decimal(18, 2) @map("ajuste_capital")
-  aportesIrrevocables Decimal @default(0) @db.Decimal(18, 2) @map("aportes_irrevocables")
-  reservaLegal        Decimal @default(0) @db.Decimal(18, 2) @map("reserva_legal")
-  otrasReservas       Decimal @default(0) @db.Decimal(18, 2) @map("otras_reservas")
-  rdosNoAsignados     Decimal @default(0) @db.Decimal(18, 2) @map("rdos_no_asignados")
+  capitalSuscripto    Decimal @default(0) @db.Decimal @map("capital_suscripto")
+  ajusteCapital       Decimal @default(0) @db.Decimal @map("ajuste_capital")
+  aportesIrrevocables Decimal @default(0) @db.Decimal @map("aportes_irrevocables")
+  reservaLegal        Decimal @default(0) @db.Decimal @map("reserva_legal")
+  otrasReservas       Decimal @default(0) @db.Decimal @map("otras_reservas")
+  rdosNoAsignados     Decimal @default(0) @db.Decimal @map("rdos_no_asignados")
   // total = suma de columnas (calculado en app)
 
   // Columna "Ejercicio Anterior" del comparativo
-  totalAnterior Decimal @default(0) @db.Decimal(18, 2) @map("total_anterior")
+  totalAnterior Decimal @default(0) @db.Decimal @map("total_anterior")
 
   createdAt DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt DateTime @updatedAt @db.Timestamptz(3) @map("updated_at")
@@ -642,13 +642,13 @@ model FlujoDeCajaEjercicio {
   // Saldos de efectivo — bloque superior del estado (PDF página 6)
   // efectivo inicio + modificaciones = efectivo modificado inicio
   // efectivo cierre - efectivo modificado inicio = variación neta (calculada en app)
-  saldoInicial              Decimal @default(0) @db.Decimal(18, 2) @map("saldo_inicial")
-  modificacionesEjAnt       Decimal @default(0) @db.Decimal(18, 2) @map("modificaciones_ej_ant") // usualmente 0
-  saldoFinal                Decimal @default(0) @db.Decimal(18, 2) @map("saldo_final")
+  saldoInicial              Decimal @default(0) @db.Decimal @map("saldo_inicial")
+  modificacionesEjAnt       Decimal @default(0) @db.Decimal @map("modificaciones_ej_ant") // usualmente 0
+  saldoFinal                Decimal @default(0) @db.Decimal @map("saldo_final")
   // Comparativo
-  saldoInicialAnterior      Decimal @default(0) @db.Decimal(18, 2) @map("saldo_inicial_anterior")
-  modificacionesEjAntAnt    Decimal @default(0) @db.Decimal(18, 2) @map("modificaciones_ej_ant_ant")
-  saldoFinalAnterior        Decimal @default(0) @db.Decimal(18, 2) @map("saldo_final_anterior")
+  saldoInicialAnterior      Decimal @default(0) @db.Decimal @map("saldo_inicial_anterior")
+  modificacionesEjAntAnt    Decimal @default(0) @db.Decimal @map("modificaciones_ej_ant_ant")
+  saldoFinalAnterior        Decimal @default(0) @db.Decimal @map("saldo_final_anterior")
   createdAt    DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt    DateTime @updatedAt @db.Timestamptz(3) @map("updated_at")
 
@@ -664,8 +664,8 @@ model FlujoDeCajaItem {
   seccion         SeccionFlujo
   concepto        String
   // Positivo = ingreso de efectivo, negativo = egreso
-  importe         Decimal      @default(0) @db.Decimal(18, 2)
-  importeAnterior Decimal      @default(0) @db.Decimal(18, 2) @map("importe_anterior")
+  importe         Decimal      @default(0) @db.Decimal
+  importeAnterior Decimal      @default(0) @db.Decimal @map("importe_anterior")
   esSubtotal      Boolean      @default(false) @map("es_subtotal")
   orden           Int
   createdAt       DateTime     @default(now()) @db.Timestamptz(3) @map("created_at")
@@ -691,24 +691,24 @@ model BienDeUsoCategoria {
   // ── Costo reexpresado ──────────────────────────────────────────────────────
   // Estructura exacta del Anexo I del PDF:
   // inicio + ajusteInflación + altas - bajas = cierre
-  costoInicioReexpresado Decimal @default(0) @db.Decimal(18, 2) @map("costo_inicio_reexpresado")
-  costoAjusteInflacion   Decimal @default(0) @db.Decimal(18, 2) @map("costo_ajuste_inflacion") // REI sobre costo
-  altas                  Decimal @default(0) @db.Decimal(18, 2)
-  bajas                  Decimal @default(0) @db.Decimal(18, 2) // al costo
-  costoFinReexpresado    Decimal @default(0) @db.Decimal(18, 2) @map("costo_fin_reexpresado")
+  costoInicioReexpresado Decimal @default(0) @db.Decimal @map("costo_inicio_reexpresado")
+  costoAjusteInflacion   Decimal @default(0) @db.Decimal @map("costo_ajuste_inflacion") // REI sobre costo
+  altas                  Decimal @default(0) @db.Decimal
+  bajas                  Decimal @default(0) @db.Decimal // al costo
+  costoFinReexpresado    Decimal @default(0) @db.Decimal @map("costo_fin_reexpresado")
 
   // ── Depreciaciones acumuladas ──────────────────────────────────────────────
   // inicio + ajusteInflación + delEjercicio - deBajas = cierre
-  depAcumInicio       Decimal @default(0) @db.Decimal(18, 2) @map("dep_acum_inicio")
-  depAjusteInflacion  Decimal @default(0) @db.Decimal(18, 2) @map("dep_ajuste_inflacion") // REI sobre depreciaciones
-  depEjercicio        Decimal @default(0) @db.Decimal(18, 2) @map("dep_ejercicio") // cargo del período
-  depBajas            Decimal @default(0) @db.Decimal(18, 2) @map("dep_bajas") // dep. de bienes dados de baja
-  depAcumFin          Decimal @default(0) @db.Decimal(18, 2) @map("dep_acum_fin")
+  depAcumInicio       Decimal @default(0) @db.Decimal @map("dep_acum_inicio")
+  depAjusteInflacion  Decimal @default(0) @db.Decimal @map("dep_ajuste_inflacion") // REI sobre depreciaciones
+  depEjercicio        Decimal @default(0) @db.Decimal @map("dep_ejercicio") // cargo del período
+  depBajas            Decimal @default(0) @db.Decimal @map("dep_bajas") // dep. de bienes dados de baja
+  depAcumFin          Decimal @default(0) @db.Decimal @map("dep_acum_fin")
 
   // Valor residual = costoFinReexpresado - depAcumFin (calculado en app)
   // netoResidualAnteriorManual: se usa cuando no hay ejercicio anterior vinculado al sistema.
   // Si hay ejercicio anterior, el comparativo se deriva automáticamente de ese registro.
-  netoResidualAnteriorManual Decimal? @db.Decimal(18, 2) @map("neto_residual_anterior_manual")
+  netoResidualAnteriorManual Decimal? @db.Decimal @map("neto_residual_anterior_manual")
 
   createdAt DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt DateTime @updatedAt @db.Timestamptz(3) @map("updated_at")
@@ -727,10 +727,10 @@ model CostoVentasEjercicio {
   id          String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
   ejercicioId String   @unique @map("ejercicio_id") @db.Uuid
 
-  existenciaInicial  Decimal @default(0) @db.Decimal(18, 2) @map("existencia_inicial")
-  compras            Decimal @default(0) @db.Decimal(18, 2)
-  gastosFabricacion  Decimal @default(0) @db.Decimal(18, 2) @map("gastos_fabricacion") // solo empresas industriales
-  existenciaFinal    Decimal @default(0) @db.Decimal(18, 2) @map("existencia_final")
+  existenciaInicial  Decimal @default(0) @db.Decimal @map("existencia_inicial")
+  compras            Decimal @default(0) @db.Decimal
+  gastosFabricacion  Decimal @default(0) @db.Decimal @map("gastos_fabricacion") // solo empresas industriales
+  existenciaFinal    Decimal @default(0) @db.Decimal @map("existencia_final")
   // Total costo = existenciaInicial + compras + gastosFabricacion - existenciaFinal
 
   createdAt DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
@@ -792,7 +792,7 @@ model ComparativoManual {
   modulo      String            // 'SSP' | 'EERR' | 'GASTOS' | 'BDU'
   clave       String            // seccion key, rubroBaseId, o nombre de categoría
   label       String            // nombre para mostrar (clave legible)
-  valor       Decimal           @db.Decimal(18, 2)
+  valor       Decimal           @db.Decimal
   esHuerfano  Boolean           @default(false) @map("es_huerfano") // true = no existe en el ejercicio actual
   orden       Int               @default(0)
 
@@ -833,7 +833,7 @@ model DocumentoEjercicio {
   titulo         String
   estado         EstadoDocumento @default(SUGERIDO)
   origen         OrigenDocumento @default(AUTOMATICO)
-  saldoAlAceptar Decimal?        @db.Decimal(18, 2) @map("saldo_al_aceptar") // foto del saldo al aceptar — para detectar saldo 0 posterior
+  saldoAlAceptar Decimal?        @db.Decimal @map("saldo_al_aceptar") // foto del saldo al aceptar — para detectar saldo 0 posterior
   createdAt      DateTime        @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt      DateTime        @updatedAt @db.Timestamptz(3) @map("updated_at")
 
@@ -860,12 +860,12 @@ model AjusteTransicionRT54 {
   // AJUSTE_MEDICION: componente del PN afectado + efecto sobre el PN al inicio
   // y sobre el resultado del ejercicio anterior.
   componentePN             ComponentePN? @map("componente_pn")
-  importePN                Decimal @default(0) @db.Decimal(18, 2) @map("importe_pn")
-  importeResultadoAnterior Decimal @default(0) @db.Decimal(18, 2) @map("importe_resultado_anterior")
+  importePN                Decimal @default(0) @db.Decimal @map("importe_pn")
+  importeResultadoAnterior Decimal @default(0) @db.Decimal @map("importe_resultado_anterior")
   // RECLASIFICACION: rubro de origen y destino del importe reclasificado (sin efecto en PN).
   rubroOrigen  String? @map("rubro_origen")
   rubroDestino String? @map("rubro_destino")
-  importeReclasificado Decimal @default(0) @db.Decimal(18, 2) @map("importe_reclasificado")
+  importeReclasificado Decimal @default(0) @db.Decimal @map("importe_reclasificado")
   createdAt   DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt   DateTime @updatedAt @db.Timestamptz(3) @map("updated_at")
 

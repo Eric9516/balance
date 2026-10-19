@@ -160,18 +160,22 @@ describe('Regla primordial: jamás se redondea nada', () => {
 
 describe('La base no redondea al guardar', () => {
   /**
-   * Una columna numeric con escala fija (Decimal(18, 2)) redondea en silencio lo que tenga más
-   * decimales. Las que existen hoy están PENDIENTES de migrar a decimal sin escala; no se agregan
-   * nuevas.
+   * Toda columna Decimal es numeric SIN escala (`@db.Decimal`), que guarda el valor exacto.
+   * - `@db.Decimal(18, 2)` redondea en silencio a 2 decimales.
+   * - `@db.Decimal(30)` es escala 0: redondea a enteros.
+   * - Un `Decimal` sin `@db.Decimal` es decimal(65,30) en Prisma: redondea a 30 decimales.
+   * Las 42 columnas que tenían escala se migraron en 20261019163923_importes_sin_redondeo.
    */
-  const COLUMNAS_CON_ESCALA_PENDIENTES = 42
-
-  it('no se agregan columnas decimales con escala fija', () => {
+  it('toda columna Decimal del esquema es numeric sin escala', () => {
     const esquema = readFileSync(join(RAIZ, 'prisma', 'schema.prisma'), 'utf8')
-    const conEscala = esquema.match(/@db\.Decimal\(\s*\d+\s*,\s*\d+\s*\)/g) ?? []
+    const conEscala = esquema
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => /^\w+\s+Decimal\??\s/.test(l))
+      .filter((l) => !/@db\.Decimal(?!\s*\()/.test(l))
     expect(
-      conEscala.length,
-      'Una columna Decimal(p, s) redondea a s decimales al guardar. Usá @db.Decimal sin escala.',
-    ).toBeLessThanOrEqual(COLUMNAS_CON_ESCALA_PENDIENTES)
+      conEscala,
+      'Una columna decimal con escala redondea al guardar. Declarala con @db.Decimal, sin argumentos.',
+    ).toEqual([])
   })
 })
