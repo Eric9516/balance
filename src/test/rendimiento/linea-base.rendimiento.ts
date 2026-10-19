@@ -73,7 +73,7 @@ import {
 const ESCALA = (process.env.RENDIMIENTO_ESCALA ?? 'media') as NombreEscala
 const LATENCIA_MS = Number(process.env.RENDIMIENTO_LATENCIA_MS ?? 30)
 const REPETICIONES = 10
-const REPETICIONES_CON_LATENCIA = 3
+const REPETICIONES_CON_LATENCIA = 7
 
 type Operacion = { nombre: string; fn: () => Promise<unknown> }
 
@@ -200,7 +200,7 @@ describe(`Rendimiento (escala ${ESCALA})`, () => {
       const { consultas } = await captura.durante(op.fn)
       const local = await cronometrar(op.fn, REPETICIONES)
       intermediario.fijarLatencia(LATENCIA_MS)
-      const remoto = await cronometrar(op.fn, REPETICIONES_CON_LATENCIA, 1)
+      const remoto = await cronometrar(op.fn, REPETICIONES_CON_LATENCIA, 2)
       intermediario.fijarLatencia(0)
       const planes = await analizarPlanes(pg, consultas, filas)
 
@@ -210,10 +210,12 @@ describe(`Rendimiento (escala ${ESCALA})`, () => {
       const tablasLeidasEnteras = new Map<string, number>()
       for (const p of planes)
         for (const l of p.lecturasCompletas) tablasLeidasEnteras.set(l.tabla, l.filasTabla)
+      const consultasRepetidas = repetidas(consultas)
       resultados.push({
         nombre: op.nombre,
         consultas: deLaOperacion.length,
-        repetidas: repetidas(consultas),
+        repetidas: consultasRepetidas.reduce((n, r) => n + r.veces, 0),
+        consultasRepetidas,
         viajes,
         local,
         estimadoConRed: local.mediana + viajes * LATENCIA_MS,
@@ -270,6 +272,16 @@ describe(`Rendimiento (escala ${ESCALA})`, () => {
       '|---|---|---|',
       ...masPesadas.map((t) => `| ${t.tabla} | ${t.filas.toLocaleString('es-AR')} | ${t.total} |`),
     ]
+    const conRepetidas = resultados.filter((r) => r.consultasRepetidas.length > 0)
+    if (conRepetidas.length > 0) {
+      md.push('', '## Consultas repetidas', '')
+      for (const r of conRepetidas) {
+        md.push(`**${r.nombre}**`, '')
+        for (const c of r.consultasRepetidas)
+          md.push(`- ${c.veces} de más: \`${c.sql.replace(/\s+/g, ' ').slice(0, 160)}\``)
+        md.push('')
+      }
+    }
     const errores = resultados.flatMap((r) =>
       r.erroresDePlan.map((e) => `- ${r.nombre}: ${e.error}`),
     )
@@ -296,5 +308,12 @@ describe(`Rendimiento (escala ${ESCALA})`, () => {
       ),
     )
     console.log(md.join('\n'))
+
+    // Regla de CLAUDE.md: toda clave foránea lleva índice. Se exige después de escribir el
+    // informe, para que igual quede la medición completa.
+    expect(
+      fkSinIndice.map((f) => `${f.tabla}.${f.columnas}`),
+      'Hay claves foráneas sin índice (ver el informe)',
+    ).toEqual([])
   })
 })

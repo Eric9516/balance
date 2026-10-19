@@ -203,16 +203,19 @@ export async function analizarPlanes(
   return hallazgos
 }
 
-/** Consultas idénticas (mismo SQL y mismos parámetros) a una anterior de la misma operación. */
-export function repetidas(consultas: ConsultaCapturada[]): number {
-  const vistas = new Set<string>()
-  let n = 0
+/**
+ * Consultas idénticas (mismo SQL y mismos parámetros) a una anterior de la misma operación,
+ * agrupadas: qué consulta se repite y cuántas veces de más.
+ */
+export function repetidas(consultas: ConsultaCapturada[]): { sql: string; veces: number }[] {
+  const conteo = new Map<string, { sql: string; veces: number }>()
   for (const c of deDatos(consultas)) {
     const clave = `${c.sql}\u0000${c.params}`
-    if (vistas.has(clave)) n++
-    else vistas.add(clave)
+    const previa = conteo.get(clave)
+    if (previa) previa.veces++
+    else conteo.set(clave, { sql: c.sql, veces: 0 })
   }
-  return n
+  return [...conteo.values()].filter((r) => r.veces > 0)
 }
 
 // ─── Controles del esquema ────────────────────────────────────────────────────

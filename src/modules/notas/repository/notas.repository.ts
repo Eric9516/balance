@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { db } from '@/lib/db'
 import type { TipoNota } from '@prisma/client'
 import { toNotaDTO, type NotaDTO } from '../domain/types'
@@ -68,14 +69,29 @@ const EERR_SIN_NOTA = new Set([
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
-export async function findNotasByEjercicio(ejercicioId: string): Promise<NotaDTO[]> {
-  const notas = await db.notaEjercicio.findMany({
-    where: { ejercicioId },
-    include: { detalles: { orderBy: { orden: 'asc' } } },
-    orderBy: [{ orden: 'asc' }],
-  })
-  return notas.map(toNotaDTO)
-}
+/**
+ * Memoizado por request (React cache): la página, los estados y el documento lo piden en el
+ * mismo render. Solo lo usan lecturas; ninguna acción lo lee antes y después de escribir.
+ *
+ * Las notas y sus detalles se piden EN PARALELO (un solo viaje a la base): con `include`,
+ * Prisma pediría los detalles en una segunda consulta, después de la primera.
+ */
+export const findNotasByEjercicio = cache(async (ejercicioId: string): Promise<NotaDTO[]> => {
+  const [notas, detalles] = await Promise.all([
+    db.notaEjercicio.findMany({ where: { ejercicioId }, orderBy: [{ orden: 'asc' }] }),
+    db.detalleNota.findMany({
+      where: { nota: { ejercicioId } },
+      orderBy: [{ notaEjercicioId: 'asc' }, { orden: 'asc' }],
+    }),
+  ])
+  const porNota = new Map<string, typeof detalles>()
+  for (const d of detalles) {
+    const lista = porNota.get(d.notaEjercicioId)
+    if (lista) lista.push(d)
+    else porNota.set(d.notaEjercicioId, [d])
+  }
+  return notas.map((n) => toNotaDTO({ ...n, detalles: porNota.get(n.id) ?? [] }))
+})
 
 export async function createNota(data: {
   ejercicioId: string

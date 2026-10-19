@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { db } from '@/lib/db'
 import { SECCION_EERR_LABELS, SECCIONES_EERR_GASTO } from '@/modules/rubros-base/domain/secciones'
 
@@ -40,14 +41,22 @@ const EERR_GASTOS_LABELS = Object.fromEntries(
 
 // ─── Repository ───────────────────────────────────────────────────────────────
 
-export async function findGastosDinamicos(
+/**
+ * Memoizado por request (React cache): los estados y la pantalla de gastos lo piden en el
+ * mismo render. Solo lo usan lecturas.
+ */
+export const findGastosDinamicos = cache(_findGastosDinamicos)
+
+async function _findGastosDinamicos(
   ejercicioId: string,
   ejercicioAnteriorId: string | null,
 ): Promise<GastosSecciones> {
   // ── 1. Secciones personalizadas (RubroGrupo) ────────────────────────────────
-  // Las seis lecturas dependen solo de los ids: una sola oleada en vez de seis round trips.
+  // Las siete lecturas dependen solo de los ids: una sola oleada, un solo viaje a la base.
   // Las cuentas de grupos de gasto se filtran por la relación (esGasto) y no por una lista
-  // de ids, para no depender del resultado de gruposAll.
+  // de ids, para no depender del resultado de gruposAll. El rubro de cada cuenta se toma del
+  // catálogo (pedido en la misma oleada) y no con un `select` anidado, que Prisma resuelve con
+  // una segunda consulta después de la primera.
   const whereGrupoGasto = { rubroBase: { rubroGrupo: { esGasto: true, activo: true } } }
   const whereLegacy = {
     rubroBase: { rubroGrupoId: null, seccionEERR: { in: [...SECCIONES_EERR_GASTO] } },
@@ -56,11 +65,12 @@ export async function findGastosDinamicos(
 
   const [
     gruposAll,
-    cuentasGrupoActual,
-    cuentasLegacyActual,
-    cuentasGrupoAnterior,
-    cuentasLegacyAnterior,
+    grupoActual,
+    legacyActual,
+    grupoAnterior,
+    legacyAnterior,
     legacyConfigs,
+    rubros,
   ] = await Promise.all([
     db.rubroGrupo.findMany({
       where: { activo: true },
@@ -77,51 +87,46 @@ export async function findGastosDinamicos(
     // ── 2. Cuentas clasificadas bajo RubroGrupos de gasto (actual) ────────────
     db.cuentaContable.findMany({
       where: { ejercicioId, ...whereGrupoGasto },
-      select: {
-        id: true,
-        nombre: true,
-        saldoFinal: true,
-        rubroBase: { select: { rubroGrupoId: true } },
-      },
+      select: { id: true, nombre: true, saldoFinal: true, rubroBaseId: true },
       orderBy: { nombre: 'asc' },
     }),
     // ── 3. Cuentas clasificadas bajo secciones legacy EERR (actual) ───────────
     db.cuentaContable.findMany({
       where: { ejercicioId, ...whereLegacy },
-      select: {
-        id: true,
-        nombre: true,
-        saldoFinal: true,
-        rubroBase: { select: { seccionEERR: true } },
-      },
+      select: { id: true, nombre: true, saldoFinal: true, rubroBaseId: true },
       orderBy: { nombre: 'asc' },
     }),
     // ── 4. Lo mismo para ejercicio anterior ───────────────────────────────────
     ejercicioAnteriorId
       ? db.cuentaContable.findMany({
           where: { ejercicioId: ejercicioAnteriorId, ...whereGrupoGasto },
-          select: {
-            nombre: true,
-            saldoFinal: true,
-            rubroBase: { select: { rubroGrupoId: true } },
-          },
+          select: { nombre: true, saldoFinal: true, rubroBaseId: true },
           orderBy: { nombre: 'asc' },
         })
       : Promise.resolve([]),
     ejercicioAnteriorId
       ? db.cuentaContable.findMany({
           where: { ejercicioId: ejercicioAnteriorId, ...whereLegacy },
-          select: {
-            nombre: true,
-            saldoFinal: true,
-            rubroBase: { select: { seccionEERR: true } },
-          },
+          select: { nombre: true, saldoFinal: true, rubroBaseId: true },
           orderBy: { nombre: 'asc' },
         })
       : Promise.resolve([]),
     // ── 7. Config de secciones legacy (orden + aparecEnEERR) ──────────────────
     db.gastoSeccionConfig.findMany({ where: { clave: { in: legacyKeys } } }),
+    // ── Catálogo de rubros (grupo y sección de cada uno), en la misma oleada ──
+    db.rubroBase.findMany({ select: { id: true, rubroGrupoId: true, seccionEERR: true } }),
   ])
+
+  const rubroPorId = new Map(rubros.map((r) => [r.id, r]))
+  const conRubro = <T extends { rubroBaseId: string | null }>(cuentas: T[]) =>
+    cuentas.map((c) => ({
+      ...c,
+      rubroBase: c.rubroBaseId ? (rubroPorId.get(c.rubroBaseId) ?? null) : null,
+    }))
+  const cuentasGrupoActual = conRubro(grupoActual)
+  const cuentasLegacyActual = conRubro(legacyActual)
+  const cuentasGrupoAnterior = conRubro(grupoAnterior)
+  const cuentasLegacyAnterior = conRubro(legacyAnterior)
 
   // ── 5. Mapas de importe anterior por (key_seccion, nombre_cuenta) ────────────
   // key = `grupo:${grupoId}:${cuentaNombre}` o `legacy:${seccionEERR}:${cuentaNombre}`

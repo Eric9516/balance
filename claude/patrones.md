@@ -290,7 +290,7 @@ await upsertCostoVentas(ejercicioId, arrastre.datos ?? datos)
 
 ## 16. Pruebas de integración contra PostgreSQL
 
-`pnpm test:int` usa `vitest.integration.config.mts`: archivos `*.itest.ts`, base `balancert_test` (se crea, migra desde cero y trunca en el globalSetup). `next/cache` y `next/navigation` se mockean con `vi.mock`. Las unitarias (`npm test`) siguen sin base.
+`pnpm test:int` usa `vitest.integration.config.mts`: archivos `*.itest.ts`, base `balancert_test` (se crea, migra desde cero y trunca en el globalSetup). Sin `TEST_DATABASE_URL` levanta solo un PostgreSQL 17 embebido (`src/test/postgres-embebido.ts`): no hace falta tener PostgreSQL instalado. `next/cache` y `next/navigation` se mockean con `vi.mock`. Las unitarias (`pnpm test`) siguen sin base.
 
 ---
 
@@ -302,3 +302,25 @@ pnpm exec prisma generate  # ← SIEMPRE después de migrate
 ```
 
 Sin el `generate`, TypeScript no reconoce los campos nuevos y da errores de tipo aunque la DB ya esté actualizada.
+
+---
+
+## 18. Lecturas: relaciones en paralelo, no con `include`
+
+Con la base en Supabase cada viaje cuesta decenas de milisegundos, y Prisma resuelve cada `include` (o `select` anidado) con una **segunda consulta después de la primera**. En las lecturas de las pantallas, la relación se pide en paralelo, filtrando por el mismo id con `some`, y se une en memoria:
+
+```typescript
+const [rows, rubros] = await Promise.all([
+  db.cuentaContable.findMany({ where: { ejercicioId }, orderBy: { codigo: 'asc' } }),
+  db.rubroBase.findMany({
+    where: { cuentas: { some: { ejercicioId } } },
+    select: { id: true, nombre: true },
+  }),
+])
+```
+
+- Si algo cambió entre las dos consultas y falta un elemento relacionado, se completa con una consulta extra (ver `findCuentasByEjercicio` y `findEjercicioById`).
+- Los catálogos chicos (rubros) se piden enteros en la misma oleada, en vez de anidarlos en cada consulta (ver `findGastosDinamicos`).
+- Las lecturas que se repiten en un mismo render llevan `cache()` de React, salvo que una acción las lea antes y después de escribir.
+- Recorridos de largo variable (la cadena de anteriores) van en una sola consulta recursiva, no en un bucle.
+- Cada optimización se mide con `pnpm rendimiento` y se prueba con un `.itest.ts` que también pase con el código anterior (ver `src/test/integracion/lecturas-en-paralelo.itest.ts`).

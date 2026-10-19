@@ -1,22 +1,19 @@
 /**
  * globalSetup de la medición de rendimiento (`pnpm rendimiento`).
  *
- * Levanta un PostgreSQL REAL (embedded-postgres, misma versión mayor que producción) en una
- * carpeta temporal, aplica TODAS las migraciones desde cero y siembra el catálogo de rubros.
- * Los datos grandes los siembra la propia medición (ver datos-sinteticos.ts).
+ * Levanta un PostgreSQL REAL (ver postgres-embebido.ts), aplica TODAS las migraciones desde
+ * cero y siembra el catálogo de rubros. Los datos grandes los siembra la propia medición
+ * (ver datos-sinteticos.ts).
  *
  * Otra base: variable RENDIMIENTO_DATABASE_URL (por ejemplo, el servicio de PostgreSQL de la CI).
  * Por seguridad, su nombre tiene que terminar en "_rendimiento": la medición la llena de datos.
  */
 import { execSync } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import EmbeddedPostgres from 'embedded-postgres'
 import { Client } from 'pg'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { seedRubrosBase } from '../../../prisma/seed/rubros'
+import { iniciarPostgresEmbebido, type PostgresEmbebido } from '../postgres-embebido'
 
 const PUERTO = 55433
 const NOMBRE_BASE = 'balancert_rendimiento'
@@ -49,24 +46,13 @@ export default async function setup() {
     )
   }
 
-  let servidor: EmbeddedPostgres | null = null
-  let carpeta: string | null = null
+  let embebido: PostgresEmbebido | null = null
   if (!externa) {
-    carpeta = mkdtempSync(join(tmpdir(), 'balancert-rendimiento-'))
-    servidor = new EmbeddedPostgres({
-      databaseDir: carpeta,
-      user: 'postgres',
-      password: 'postgres',
-      port: PUERTO,
-      persistent: false,
-      initdbFlags: ['--encoding=UTF8', '--locale=C'],
-      postgresFlags: ['-c', 'shared_buffers=256MB', '-c', 'log_min_messages=error'],
-      onLog: () => {},
-      onError: () => {},
+    embebido = await iniciarPostgresEmbebido({
+      puerto: PUERTO,
+      base: NOMBRE_BASE,
+      prefijoCarpeta: 'balancert-rendimiento-',
     })
-    await servidor.initialise()
-    await servidor.start()
-    await servidor.createDatabase(NOMBRE_BASE)
   } else {
     // Base externa: se recrea vacía para que la medición sea comparable entre corridas.
     const url = new URL(RENDIMIENTO_DATABASE_URL)
@@ -105,13 +91,6 @@ export default async function setup() {
   }
 
   return async () => {
-    if (servidor) await servidor.stop().catch(() => {})
-    if (carpeta) {
-      try {
-        rmSync(carpeta, { recursive: true, force: true, maxRetries: 5 })
-      } catch {
-        // En Windows la carpeta puede quedar tomada un instante: es temporal, la limpia el sistema.
-      }
-    }
+    await embebido?.detener()
   }
 }

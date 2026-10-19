@@ -3,8 +3,6 @@ import type { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { toCuentaDTO, type CuentaContableDTO, type RubroBaseSimple } from '../domain/types'
 
-const rubroSelect = { select: { nombre: true } } as const
-
 // ─── Mutaciones ───────────────────────────────────────────────────────────────
 
 export async function asignarRubroCuenta(
@@ -63,15 +61,39 @@ export async function replaceCuentas(
   })
 }
 
-/** Memoizado por request: la página y los servicios lo piden varias veces en un render. */
+/**
+ * Memoizado por request: la página y los servicios lo piden varias veces en un render.
+ *
+ * Las cuentas y los nombres de sus rubros se piden EN PARALELO (un solo viaje a la base):
+ * con `include`, Prisma pediría los rubros en una segunda consulta, después de la primera.
+ * Si una cuenta se reclasificó entre las dos consultas, el rubro que falta se completa aparte.
+ */
 export const findCuentasByEjercicio = cache(
   async (ejercicioId: string): Promise<CuentaContableDTO[]> => {
-    const rows = await db.cuentaContable.findMany({
-      where: { ejercicioId },
-      include: { rubroBase: rubroSelect },
-      orderBy: { codigo: 'asc' },
+    const [rows, rubros] = await Promise.all([
+      db.cuentaContable.findMany({ where: { ejercicioId }, orderBy: { codigo: 'asc' } }),
+      db.rubroBase.findMany({
+        where: { cuentas: { some: { ejercicioId } } },
+        select: { id: true, nombre: true },
+      }),
+    ])
+    const nombres = new Map(rubros.map((r) => [r.id, r.nombre]))
+    const faltantes = [
+      ...new Set(
+        rows.flatMap((c) => (c.rubroBaseId && !nombres.has(c.rubroBaseId) ? [c.rubroBaseId] : [])),
+      ),
+    ]
+    if (faltantes.length > 0) {
+      const extra = await db.rubroBase.findMany({
+        where: { id: { in: faltantes } },
+        select: { id: true, nombre: true },
+      })
+      for (const r of extra) nombres.set(r.id, r.nombre)
+    }
+    return rows.map((c) => {
+      const nombre = c.rubroBaseId ? nombres.get(c.rubroBaseId) : undefined
+      return toCuentaDTO({ ...c, rubroBase: nombre === undefined ? null : { nombre } })
     })
-    return rows.map(toCuentaDTO)
   },
 )
 

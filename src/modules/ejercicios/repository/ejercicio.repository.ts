@@ -67,24 +67,65 @@ function buildData(input: CreateEjercicioInput) {
 
 // ─── Consultas ────────────────────────────────────────────────────────────────
 
+type AuditorResumen = { id: string; nombre: string; apellido: string }
+
+/**
+ * Completa los auditores que faltan (por ejemplo, si se reasignó uno entre dos consultas
+ * paralelas). Normalmente no hace ninguna consulta.
+ */
+async function completarAuditores(
+  auditorIds: (string | null)[],
+  porId: Map<string, AuditorResumen>,
+): Promise<void> {
+  const faltantes = [...new Set(auditorIds.filter((id): id is string => !!id && !porId.has(id)))]
+  if (faltantes.length === 0) return
+  const extra = await db.auditor.findMany({
+    where: { id: { in: faltantes } },
+    select: { id: true, ...auditorSelect.select },
+  })
+  for (const a of extra) porId.set(a.id, a)
+}
+
+/**
+ * Los ejercicios y sus auditores se piden EN PARALELO (un solo viaje a la base): con `include`,
+ * Prisma pediría los auditores en una segunda consulta, después de la primera.
+ */
 export async function findEjerciciosBySociedad(
   sociedadId: string,
 ): Promise<EjercicioContableDTO[]> {
-  const rows = await db.ejercicioContable.findMany({
-    where: { sociedadId },
-    include: { auditor: auditorSelect },
-    orderBy: [{ fechaCierre: 'desc' }],
-  })
-  return rows.map(toEjercicioDTO)
+  const [rows, auditores] = await Promise.all([
+    db.ejercicioContable.findMany({ where: { sociedadId }, orderBy: [{ fechaCierre: 'desc' }] }),
+    db.auditor.findMany({
+      where: { ejercicios: { some: { sociedadId } } },
+      select: { id: true, ...auditorSelect.select },
+    }),
+  ])
+  const porId = new Map(auditores.map((a) => [a.id, a]))
+  await completarAuditores(
+    rows.map((e) => e.auditorId),
+    porId,
+  )
+  return rows.map((e) =>
+    toEjercicioDTO({ ...e, auditor: e.auditorId ? (porId.get(e.auditorId) ?? null) : null }),
+  )
 }
 
-/** Memoizado por request (React cache): generateMetadata, la página y las acciones lo repiten. */
+/**
+ * Memoizado por request (React cache): generateMetadata, la página y las acciones lo repiten.
+ * El ejercicio y su auditor van EN PARALELO, en un solo viaje a la base.
+ */
 export const findEjercicioById = cache(async (id: string): Promise<EjercicioContableDTO | null> => {
-  const e = await db.ejercicioContable.findUnique({
-    where: { id },
-    include: { auditor: auditorSelect },
-  })
-  return e ? toEjercicioDTO(e) : null
+  const [e, auditor] = await Promise.all([
+    db.ejercicioContable.findUnique({ where: { id } }),
+    db.auditor.findFirst({
+      where: { ejercicios: { some: { id } } },
+      select: { id: true, ...auditorSelect.select },
+    }),
+  ])
+  if (!e) return null
+  const porId = new Map(auditor ? [[auditor.id, auditor]] : [])
+  await completarAuditores([e.auditorId], porId)
+  return toEjercicioDTO({ ...e, auditor: e.auditorId ? (porId.get(e.auditorId) ?? null) : null })
 })
 
 /** Resúmenes livianos de los ejercicios de una sociedad (para elegir/validar el anterior). */
@@ -108,24 +149,34 @@ export async function findConfigAnterior(id: string): Promise<ConfigAnterior | n
   })
 }
 
+/** Máximo de saltos al recorrer la cadena de anteriores (protección contra datos corruptos). */
+const MAX_SALTOS_CADENA = 100
+
 /**
  * Ids de la cadena de anteriores a partir de `desdeId` (el anterior de ese, el anterior
- * del anterior, ...). Corta a 100 saltos por seguridad.
+ * del anterior, ...). Corta a 100 saltos y en el primer id repetido (ciclo).
+ *
+ * Una sola consulta recursiva: antes era una consulta por año, una detrás de otra
+ * (15 años = 15 viajes a la base). Nombres de tabla y columna escritos a mano: si cambian
+ * en el esquema, hay que cambiarlos acá (lo cubre la prueba de integración de la cadena).
  */
 export async function findCadenaAnterior(desdeId: string): Promise<string[]> {
+  const filas = await db.$queryRaw<{ id: string }[]>`
+    WITH RECURSIVE cadena (id, nivel) AS (
+      SELECT e."ejercicioAnteriorId", 1
+        FROM "ejercicios_contables" e
+       WHERE e."id" = ${desdeId}
+      UNION ALL
+      SELECT e."ejercicioAnteriorId", c.nivel + 1
+        FROM cadena c
+        JOIN "ejercicios_contables" e ON e."id" = c.id
+       WHERE c.nivel < ${MAX_SALTOS_CADENA}
+    )
+    SELECT id FROM cadena WHERE id IS NOT NULL ORDER BY nivel`
   const cadena: string[] = []
-  let actual: string | null = desdeId
-  for (let i = 0; i < 100 && actual; i++) {
-    const row: { ejercicioAnteriorId: string | null } | null =
-      await db.ejercicioContable.findUnique({
-        where: { id: actual },
-        select: { ejercicioAnteriorId: true },
-      })
-    actual = row?.ejercicioAnteriorId ?? null
-    if (actual) {
-      if (cadena.includes(actual)) break
-      cadena.push(actual)
-    }
+  for (const { id } of filas) {
+    if (cadena.includes(id)) break
+    cadena.push(id)
   }
   return cadena
 }

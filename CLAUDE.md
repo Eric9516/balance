@@ -123,6 +123,7 @@ Toda modificación de base de datos debe cuidar:
 Actualizar esta lista al terminar cada fase. Cada fase se hace en avances chicos, probados y reversibles.
 
 - **Urgente (hecho, 2026-10-19):** cierre del acceso anónimo, paso a pnpm, Next 16.4.2, SheetJS 0.20.3 y Prisma como dependencia de desarrollo.
+- **Hecho, 2026-10-19:** registro de decisiones (`docs/decisiones`), medición con `pnpm rendimiento` y línea base (`docs/RENDIMIENTO.md`), índices para todas las claves foráneas y lecturas con menos viajes a la base.
 - **Fase 0, decisiones irreversibles** mientras hay pocos datos: claves UUIDv7, fechas contables sin hora, un tipo de importe con margen amplio, columnas en snake_case, catálogo RT 54 versionado y registro de decisiones de arquitectura.
 - **Fase 1, login:** Supabase Auth, roles, cuenta nueva bloqueada, nunca sin dueño y doble factor para dueños y administradores.
 - **Fase 2, la base como última barrera:** roles de base separados, reglas por fila, CHECK, ejercicio cerrado inmutable, control de versión en lo editable y permisos por defecto de funciones cerrados.
