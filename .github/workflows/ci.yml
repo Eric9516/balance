@@ -36,21 +36,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Usa la versión de pnpm fijada en package.json (packageManager).
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          cache: npm
+          cache: pnpm
 
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm run format:check
-      - run: npm run test:coverage
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run typecheck
+      - run: pnpm run lint
+      - run: pnpm run format:check
+      - run: pnpm run test:coverage
 
       - name: Migraciones sobre una base limpia
-        run: npx prisma migrate deploy
+        run: pnpm exec prisma migrate deploy
 
       - name: Build de producción
-        run: npm run build
+        run: pnpm run build
         env:
           NODE_ENV: production

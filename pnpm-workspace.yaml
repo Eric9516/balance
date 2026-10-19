@@ -1,0 +1,14 @@
+# Configuración de pnpm para BalanceRT (no es un monorepo: no hay "packages").
+
+# Scripts de instalación: pnpm los bloquea salvo que estén autorizados acá.
+allowBuilds:
+  # Preparan el motor de esquema que usan las migraciones.
+  '@prisma/engines': true
+  prisma: true
+  # Solo compilan desde cero si falta el binario ya armado de la plataforma, que viene como dependencia opcional.
+  sharp: false
+  unrs-resolver: false
+
+# Cadena de suministro: no instalar versiones publicadas hace menos de 3 días (en minutos).
+# Una versión comprometida suele detectarse y retirarse en ese plazo.
+minimumReleaseAge: 4320

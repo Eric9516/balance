@@ -4,7 +4,7 @@ import { TEST_DATABASE_URL } from './src/test/integration.setup'
 
 /**
  * Pruebas de integración contra un PostgreSQL real (base `balancert_test`).
- * Se corren aparte de las unitarias: `npm run test:int`.
+ * Se corren aparte de las unitarias: `pnpm test:int`.
  * Requiere un servidor local; la base se crea/migra/siembra en el globalSetup.
  * Otra base: variable TEST_DATABASE_URL (debe terminar en "_test").
  */

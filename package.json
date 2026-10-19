@@ -18,7 +18,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "knip": "knip",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
+    "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run test",
     "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed/index.ts",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
@@ -75,5 +75,6 @@
     "ts-node": "^10.9.2",
     "typescript": "^5",
     "vitest": "5.0.5"
-  }
+  },
+  "packageManager": "pnpm@12.10.1"
 }

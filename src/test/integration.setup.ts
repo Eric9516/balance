@@ -39,7 +39,7 @@ export default async function setup() {
   await admin.end()
 
   // 2. Migraciones desde cero (falla si el historial no está completo).
-  execSync('npx prisma migrate deploy', {
+  execSync('pnpm exec prisma migrate deploy', {
     stdio: 'inherit',
     env: { ...process.env, DATABASE_URL: url },
   })

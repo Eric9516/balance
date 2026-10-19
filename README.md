@@ -65,7 +65,8 @@ type ActionResult<T> = { ok: true; data: T } | { ok: false; error: AppError }
 
 ### Prerrequisitos
 
-- Node.js 18+
+- Node.js 24+ (ver `.nvmrc`)
+- pnpm 12 (`npm install -g pnpm`; la versión exacta está en `packageManager` de `package.json`)
 - PostgreSQL 14+
 
 ### Instalación
@@ -73,7 +74,7 @@ type ActionResult<T> = { ok: true; data: T } | { ok: false; error: AppError }
 ```bash
 git clone <repo>
 cd balancert
-npm install
+pnpm install
 cp .env.example .env
 # Editar .env con tu DATABASE_URL
 ```
@@ -81,9 +82,9 @@ cp .env.example .env
 ### Base de datos
 
 ```bash
-npm run db:migrate    # crea/actualiza el schema
-npm run db:seed       # inserta los 30 rubros base de RT 54
-npm run db:studio     # Prisma Studio (opcional)
+pnpm db:migrate    # crea/actualiza el schema
+pnpm db:seed       # inserta los 30 rubros base de RT 54
+pnpm db:studio     # Prisma Studio (opcional)
 ```
 
 ### Base de datos: migraciones
@@ -94,24 +95,24 @@ La migración `20261018000323_regularizar_schema_actual` es idempotente: lleva a
 
 | Estado de la base | Qué hacer |
 |---|---|
-| Base nueva (vacía) | `npx prisma migrate deploy` y luego `npm run db:seed`. |
-| Base que ya corrió `migrate` alguna vez (existe `_prisma_migrations`) | `npx prisma migrate deploy`. La regularización no toca lo que ya existe. |
+| Base nueva (vacía) | `pnpm exec prisma migrate deploy` y luego `pnpm db:seed`. |
+| Base que ya corrió `migrate` alguna vez (existe `_prisma_migrations`) | `pnpm exec prisma migrate deploy`. La regularización no toca lo que ya existe. |
 | Base actualizada solo con `db push` (no existe `_prisma_migrations`) | Marcar como aplicadas las migraciones previas a la regularización, una por una, y recién después `migrate deploy`: |
 
 ```bash
 # Solo para bases que nunca corrieron migrate (baselining)
 for m in $(ls prisma/migrations | grep -v migration_lock | grep -v regularizar | sort | head -n 11); do
-  npx prisma migrate resolve --applied "$m"
+  pnpm exec prisma migrate resolve --applied "$m"
 done
-npx prisma migrate deploy
+pnpm exec prisma migrate deploy
 ```
 
-Después de cualquier migración: `npx prisma generate`.
+Después de cualquier migración: `pnpm exec prisma generate`.
 
 ### Desarrollo
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 ---

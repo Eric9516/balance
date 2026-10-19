@@ -290,15 +290,15 @@ await upsertCostoVentas(ejercicioId, arrastre.datos ?? datos)
 
 ## 16. Pruebas de integración contra PostgreSQL
 
-`npm run test:int` usa `vitest.integration.config.mts`: archivos `*.itest.ts`, base `balancert_test` (se crea, migra desde cero y trunca en el globalSetup). `next/cache` y `next/navigation` se mockean con `vi.mock`. Las unitarias (`npm test`) siguen sin base.
+`pnpm test:int` usa `vitest.integration.config.mts`: archivos `*.itest.ts`, base `balancert_test` (se crea, migra desde cero y trunca en el globalSetup). `next/cache` y `next/navigation` se mockean con `vi.mock`. Las unitarias (`npm test`) siguen sin base.
 
 ---
 
 ## 17. Prisma generate obligatorio después de migrate
 
 ```bash
-npx prisma migrate dev --name nombre_migracion
-npx prisma generate  # ← SIEMPRE después de migrate
+pnpm exec prisma migrate dev --name nombre_migracion
+pnpm exec prisma generate  # ← SIEMPRE después de migrate
 ```
 
 Sin el `generate`, TypeScript no reconoce los campos nuevos y da errores de tipo aunque la DB ya esté actualizada.
