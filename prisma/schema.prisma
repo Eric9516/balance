@@ -251,6 +251,7 @@ model RubroBase {
   cuentas       CuentaContable[]
   rubrosEstudio RubroActivoEstudio[]
 
+  @@index([rubroGrupoId])
   @@map("rubros_base")
 }
 
@@ -265,6 +266,7 @@ model RubroActivoEstudio {
   rubro   RubroBase @relation(fields: [rubroId], references: [id], onDelete: Cascade)
 
   @@unique([estudioId, rubroId])
+  @@index([rubroId])
   @@map("rubros_activos_estudio")
 }
 
@@ -329,6 +331,7 @@ model UsuarioEstudio {
 
   estudio Estudio @relation(fields: [estudioId], references: [id], onDelete: Cascade)
 
+  @@index([estudioId])
   @@map("usuarios_estudio")
 }
 
@@ -450,6 +453,7 @@ model EjercicioContable {
   ajustesTransicion     AjusteTransicionRT54[]
 
   @@index([sociedadId, fechaCierre])
+  @@index([auditorId])
   @@map("ejercicios_contables")
 }
 
@@ -472,6 +476,7 @@ model MapeoExcel {
   estudio       Estudio            @relation(fields: [estudioId], references: [id], onDelete: Cascade)
   importaciones ImportacionExcel[]
 
+  @@index([estudioId])
   @@map("mapeos_excel")
 }
 
@@ -496,6 +501,7 @@ model ImportacionExcel {
   cuentas    CuentaContable[]
 
   @@index([ejercicioId])
+  @@index([mapeoExcelId])
   @@map("importaciones_excel")
 }
 
@@ -524,6 +530,8 @@ model CuentaContable {
   @@unique([ejercicioId, codigo])
   @@index([ejercicioId, rubroBaseId])
   @@index([notaEjercicioId])
+  @@index([rubroBaseId])
+  @@index([importacionExcelId])
   @@map("cuentas_contables")
 }
 
@@ -545,6 +553,7 @@ model PlantillaNota {
   estudio Estudio         @relation(fields: [estudioId], references: [id], onDelete: Cascade)
   notas   NotaEjercicio[]
 
+  @@index([estudioId])
   @@map("plantillas_nota")
 }
 
@@ -568,6 +577,7 @@ model NotaEjercicio {
   cuentas    CuentaContable[]
 
   @@index([ejercicioId])
+  @@index([plantillaNotaId])
   @@map("notas_ejercicio")
 }
 
