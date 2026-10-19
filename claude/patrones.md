@@ -144,7 +144,9 @@ indiceInflacionAnterior: e.indiceInflacionAnterior,
 
 ## 7. Formato de fechas UTC — evitar timezone shifts
 
-Los `DateTime` de Prisma se almacenan en UTC. Cuando se hace `new Date("2025-12-31")` en JavaScript, se crea `2025-12-31T00:00:00.000Z` (UTC).
+Las fechas contables son `@db.Date` en la base (un día, sin hora) y Prisma las devuelve como `Date` a las 00:00 UTC de ese día. Los instantes son `@db.Timestamptz(3)`. Toda conexión pasa por `crearPoolPg` (`src/lib/pool-pg.ts`), que fija la sesión en UTC: ver `docs/decisiones/0006-fechas-y-zona-horaria.md`.
+
+Cuando se hace `new Date("2025-12-31")` en JavaScript, se crea `2025-12-31T00:00:00.000Z` (UTC). Nunca armar fechas con `new Date(año, mes, día)`, que usa la hora local del servidor.
 
 Para mostrar la fecha correctamente sin que el timezone del servidor la desplace:
 

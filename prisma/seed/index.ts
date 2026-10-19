@@ -1,9 +1,12 @@
 import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { crearPoolPg } from '../../src/lib/pool-pg'
 import { seedRubrosBase } from './rubros'
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
+const adapter = new PrismaPg(crearPoolPg({ connectionString: process.env.DATABASE_URL! }), {
+  disposeExternalPool: true,
+})
 const prisma = new PrismaClient({ adapter })
 
 async function main() {

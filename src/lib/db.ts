@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { env } from './env'
+import { crearPoolPg } from './pool-pg'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -12,15 +13,18 @@ const UMBRAL_LENTA_MS = 50
 function createClient() {
   // Pool explícito: tamaño acotado y timeouts para que un cuelgue sea un error
   // visible y no una espera infinita. application_name ayuda a identificar la app
-  // en pg_stat_activity.
-  const adapter = new PrismaPg({
-    connectionString: env.DATABASE_URL,
-    max: env.DB_POOL_MAX,
-    idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 5_000,
-    statement_timeout: 15_000,
-    application_name: 'balancert',
-  })
+  // en pg_stat_activity. Cada sesión queda en UTC (ver pool-pg.ts).
+  const adapter = new PrismaPg(
+    crearPoolPg({
+      connectionString: env.DATABASE_URL,
+      max: env.DB_POOL_MAX,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 5_000,
+      statement_timeout: 15_000,
+      application_name: 'balancert',
+    }),
+    { disposeExternalPool: true },
+  )
 
   const logQueries = env.PRISMA_LOG_QUERIES === '1' && env.NODE_ENV !== 'production'
   const client = new PrismaClient({

@@ -10,11 +10,16 @@ import EmbeddedPostgres from 'embedded-postgres'
 
 export type PostgresEmbebido = { detener: () => Promise<void> }
 
-/** Arranca un servidor en `puerto` (usuario y clave "postgres") y crea la base `base`. */
+/**
+ * Arranca un servidor en `puerto` (usuario y clave "postgres") y crea la base `base`.
+ * `zonaHoraria` es la zona por defecto de las sesiones del servidor: las pruebas usan a propósito
+ * una distinta de UTC para comprobar que la app no depende de ella (ver src/lib/pool-pg.ts).
+ */
 export async function iniciarPostgresEmbebido(opciones: {
   puerto: number
   base: string
   prefijoCarpeta: string
+  zonaHoraria?: string
 }): Promise<PostgresEmbebido> {
   const carpeta = mkdtempSync(join(tmpdir(), opciones.prefijoCarpeta))
   const servidor = new EmbeddedPostgres({
@@ -24,7 +29,13 @@ export async function iniciarPostgresEmbebido(opciones: {
     port: opciones.puerto,
     persistent: false,
     initdbFlags: ['--encoding=UTF8', '--locale=C'],
-    postgresFlags: ['-c', 'shared_buffers=256MB', '-c', 'log_min_messages=error'],
+    postgresFlags: [
+      '-c',
+      'shared_buffers=256MB',
+      '-c',
+      'log_min_messages=error',
+      ...(opciones.zonaHoraria ? ['-c', `timezone=${opciones.zonaHoraria}`] : []),
+    ],
     onLog: () => {},
     onError: () => {},
   })

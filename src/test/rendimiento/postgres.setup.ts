@@ -12,6 +12,7 @@ import { execSync } from 'node:child_process'
 import { Client } from 'pg'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { crearPoolPg } from '../../lib/pool-pg'
 import { seedRubrosBase } from '../../../prisma/seed/rubros'
 import { iniciarPostgresEmbebido, type PostgresEmbebido } from '../postgres-embebido'
 
@@ -76,7 +77,9 @@ export default async function setup() {
   })
 
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: RENDIMIENTO_DATABASE_URL }),
+    adapter: new PrismaPg(crearPoolPg({ connectionString: RENDIMIENTO_DATABASE_URL }), {
+      disposeExternalPool: true,
+    }),
   })
   try {
     const log = console.log

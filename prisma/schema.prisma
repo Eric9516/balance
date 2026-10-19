@@ -219,8 +219,8 @@ model RubroGrupo {
   seccionEERR   SeccionEERR?
   orden         Int
   activo        Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt     DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @db.Timestamptz(3)
 
   rubros RubroBase[]
 
@@ -244,8 +244,8 @@ model RubroBase {
   // Estado de Flujo de Efectivo (se deriva del SSP, no se carga a mano).
   esEfectivo            Boolean            @default(false)
   textoNotaDefault      String?
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
+  createdAt             DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime           @updatedAt @db.Timestamptz(3)
 
   rubroGrupo    RubroGrupo?         @relation(fields: [rubroGrupoId], references: [id], onDelete: SetNull)
   cuentas       CuentaContable[]
@@ -260,7 +260,7 @@ model RubroActivoEstudio {
   estudioId String
   rubroId   String
   activo    Boolean  @default(true)
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   estudio Estudio   @relation(fields: [estudioId], references: [id], onDelete: Cascade)
   rubro   RubroBase @relation(fields: [rubroId], references: [id], onDelete: Cascade)
@@ -284,8 +284,8 @@ model Estudio {
   telefono    String?
   email       String?
   activo      Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime    @updatedAt @db.Timestamptz(3)
 
   configuracion   EstudioConfiguracion?
   sociedades      Sociedad[]
@@ -311,8 +311,8 @@ model EstudioConfiguracion {
   decimalesDisplay       Int      @default(0)
   mostrarNotasEnPreview  Boolean  @default(true)
   firmaDigitalHabilitada Boolean  @default(false)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  createdAt              DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime @updatedAt @db.Timestamptz(3)
 
   estudio Estudio @relation(fields: [estudioId], references: [id], onDelete: Cascade)
 
@@ -326,8 +326,8 @@ model UsuarioEstudio {
   email     String     @unique
   rol       RolEstudio @default(JUNIOR)
   activo    Boolean    @default(true)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  createdAt DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime   @updatedAt @db.Timestamptz(3)
 
   estudio Estudio @relation(fields: [estudioId], references: [id], onDelete: Cascade)
 
@@ -353,13 +353,13 @@ model Sociedad {
   actividadSecundaria String?
   clasificacionRT54   String?
   categoriaEnte       CategoriaEnteRT54? // valor por defecto para ejercicios nuevos de la sociedad
-  fechaInscripcion    DateTime?
+  fechaInscripcion    DateTime? @db.Date
   matriculaPJ         String?
-  plazoDuracion       DateTime?
+  plazoDuracion       DateTime? @db.Date
   composicionCapital  String?
   activo              Boolean     @default(true)
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+  createdAt           DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime    @updatedAt @db.Timestamptz(3)
 
   estudio    Estudio             @relation(fields: [estudioId], references: [id], onDelete: Restrict)
   ejercicios EjercicioContable[]
@@ -383,8 +383,8 @@ model Auditor {
   firmaImagenUrl     String?  // URL de imagen de la firma digital para pie de página
   esDefault          Boolean  @default(false)
   activo             Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(3)
 
   estudio    Estudio             @relation(fields: [estudioId], references: [id], onDelete: Cascade)
   ejercicios EjercicioContable[]
@@ -402,9 +402,9 @@ model EjercicioContable {
   auditorId           String?
   ejercicioAnteriorId String?         @unique
   numeroEjercicio     Int?
-  fechaInicio         DateTime
-  fechaCierre         DateTime
-  fechaInformeAuditor     DateTime?
+  fechaInicio         DateTime @db.Date
+  fechaCierre         DateTime @db.Date
+  fechaInformeAuditor     DateTime? @db.Date
   clasificacionEntidad    String?
   indiceInflacionAnterior Decimal?  @db.Decimal(18, 6)
   indiceInflacionActual   Decimal?  @db.Decimal(18, 6)
@@ -425,7 +425,7 @@ model EjercicioContable {
   modoAnterior                ModoEjercicioAnterior?
   // Autorización explícita de los saldos del ejercicio anterior cargados a mano (modo MANUAL).
   // Cualquier escritura posterior sobre comparativos la vuelve a null.
-  comparativoAutorizadoEn     DateTime?
+  comparativoAutorizadoEn     DateTime? @db.Timestamptz(3)
   comparativoAutorizadoPor    String?
   // Categoría del ente según RT 54 para este ejercicio (puede diferir de la sociedad).
   categoriaEnte               CategoriaEnteRT54?
@@ -433,8 +433,8 @@ model EjercicioContable {
   balanceAnteriorDisponible   Boolean              @default(true)
   nivelComparativoSSP         NivelComparativoSSP?
   auditorSnapshot     Json?
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
+  createdAt           DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime        @updatedAt @db.Timestamptz(3)
 
   sociedad           Sociedad                 @relation(fields: [sociedadId], references: [id], onDelete: Restrict)
   auditor            Auditor?                 @relation(fields: [auditorId], references: [id], onDelete: SetNull)
@@ -470,8 +470,8 @@ model MapeoExcel {
   columnasAcreedor String[]
   filasOmitir      Int      @default(0)
   activo           Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(3)
 
   estudio       Estudio            @relation(fields: [estudioId], references: [id], onDelete: Cascade)
   importaciones ImportacionExcel[]
@@ -493,8 +493,8 @@ model ImportacionExcel {
   filasImportadas Int?
   filasError      Int?
   erroresDetalle  Json?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  createdAt       DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime          @updatedAt @db.Timestamptz(3)
 
   ejercicio  EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
   mapeoExcel MapeoExcel?       @relation(fields: [mapeoExcelId], references: [id], onDelete: SetNull)
@@ -519,8 +519,8 @@ model CuentaContable {
   saldoAcreedor      Decimal  @default(0) @db.Decimal(18, 2)
   saldoFinal         Decimal  @default(0) @db.Decimal(18, 2)
   clasificadaManual  Boolean  @default(false)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(3)
 
   ejercicio     EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
   importacion   ImportacionExcel? @relation(fields: [importacionExcelId], references: [id], onDelete: SetNull)
@@ -547,8 +547,8 @@ model PlantillaNota {
   textoApertura    String?  // Texto de apertura por defecto
   orden            Int
   activo           Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(3)
 
   estudio Estudio         @relation(fields: [estudioId], references: [id], onDelete: Cascade)
   notas   NotaEjercicio[]
@@ -568,8 +568,8 @@ model NotaEjercicio {
   // Campos para renderizado de la nota (ver PDF páginas 2-3)
   criterioMedicion String?  // Ej: "valor nominal", "costo de reposición"
   textoApertura    String?  // Ej: "El saldo del rubro a fecha de cierre está compuesto por:"
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(3)
 
   ejercicio  EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
   plantilla  PlantillaNota?    @relation(fields: [plantillaNotaId], references: [id], onDelete: SetNull)
@@ -589,8 +589,8 @@ model DetalleNota {
   importeActual    Decimal  @default(0) @db.Decimal(18, 2)
   importeAnterior  Decimal  @default(0) @db.Decimal(18, 2)
   esTotal          Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(3)
 
   nota NotaEjercicio @relation(fields: [notaEjercicioId], references: [id], onDelete: Cascade)
 
@@ -622,8 +622,8 @@ model EvolucionPNMovimiento {
   // Columna "Ejercicio Anterior" del comparativo
   totalAnterior Decimal @default(0) @db.Decimal(18, 2)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   ejercicio EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
 
@@ -649,8 +649,8 @@ model FlujoDeCajaEjercicio {
   saldoInicialAnterior      Decimal @default(0) @db.Decimal(18, 2)
   modificacionesEjAntAnt    Decimal @default(0) @db.Decimal(18, 2)
   saldoFinalAnterior        Decimal @default(0) @db.Decimal(18, 2)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
 
   ejercicio EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
   items     FlujoDeCajaItem[]
@@ -668,8 +668,8 @@ model FlujoDeCajaItem {
   importeAnterior Decimal      @default(0) @db.Decimal(18, 2)
   esSubtotal      Boolean      @default(false)
   orden           Int
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  createdAt       DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime     @updatedAt @db.Timestamptz(3)
 
   flujo FlujoDeCajaEjercicio @relation(fields: [flujoId], references: [id], onDelete: Cascade)
 
@@ -710,8 +710,8 @@ model BienDeUsoCategoria {
   // Si hay ejercicio anterior, el comparativo se deriva automáticamente de ese registro.
   netoResidualAnteriorManual Decimal? @db.Decimal(18, 2)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   ejercicio EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
 
@@ -733,8 +733,8 @@ model CostoVentasEjercicio {
   existenciaFinal    Decimal @default(0) @db.Decimal(18, 2)
   // Total costo = existenciaInicial + compras + gastosFabricacion - existenciaFinal
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   ejercicio EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
 
@@ -753,9 +753,9 @@ model ErrorValidacion {
   estado      EstadoValidacion    @default(ACTIVA)
   mensaje     String
   detalle     Json?
-  resueltaEn  DateTime?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  resueltaEn  DateTime? @db.Timestamptz(3)
+  createdAt   DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime            @updatedAt @db.Timestamptz(3)
 
   ejercicio EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
 
@@ -775,7 +775,7 @@ model ErrorTecnicoLog {
   stackHash String?
   contexto  Json?
   resuelta  Boolean          @default(false)
-  createdAt DateTime         @default(now())
+  createdAt DateTime         @default(now()) @db.Timestamptz(3)
 
   @@index([stackHash])
   @@index([tipo, severidad])
@@ -834,8 +834,8 @@ model DocumentoEjercicio {
   estado         EstadoDocumento @default(SUGERIDO)
   origen         OrigenDocumento @default(AUTOMATICO)
   saldoAlAceptar Decimal?        @db.Decimal(18, 2) // foto del saldo al aceptar — para detectar saldo 0 posterior
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  createdAt      DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime        @updatedAt @db.Timestamptz(3)
 
   ejercicio EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
 
@@ -866,8 +866,8 @@ model AjusteTransicionRT54 {
   rubroOrigen  String?
   rubroDestino String?
   importeReclasificado Decimal @default(0) @db.Decimal(18, 2)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
 
   ejercicio EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
 

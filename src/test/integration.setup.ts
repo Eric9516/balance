@@ -11,10 +11,19 @@ import { execSync } from 'node:child_process'
 import { Client } from 'pg'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { crearPoolPg } from '../lib/pool-pg'
 import { seedRubrosBase } from '../../prisma/seed/rubros'
 import { iniciarPostgresEmbebido, type PostgresEmbebido } from './postgres-embebido'
 
 const PUERTO_EMBEBIDO = 55435
+
+/**
+ * Zona horaria por defecto del PostgreSQL embebido. A propósito NO es UTC: cada corrida comprueba
+ * que la app fija UTC en sus sesiones y no depende de la configuración de la base (ver
+ * src/lib/pool-pg.ts). Se cambia con TEST_PG_TIMEZONE para probar otras zonas.
+ */
+export const ZONA_HORARIA_PG_PRUEBAS =
+  process.env.TEST_PG_TIMEZONE ?? 'America/Argentina/Buenos_Aires'
 
 /** Misma URL que vitest.integration.config.mts inyecta a los workers. */
 export const TEST_DATABASE_URL =
@@ -38,6 +47,7 @@ export default async function setup() {
       puerto: PUERTO_EMBEBIDO,
       base: dbName,
       prefijoCarpeta: 'balancert-test-',
+      zonaHoraria: ZONA_HORARIA_PG_PRUEBAS,
     })
   } else {
     // 1. Crear la base si no existe (conectando a la base de mantenimiento "postgres").
@@ -62,7 +72,9 @@ export default async function setup() {
 
   // 3. Base limpia (los datos de corridas anteriores alterarían "el estudio activo") y
   //    catálogo de rubros.
-  const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) })
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg(crearPoolPg({ connectionString: url }), { disposeExternalPool: true }),
+  })
   try {
     await prisma.$executeRawUnsafe(
       'TRUNCATE TABLE "estudios", "rubros_grupo", "gasto_seccion_config", "errores_tecnicos_log" CASCADE',

@@ -19,6 +19,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { Client } from 'pg'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { crearPoolPg } from '@/lib/pool-pg'
 
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
@@ -155,7 +156,9 @@ describe(`Rendimiento (escala ${ESCALA})`, () => {
   beforeAll(async () => {
     await intermediario.escuchar()
     const sembrador = new PrismaClient({
-      adapter: new PrismaPg({ connectionString: RENDIMIENTO_DATABASE_URL }),
+      adapter: new PrismaPg(crearPoolPg({ connectionString: RENDIMIENTO_DATABASE_URL }), {
+        disposeExternalPool: true,
+      }),
     })
     try {
       sembrado = await sembrar(sembrador, ESCALAS[ESCALA])

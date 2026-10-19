@@ -67,6 +67,8 @@ Toda modificación de base de datos debe cuidar:
 - Auditoría de acciones importantes.
 - No borrar información sensible sin control.
 - Evitar campos genéricos tipo "otros", "data", "config" salvo justificación clara.
+- **Fechas:** las contables son `DateTime @db.Date` (un día, sin hora) y los instantes `DateTime @db.Timestamptz(3)`. Todo campo `DateTime` nuevo declara uno de los dos (ver `docs/decisiones/0006`).
+- **Conexiones:** toda conexión a la base se crea con `crearPoolPg` (`src/lib/pool-pg.ts`), que fija la sesión en UTC. El adaptador de Prisma lo necesita para leer y escribir bien los instantes.
 
 ### Seguridad
 
@@ -124,6 +126,7 @@ Actualizar esta lista al terminar cada fase. Cada fase se hace en avances chicos
 
 - **Urgente (hecho, 2026-10-19):** cierre del acceso anónimo, paso a pnpm, Next 16.4.2, SheetJS 0.20.3 y Prisma como dependencia de desarrollo.
 - **Hecho, 2026-10-19:** registro de decisiones (`docs/decisiones`), medición con `pnpm rendimiento` y línea base (`docs/RENDIMIENTO.md`), índices para todas las claves foráneas y lecturas con menos viajes a la base.
+- **Hecho, 2026-10-19:** Fase 0, paso 2: fechas contables sin hora, instantes con zona horaria y sesión fijada en UTC.
 - **Fase 0, decisiones irreversibles** mientras hay pocos datos: claves UUIDv7, fechas contables sin hora, un tipo de importe con margen amplio, columnas en snake_case, catálogo RT 54 versionado y registro de decisiones de arquitectura.
 - **Fase 1, login:** Supabase Auth, roles, cuenta nueva bloqueada, nunca sin dueño y doble factor para dueños y administradores.
 - **Fase 2, la base como última barrera:** roles de base separados, reglas por fila, CHECK, ejercicio cerrado inmutable, control de versión en lo editable y permisos por defecto de funciones cerrados.
