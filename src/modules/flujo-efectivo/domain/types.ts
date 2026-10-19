@@ -1,4 +1,5 @@
 import type { FlujoDeCajaEjercicio, FlujoDeCajaItem, SeccionFlujo } from '@prisma/client'
+import { importe } from '@/lib/importe'
 
 export type { SeccionFlujo }
 
@@ -89,8 +90,8 @@ export function toFlujoItemDTO(i: FlujoDeCajaItem): FlujoItemDTO {
     id: i.id,
     seccion: i.seccion,
     concepto: i.concepto,
-    importe: Number(i.importe),
-    importeAnterior: Number(i.importeAnterior),
+    importe: importe(i.importe),
+    importeAnterior: importe(i.importeAnterior),
     orden: i.orden,
   }
 }
@@ -100,12 +101,12 @@ export function toFlujoGuardadoDTO(
 ): FlujoGuardadoDTO {
   return {
     id: f.id,
-    saldoInicial: Number(f.saldoInicial),
-    modificacionesEjAnt: Number(f.modificacionesEjAnt),
-    saldoFinal: Number(f.saldoFinal),
-    saldoInicialAnterior: Number(f.saldoInicialAnterior),
-    modificacionesEjAntAnt: Number(f.modificacionesEjAntAnt),
-    saldoFinalAnterior: Number(f.saldoFinalAnterior),
+    saldoInicial: importe(f.saldoInicial),
+    modificacionesEjAnt: importe(f.modificacionesEjAnt),
+    saldoFinal: importe(f.saldoFinal),
+    saldoInicialAnterior: importe(f.saldoInicialAnterior),
+    modificacionesEjAntAnt: importe(f.modificacionesEjAntAnt),
+    saldoFinalAnterior: importe(f.saldoFinalAnterior),
     items: f.items
       .filter((i) => !i.esSubtotal)
       .sort((a, b) => a.orden - b.orden)

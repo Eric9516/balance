@@ -14,6 +14,7 @@ import { SECCION_SSP_LABELS, esSeccionSSP } from '@/modules/rubros-base/domain/s
 import { TEXTOS_DOCUMENTO as T } from '../domain/textos'
 import type { ColumnasDocumento } from '../domain/types'
 import { EncabezadoColumnas, Importe, TituloSeccion } from './piezas'
+import { sumar } from '@/lib/importe'
 
 // ─── Estado de Situación Patrimonial ─────────────────────────────────────────
 
@@ -160,8 +161,8 @@ export function SSPDoc({
         <tfoot>
           <FilaImportes
             label={T.ssp.totalPasivoPN}
-            actual={sumarSecciones(sspRubros, SECCIONES_PASIVO, 'actual') + pn}
-            anterior={sumarSecciones(sspRubros, SECCIONES_PASIVO, 'anterior') + pnAnt}
+            actual={sumar(sumarSecciones(sspRubros, SECCIONES_PASIVO, 'actual'), pn)}
+            anterior={sumar(sumarSecciones(sspRubros, SECCIONES_PASIVO, 'anterior'), pnAnt)}
             columnas={columnas}
             clase="fila-final"
           />

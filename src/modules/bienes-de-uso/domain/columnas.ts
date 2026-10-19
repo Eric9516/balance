@@ -5,6 +5,7 @@
  */
 
 import { calcularCierre, type BienDeUsoDTO } from './types'
+import { sumarPor } from '@/lib/importe'
 
 export type CampoEditableBDU =
   | 'costoInicioReexpresado'
@@ -68,5 +69,5 @@ export function valorColumnaBDU(col: ColumnaBDU, bien: BienDeUsoDTO): number {
 
 /** Total de una columna sobre todas las filas. */
 export function totalColumnaBDU(col: ColumnaBDU, bienes: BienDeUsoDTO[]): number {
-  return bienes.reduce((acc, b) => acc + valorColumnaBDU(col, b), 0)
+  return sumarPor(bienes, (b) => valorColumnaBDU(col, b))
 }

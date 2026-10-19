@@ -5,6 +5,7 @@
  */
 
 import type { EvolucionPNMovimientoDTO } from './types'
+import { sumar } from '@/lib/importe'
 
 export type CampoPN =
   | 'capitalSuscripto'
@@ -23,9 +24,10 @@ export type ColumnaPN =
   | { tipo: 'campo'; campo: CampoPN; label: string }
   | { tipo: 'subtotal'; label: string; calc: (m: Mov) => number }
 
-export const sumAportesPN = (m: Mov) => m.capitalSuscripto + m.ajusteCapital + m.aportesIrrevocables
-export const sumReservasPN = (m: Mov) => m.reservaLegal + m.otrasReservas
-export const sumResultadosPN = (m: Mov) => sumReservasPN(m) + m.rdosNoAsignados
+export const sumAportesPN = (m: Mov) =>
+  sumar(m.capitalSuscripto, m.ajusteCapital, m.aportesIrrevocables)
+export const sumReservasPN = (m: Mov) => sumar(m.reservaLegal, m.otrasReservas)
+export const sumResultadosPN = (m: Mov) => sumar(sumReservasPN(m), m.rdosNoAsignados)
 
 export const COLUMNAS_PN: Record<
   GrupoPN,

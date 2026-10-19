@@ -1,4 +1,5 @@
 import type { CostoVentasEjercicio } from '@prisma/client'
+import { importe, restar, sumar, sumarPor } from '@/lib/importe'
 
 export type CostoVentasDTO = {
   id: string
@@ -14,15 +15,18 @@ export function toCostoVentasDTO(c: CostoVentasEjercicio): CostoVentasDTO {
   return {
     id: c.id,
     ejercicioId: c.ejercicioId,
-    existenciaInicial: Number(c.existenciaInicial),
-    compras: Number(c.compras),
-    gastosFabricacion: Number(c.gastosFabricacion),
-    existenciaFinal: Number(c.existenciaFinal),
+    existenciaInicial: importe(c.existenciaInicial),
+    compras: importe(c.compras),
+    gastosFabricacion: importe(c.gastosFabricacion),
+    existenciaFinal: importe(c.existenciaFinal),
   }
 }
 
 export function calcularCostoTotal(dto: Omit<CostoVentasDTO, 'id' | 'ejercicioId'>): number {
-  return dto.existenciaInicial + dto.compras + dto.gastosFabricacion - dto.existenciaFinal
+  return restar(
+    sumar(dto.existenciaInicial, dto.compras, dto.gastosFabricacion),
+    dto.existenciaFinal,
+  )
 }
 
 // ─── Exposición del anexo ─────────────────────────────────────────────────────
@@ -54,7 +58,7 @@ export function costoAnteriorConExtras(
   datosAnteriores: CostoVentasDTO | null,
   extras: { valor: number }[],
 ): number | null {
-  const sumaExtra = extras.reduce((acc, c) => acc + c.valor, 0)
-  if (datosAnteriores) return calcularCostoTotal(datosAnteriores) + sumaExtra
+  const sumaExtra = sumarPor(extras, (c) => c.valor)
+  if (datosAnteriores) return sumar(calcularCostoTotal(datosAnteriores), sumaExtra)
   return sumaExtra !== 0 ? sumaExtra : null
 }

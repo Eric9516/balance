@@ -12,6 +12,7 @@ import {
   deleteDocumentoById,
   saldoPorCodigoRubro,
 } from '../repository/documento.repository'
+import { sumarPor } from '@/lib/importe'
 
 function revalidate(sociedadId: string, ejercicioId: string) {
   revalidatePath(`/sociedades/${sociedadId}/ejercicios/${ejercicioId}/cuentas`)
@@ -24,7 +25,7 @@ async function saldoDeRegla(ejercicioId: string, reglaClave: string): Promise<nu
   const regla = REGLA_POR_CLAVE.get(reglaClave)
   if (!regla) return 0
   const saldos = await saldoPorCodigoRubro(ejercicioId)
-  return regla.rubros.reduce((acc, cod) => acc + (saldos.get(cod) ?? 0), 0)
+  return sumarPor(regla.rubros, (cod) => saldos.get(cod))
 }
 
 export async function aceptarDocumentoAction(

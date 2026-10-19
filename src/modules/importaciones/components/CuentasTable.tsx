@@ -5,8 +5,8 @@ import { Upload, Keyboard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { formatCurrency } from '@/lib/utils/currency'
-import { comparaImportes } from '@/lib/utils/decimal'
 import type { CuentaContableDTO } from '../domain/types'
+import { comparaImportes, restar, sumarPor } from '@/lib/importe'
 
 interface CuentasTableProps {
   cuentas: CuentaContableDTO[]
@@ -46,9 +46,9 @@ export function CuentasTable({ cuentas, sociedadId, ejercicioId }: CuentasTableP
     )
   }
 
-  const totalDebe = cuentas.reduce((acc, c) => acc + c.saldoDeudor, 0)
-  const totalHaber = cuentas.reduce((acc, c) => acc + c.saldoAcreedor, 0)
-  const diferencia = totalDebe - totalHaber
+  const totalDebe = sumarPor(cuentas, (c) => c.saldoDeudor)
+  const totalHaber = sumarPor(cuentas, (c) => c.saldoAcreedor)
+  const diferencia = restar(totalDebe, totalHaber)
   const cuadra = comparaImportes(totalDebe, totalHaber)
 
   const clasificadas = cuentas.filter((c) => c.rubroBaseId !== null).length

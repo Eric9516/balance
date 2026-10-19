@@ -17,4 +17,14 @@ describe('formatCurrency (formato AR)', () => {
     expect(formatCurrency(0, { ceroComoGuion: true })).toBe('-')
     expect(formatCurrency(null)).toBe('-')
   })
+
+  it("con decimales 'todos' muestra el valor completo, sin redondear", () => {
+    expect(formatCurrency(1250.0125, { decimales: 'todos' })).toBe('1.250,0125')
+    expect(formatCurrency('-0.005', { decimales: 'todos' })).toBe('(0,005)')
+    expect(formatCurrency('1.1234567890123456789012345678', { decimales: 'todos' })).toBe(
+      '1,1234567890123456789012345678',
+    )
+    expect(formatCurrency(5, { decimales: 'todos' })).toBe('5,00')
+    expect(formatCurrency(0.1, { decimales: 'todos' })).toBe('0,10')
+  })
 })

@@ -10,6 +10,7 @@ import type { CategoriaEnteRT54, EstadoEjercicio, TipoValidacion } from '@prisma
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatFecha } from '@/lib/utils/dates'
 import type { ModoAnteriorEfectivo } from './ejercicioAnterior'
+import { restar } from '@/lib/importe'
 
 export type SeveridadItem = 'ERROR' | 'ADVERTENCIA'
 
@@ -112,7 +113,7 @@ export function validarAutorizacionFinal(ctx: ContextoAutorizacion): ResultadoAu
     }
     if (ctx.cuadreAnterior) {
       const { activo, pasivo, patrimonioNeto } = ctx.cuadreAnterior
-      const diferencia = activo - (pasivo + patrimonioNeto)
+      const diferencia = restar(activo, pasivo, patrimonioNeto)
       if (Math.abs(diferencia) > TOLERANCIA) {
         bloqueantes.push(
           item(
@@ -126,7 +127,7 @@ export function validarAutorizacionFinal(ctx: ContextoAutorizacion): ResultadoAu
     }
     if (ctx.resultadoAnterior) {
       const { eerr, eepn } = ctx.resultadoAnterior
-      if (Math.abs(eerr - eepn) > TOLERANCIA) {
+      if (Math.abs(restar(eerr, eepn)) > TOLERANCIA) {
         bloqueantes.push(
           item(
             'AUT-012',
@@ -208,7 +209,7 @@ export function validarAutorizacionFinal(ctx: ContextoAutorizacion): ResultadoAu
   // ── Primera aplicación RT 54 ──────────────────────────────────────────────
   if (ctx.transicion?.esPrimeraAdopcion) {
     const { sumaAjustesMedicion, modificacionInicioEEPN } = ctx.transicion
-    if (Math.abs(sumaAjustesMedicion - modificacionInicioEEPN) > TOLERANCIA) {
+    if (Math.abs(restar(sumaAjustesMedicion, modificacionInicioEEPN)) > TOLERANCIA) {
       advertencias.push(
         item(
           'AUT-040',

@@ -18,6 +18,7 @@ import type { GastosSecciones } from '@/modules/gastos/repository/gastos-dinamic
 import { TEXTOS_DOCUMENTO as T } from '../domain/textos'
 import type { AnexoCostoVentas, ColumnasDocumento } from '../domain/types'
 import { EncabezadoColumnas, Importe, ThEjercicio, TituloSeccion } from './piezas'
+import { sumar, sumarPor } from '@/lib/importe'
 
 type Props<A> = { titulo: string; subtitulo: string; anexo: A; columnas: ColumnasDocumento }
 
@@ -33,9 +34,9 @@ export function AnexoBienesUsoDoc({
   columnas,
 }: Props<ResultadoArrastreBDU>) {
   const { bienes, netoAnteriorMap } = anexo
-  const totalNeto = bienes.reduce((acc, b) => acc + calcularCierre(b).netoResidual, 0)
+  const totalNeto = sumarPor(bienes, (b) => calcularCierre(b).netoResidual)
   const hayNetoAnterior = netoAnteriorMap.size > 0
-  const totalNetoAnterior = Array.from(netoAnteriorMap.values()).reduce((acc, v) => acc + v, 0)
+  const totalNetoAnterior = sumar(...netoAnteriorMap.values())
 
   return (
     <>
@@ -182,8 +183,8 @@ export function AnexoGastosDoc({ titulo, subtitulo, anexo, columnas }: Props<Gas
   ).sort()
   // La columna anterior por fila solo existe cuando viene del ejercicio vinculado.
   const anteriorPorFila = columnas.mostrarAnterior && !columnas.anteriorManual
-  const totalActual = cols.reduce((acc, s) => acc + s.total, 0)
-  const totalAnterior = cols.reduce((acc, s) => acc + s.totalAnterior, 0)
+  const totalActual = sumarPor(cols, (s) => s.total)
+  const totalAnterior = sumarPor(cols, (s) => s.totalAnterior)
   const importeFila = (s: (typeof cols)[number], nombre: string, ant = false) => {
     const fila = s.filas.find((f) => f.cuentaNombre === nombre)
     return fila ? (ant ? fila.importeAnterior : fila.importe) : 0
@@ -215,11 +216,11 @@ export function AnexoGastosDoc({ titulo, subtitulo, anexo, columnas }: Props<Gas
                 <Importe key={s.key} valor={importeFila(s, nombre)} />
               ))}
               <Importe
-                valor={cols.reduce((acc, s) => acc + importeFila(s, nombre), 0)}
+                valor={sumarPor(cols, (s) => importeFila(s, nombre))}
                 className="font-semibold"
               />
               {anteriorPorFila && (
-                <Importe valor={cols.reduce((acc, s) => acc + importeFila(s, nombre, true), 0)} />
+                <Importe valor={sumarPor(cols, (s) => importeFila(s, nombre, true))} />
               )}
             </tr>
           ))}

@@ -4,6 +4,7 @@ import type { GastosSecciones } from '@/modules/gastos/repository/gastos-dinamic
 import type { NotaDTO } from '@/modules/notas/domain/types'
 import type { EstadosData, RubroFila, FilaCuenta, EERRData } from '../domain/types'
 import { calcularCostoTotal } from '@/modules/costo-ventas/domain/types'
+import { restar, sumar, sumarPor } from '@/lib/importe'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -43,7 +44,7 @@ function buildRubroFilas(
     const rubro = rubros.find((r) => r.id === rubroId)
     if (!rubro) continue
 
-    const totalSaldo = cs.reduce((acc, c) => acc + c.saldoFinal, 0)
+    const totalSaldo = sumarPor(cs, (c) => c.saldoFinal)
     const displayValue = signFor(rubro.naturalezaEsperada, totalSaldo)
 
     const cuentaFilas: FilaCuenta[] = cs
@@ -75,7 +76,7 @@ function buildRubroFilas(
   for (const [rubroId, cs] of byRubroAnt) {
     const rubro = rubros.find((r) => r.id === rubroId)
     if (!rubro) continue
-    const totalSaldo = cs.reduce((acc, c) => acc + c.saldoFinal, 0)
+    const totalSaldo = sumarPor(cs, (c) => c.saldoFinal)
     const displayValueAnt = signFor(rubro.naturalezaEsperada, totalSaldo)
     if (filasMap.has(rubroId)) {
       filasMap.get(rubroId)!.displayValueAnt = displayValueAnt
@@ -103,13 +104,8 @@ function buildRubroFilas(
 
 /** Suma displayValues de cuentas de cierta sección EERR */
 function sumEerr(filasMap: Map<string, RubroFila>, seccion: string, ant = false): number {
-  let total = 0
-  for (const fila of filasMap.values()) {
-    if (fila.seccionEERR === seccion) {
-      total += ant ? fila.displayValueAnt : fila.displayValue
-    }
-  }
-  return total
+  const filas = [...filasMap.values()].filter((fila) => fila.seccionEERR === seccion)
+  return sumarPor(filas, (fila) => (ant ? fila.displayValueAnt : fila.displayValue))
 }
 
 // ─── Función principal ────────────────────────────────────────────────────────
@@ -227,18 +223,18 @@ export function buildEstadosData(
     }))
 
   const usaAnexoGastos = seccionesGasto.length > 0
-  const totalGastos = seccionesGasto.reduce((acc, s) => acc + s.total, 0)
-  const totalGastosAnt = seccionesGasto.reduce((acc, s) => acc + s.totalAnt, 0)
+  const totalGastos = sumarPor(seccionesGasto, (s) => s.total)
+  const totalGastosAnt = sumarPor(seccionesGasto, (s) => s.totalAnt)
 
   // Subtotales
-  const utilidadBruta = ingresosVal - costoVal
-  const utilidadBrutaAnt = ingresosAntVal - costoAntVal
+  const utilidadBruta = restar(ingresosVal, costoVal)
+  const utilidadBrutaAnt = restar(ingresosAntVal, costoAntVal)
 
-  const resultadoAntesIG = utilidadBruta - totalGastos + rfVal
-  const resultadoAntesIGAnt = utilidadBrutaAnt - totalGastosAnt + rfAntVal
+  const resultadoAntesIG = sumar(restar(utilidadBruta, totalGastos), rfVal)
+  const resultadoAntesIGAnt = sumar(restar(utilidadBrutaAnt, totalGastosAnt), rfAntVal)
 
-  const utilidadEjercicio = resultadoAntesIG - igVal
-  const utilidadEjercicioAnt = resultadoAntesIGAnt - igAntVal
+  const utilidadEjercicio = restar(resultadoAntesIG, igVal)
+  const utilidadEjercicioAnt = restar(resultadoAntesIGAnt, igAntVal)
 
   const eerr: EERRData = {
     ingresos: ingresosVal,

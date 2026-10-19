@@ -1,6 +1,5 @@
-import Decimal from 'decimal.js'
 import { parseImporte } from '@/lib/utils/parseImporte'
-import { comparaImportes } from '@/lib/utils/decimal'
+import { comparaImportes, restar, sumarPor } from '@/lib/importe'
 
 // Reglas puras de la importación del balance de sumas y saldos (sin DB ni framework).
 
@@ -38,7 +37,7 @@ export function importesDeFila(
   return {
     saldoDeudor,
     saldoAcreedor,
-    saldoFinal: new Decimal(saldoDeudor).minus(saldoAcreedor).toNumber(),
+    saldoFinal: restar(saldoDeudor, saldoAcreedor),
   }
 }
 
@@ -71,17 +70,16 @@ export type ResultadoCuadre = {
   cuadrado: boolean
 }
 
-/** Total debe = total haber (con tolerancia de centavos). Suma en Decimal: sin error de float. */
+/** Total debe = total haber (con tolerancia de centavos). Suma exacta (ver @/lib/importe). */
 export function validarCuadre(
   cuentas: Pick<CuentaImportada, 'saldoDeudor' | 'saldoAcreedor'>[],
 ): ResultadoCuadre {
-  const cero = new Decimal(0)
-  const totalDeudor = cuentas.reduce((acc, c) => acc.plus(c.saldoDeudor), cero)
-  const totalAcreedor = cuentas.reduce((acc, c) => acc.plus(c.saldoAcreedor), cero)
+  const totalDeudor = sumarPor(cuentas, (c) => c.saldoDeudor)
+  const totalAcreedor = sumarPor(cuentas, (c) => c.saldoAcreedor)
   return {
-    totalDeudor: totalDeudor.toNumber(),
-    totalAcreedor: totalAcreedor.toNumber(),
-    diferencia: totalDeudor.minus(totalAcreedor).toNumber(),
+    totalDeudor,
+    totalAcreedor,
+    diferencia: restar(totalDeudor, totalAcreedor),
     cuadrado: comparaImportes(totalDeudor, totalAcreedor),
   }
 }

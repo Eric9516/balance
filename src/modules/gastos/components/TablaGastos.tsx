@@ -8,6 +8,7 @@ import {
   EliminarFilaAnterior,
   useComparativoLote,
 } from '@/modules/comparativo-manual/components/CeldaAnteriorEditable'
+import { sumarPor } from '@/lib/importe'
 
 export function TablaGastos({
   secciones,
@@ -45,10 +46,10 @@ export function TablaGastos({
     .map(([nombre]) => nombre)
     .sort()
 
-  const grandTotalActual = cols.reduce((s, sec) => s + sec.total, 0)
-  const grandTotalAnterior = cols.reduce(
-    (s, sec) => s + (comparativo.entradas.get(sec.key)?.valor ?? sec.totalAnterior),
-    0,
+  const grandTotalActual = sumarPor(cols, (sec) => sec.total)
+  const grandTotalAnterior = sumarPor(
+    cols,
+    (sec) => comparativo.entradas.get(sec.key)?.valor ?? sec.totalAnterior,
   )
 
   // En modo manual no mostramos la columna anterior POR FILA (no hay cuentas del
@@ -117,14 +118,13 @@ export function TablaGastos({
         </thead>
         <tbody>
           {cuentasUnicas.map((nombre) => {
-            const totalActual = cols.reduce(
-              (sum, s) => sum + (s.filas.find((f) => f.cuentaNombre === nombre)?.importe ?? 0),
-              0,
+            const totalActual = sumarPor(
+              cols,
+              (s) => s.filas.find((f) => f.cuentaNombre === nombre)?.importe,
             )
-            const totalAnterior = cols.reduce(
-              (sum, s) =>
-                sum + (s.filas.find((f) => f.cuentaNombre === nombre)?.importeAnterior ?? 0),
-              0,
+            const totalAnterior = sumarPor(
+              cols,
+              (s) => s.filas.find((f) => f.cuentaNombre === nombre)?.importeAnterior,
             )
 
             return (

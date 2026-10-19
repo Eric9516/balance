@@ -30,6 +30,7 @@ import type { ModoAnteriorEfectivo } from '../domain/ejercicioAnterior'
 import type { ItemValidacion } from '../domain/autorizacion'
 import type { BloqueComparativo } from '../lib/bloquesComparativo'
 import { ESTADO_BADGE_VARIANTS, ESTADO_LABELS, type EjercicioContableDTO } from '../domain/types'
+import { restar } from '@/lib/importe'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -503,7 +504,7 @@ export function PasoAnteriorView({
               <span>
                 según E.E.P.N.: <Importe value={resultadoAnterior.eepn} />
               </span>
-              {Math.abs(resultadoAnterior.eerr - resultadoAnterior.eepn) < 0.01 ? (
+              {Math.abs(restar(resultadoAnterior.eerr, resultadoAnterior.eepn)) < 0.01 ? (
                 <span className="inline-flex items-center gap-1 text-emerald-700">
                   <CheckCircle2 className="h-3.5 w-3.5" /> coinciden
                 </span>

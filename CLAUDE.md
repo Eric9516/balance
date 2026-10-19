@@ -13,6 +13,17 @@ BalanceRT es un producto para **vender a estudios contables**. El estándar es s
 - **Tecnología y procesos actuales.** Usar la última versión estable de cada herramienta que cumpla la antigüedad mínima de pnpm. Nada experimental sin probar.
 - **Sobredimensionar con criterio** (concilia el principio 8): lo que es caro de cambiar después se hace grande desde ya (identidad, claves, tipos, auditoría, versionado, modelo por estudio). Lo que es barato de agregar (réplicas, particiones, cachés) se agrega cuando una medición lo pida.
 
+## Regla primordial: jamás se redondea nada (OBLIGATORIA)
+
+Decisión del dueño del producto (2026-10-19): **jamás se redondea absolutamente nada.** Ni importes, ni totales, ni líneas antes de sumar, ni al guardar en la base, ni índices o coeficientes.
+
+- Toda cuenta con importes usa `@/lib/importe`, que no redondea.
+- Prohibido `toFixed`, `Math.round`, `Math.floor`, `Math.ceil`, `Math.trunc`, `toDecimalPlaces` o `toDP` en código nuevo. `src/lib/sin-redondeos.test.ts` falla si aparece uno; los usos existentes están listados ahí con su motivo.
+- Para mostrar un importe completo, sin redondear: `formatCurrency(valor, { decimales: 'todos' })`. Es obligatorio en mensajes de control y de error, donde la diferencia puede estar en el tercer decimal.
+- La base no puede redondear al guardar. Una columna `Decimal(18,2)` redondea en silencio lo que tenga más de 2 decimales (pendiente: migrar las columnas de importes a decimal sin escala).
+- Dos puntos se definen con el dueño del producto, nunca por cuenta propia: cómo se muestran en pantalla y en el documento los importes con más de 2 decimales, y con cuántos dígitos se trabaja el coeficiente de inflación (índice actual ÷ índice anterior puede tener infinitos decimales).
+- Ante cualquier caso en que parezca necesario redondear: preguntar antes.
+
 ## Principios obligatorios
 
 1. Mantener modularidad.
@@ -86,7 +97,8 @@ Toda modificación de base de datos debe cuidar:
 - **Toda clave foránea lleva índice.** Los índices compuestos se diseñan según las consultas reales.
 - **Sin consultas N+1:** traer en lote y solo las columnas necesarias (`select`).
 - **Listas largas paginadas por cursor.** Nunca `offset` grande ni traer todo a memoria.
-- **Tipos compactos y correctos:** fechas contables como fecha sin hora, marcas de tiempo con zona horaria, importes como decimal. Nunca `float` ni `number` de JavaScript para calcular importes.
+- **Tipos compactos y correctos:** fechas contables como fecha sin hora, marcas de tiempo con zona horaria, importes como decimal en la base.
+- **Toda cuenta con importes usa `@/lib/importe`** (`sumar`, `sumarPor`, `restar`, `multiplicar`, `dividir`, `comparaImportes`, y `importe()` para leer de la base). Prohibido `+`, `-`, `*`, `/` o `reduce` sueltos sobre importes. Es exacto y corta con NEG-060 por encima de 70 billones de pesos (ver `docs/decisiones/0009`).
 - **Tablas que van a crecer mucho** (cuentas, historial, movimientos): claves pensadas para poder particionar sin rediseñar.
 - **Los archivos no van en la base.** Excel importados, PDF emitidos, logos y firmas van a almacenamiento de objetos. En la base solo la referencia, los metadatos y su hash. Nunca base64 ni binarios en tablas.
 - **Medir antes de dar por bueno:** `pnpm rendimiento` (PostgreSQL real, datos sintéticos grandes y el código real de la app; ver `docs/RENDIMIENTO.md`), `EXPLAIN` de cada consulta nueva y `pg_stat_statements` en producción. Una consulta que lee entera una tabla grande es un error.
@@ -131,6 +143,7 @@ Actualizar esta lista al terminar cada fase. Cada fase se hace en avances chicos
 - **Hecho, 2026-10-19:** Fase 0, paso 2: fechas contables sin hora, instantes con zona horaria y sesión fijada en UTC.
 - **Hecho, 2026-10-19:** Fase 0, paso 3: columnas en snake_case.
 - **Hecho, 2026-10-19:** Fase 0, paso 4: claves UUIDv7 generadas por la base (base 19% más chica en la escala media).
+- **Hecho, 2026-10-19:** Fase 0, paso 5: importes con aritmética exacta en todo el código, sin redondeos.
 - **Fase 0, decisiones irreversibles** mientras hay pocos datos: claves UUIDv7, fechas contables sin hora, un tipo de importe con margen amplio, columnas en snake_case, catálogo RT 54 versionado y registro de decisiones de arquitectura.
 - **Fase 1, login:** Supabase Auth, roles, cuenta nueva bloqueada, nunca sin dueño y doble factor para dueños y administradores.
 - **Fase 2, la base como última barrera:** roles de base separados, reglas por fila, CHECK, ejercicio cerrado inmutable, control de versión en lo editable permisos por defecto de funciones cerrados y clave foránea del ejercicio a su sociedad que incluya el estudio (hoy `crearEjercicio` usa el primer estudio activo y puede dejar un ejercicio con un estudio distinto al de su sociedad).

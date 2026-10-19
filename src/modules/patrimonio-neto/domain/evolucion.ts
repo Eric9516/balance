@@ -13,6 +13,7 @@ import {
   type EvolucionPNData,
   type EvolucionPNMovimientoDTO,
 } from './types'
+import { sumar, sumarPor } from '@/lib/importe'
 
 export function movimientoVacio(
   ejercicioId: string,
@@ -68,8 +69,8 @@ export function armarEvolucionPN(params: {
   return {
     movimientos,
     resultadoEjercicio,
-    totalActual: movimientos.reduce((acc, mov) => acc + totalMovimientoPN(mov), 0),
-    totalAnterior: movimientos.reduce((acc, mov) => acc + mov.totalAnterior, 0),
+    totalActual: sumarPor(movimientos, totalMovimientoPN),
+    totalAnterior: sumarPor(movimientos, (mov) => mov.totalAnterior),
     bloqueo,
     advertencias,
   }
@@ -111,13 +112,13 @@ export function sumarMovimientosPN(
     if (!mov) return acc
     return {
       ...acc,
-      capitalSuscripto: acc.capitalSuscripto + mov.capitalSuscripto,
-      ajusteCapital: acc.ajusteCapital + mov.ajusteCapital,
-      aportesIrrevocables: acc.aportesIrrevocables + mov.aportesIrrevocables,
-      reservaLegal: acc.reservaLegal + mov.reservaLegal,
-      otrasReservas: acc.otrasReservas + mov.otrasReservas,
-      rdosNoAsignados: acc.rdosNoAsignados + mov.rdosNoAsignados,
-      totalAnterior: acc.totalAnterior + mov.totalAnterior,
+      capitalSuscripto: sumar(acc.capitalSuscripto, mov.capitalSuscripto),
+      ajusteCapital: sumar(acc.ajusteCapital, mov.ajusteCapital),
+      aportesIrrevocables: sumar(acc.aportesIrrevocables, mov.aportesIrrevocables),
+      reservaLegal: sumar(acc.reservaLegal, mov.reservaLegal),
+      otrasReservas: sumar(acc.otrasReservas, mov.otrasReservas),
+      rdosNoAsignados: sumar(acc.rdosNoAsignados, mov.rdosNoAsignados),
+      totalAnterior: sumar(acc.totalAnterior, mov.totalAnterior),
     }
   }, base)
 }

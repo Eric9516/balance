@@ -2,6 +2,7 @@ import { db } from '@/lib/db'
 import { idAnteriorDerivable } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import { toDocumentoDTO, type DocumentoEjercicioDTO } from '../domain/types'
 import type { TipoDoc } from '../domain/reglas'
+import { importe } from '@/lib/importe'
 
 // ─── Saldos del balance, indexados por CÓDIGO de rubro ───────────────────────
 // Reusa la misma fuente que aggregate.ts: suma de saldoFinal de las cuentas,
@@ -20,7 +21,7 @@ export async function saldoPorCodigoRubro(ejercicioId: string): Promise<Map<stri
   const out = new Map<string, number>()
   for (const g of grupos) {
     const cod = g.rubroBaseId ? codigoDe.get(g.rubroBaseId) : undefined
-    if (cod) out.set(cod, Number(g._sum.saldoFinal ?? 0))
+    if (cod) out.set(cod, importe(g._sum.saldoFinal))
   }
   return out
 }

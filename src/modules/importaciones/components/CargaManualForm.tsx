@@ -11,6 +11,7 @@ import { formatCurrency } from '@/lib/utils/currency'
 import { importesDeFila, validarCuadre } from '../domain/importacion'
 import type { EditableRow } from '../lib/excelParsing'
 import { RowEditable } from './RowEditable'
+import { restar } from '@/lib/importe'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -111,7 +112,7 @@ export function CargaManualForm({ ejercicioId, sociedadId, denominacion, tieneCu
             <span>
               {cuadrado
                 ? `Cuadre OK — ${formatCurrency(totalDeudor)}`
-                : `Descuadre ${formatCurrency(Math.abs(totalDeudor - totalAcreedor))}`}
+                : `Descuadre ${formatCurrency(Math.abs(restar(totalDeudor, totalAcreedor)))}`}
             </span>
           </div>
         </div>
@@ -181,7 +182,9 @@ export function CargaManualForm({ ejercicioId, sociedadId, denominacion, tieneCu
                     cuadrado ? 'text-emerald-600' : 'text-amber-600',
                   )}
                 >
-                  {cuadrado ? '✓' : `Δ ${formatCurrency(Math.abs(totalDeudor - totalAcreedor))}`}
+                  {cuadrado
+                    ? '✓'
+                    : `Δ ${formatCurrency(Math.abs(restar(totalDeudor, totalAcreedor)))}`}
                 </td>
                 <td />
               </tr>

@@ -10,6 +10,7 @@ import type {
 } from '@/modules/gastos/repository/gastos-dinamico.repository'
 import type { CostoVentasDTO } from '@/modules/costo-ventas/domain/types'
 import { parsSeccionDeClaveHuerfano, type ComparativoManualDTO } from '../domain/types'
+import { restar, sumar, sumarPor } from '@/lib/importe'
 
 // ─── Aplicar comparativos al EstadosData (SSP + EERR) ────────────────────────
 
@@ -77,10 +78,10 @@ export function applyComparativosToEstados(
   }
 
   // Recalcular subtotales comparativos
-  const totalGastosAnt = seccionesGasto.reduce((acc, s) => acc + s.totalAnt, 0)
-  const utilidadBrutaAnt = ingresosAnt - costoVentasAnt
-  const resultadoAntesIGAnt = utilidadBrutaAnt - totalGastosAnt + rfAnt
-  const utilidadEjercicioAnt = resultadoAntesIGAnt - igAnt
+  const totalGastosAnt = sumarPor(seccionesGasto, (s) => s.totalAnt)
+  const utilidadBrutaAnt = restar(ingresosAnt, costoVentasAnt)
+  const resultadoAntesIGAnt = sumar(restar(utilidadBrutaAnt, totalGastosAnt), rfAnt)
+  const utilidadEjercicioAnt = restar(resultadoAntesIGAnt, igAnt)
 
   const eerr: EERRData = {
     ...data.eerr,

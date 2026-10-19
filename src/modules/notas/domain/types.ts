@@ -1,4 +1,5 @@
 import type { NotaEjercicio, DetalleNota } from '@prisma/client'
+import { importe, sumarPor } from '@/lib/importe'
 
 // ─── DTOs ─────────────────────────────────────────────────────────────────────
 
@@ -45,8 +46,8 @@ export function toNotaDTO(n: NotaRaw): NotaDTO {
         notaEjercicioId: d.notaEjercicioId,
         orden: d.orden,
         concepto: d.concepto,
-        importeActual: Number(d.importeActual),
-        importeAnterior: Number(d.importeAnterior),
+        importeActual: importe(d.importeActual),
+        importeAnterior: importe(d.importeAnterior),
         esTotal: d.esTotal,
       })),
   }
@@ -58,7 +59,7 @@ export function toNotaDTO(n: NotaRaw): NotaDTO {
 export function totalesNota(nota: Pick<NotaDTO, 'detalles'>): { actual: number; anterior: number } {
   const filas = nota.detalles.filter((d) => !d.esTotal)
   return {
-    actual: filas.reduce((acc, d) => acc + d.importeActual, 0),
-    anterior: filas.reduce((acc, d) => acc + d.importeAnterior, 0),
+    actual: sumarPor(filas, (d) => d.importeActual),
+    anterior: sumarPor(filas, (d) => d.importeAnterior),
   }
 }

@@ -1,4 +1,5 @@
 import type { EvolucionPNMovimiento, TipoMovimientoPN } from '@prisma/client'
+import { importe, sumar } from '@/lib/importe'
 
 export const PN_MOVIMIENTOS: Array<{ tipo: TipoMovimientoPN; orden: number; label: string }> = [
   { tipo: 'SALDO_INICIO', orden: 10, label: 'Saldos al inicio del ejercicio' },
@@ -48,13 +49,13 @@ export function toEvolucionPNMovimientoDTO(row: EvolucionPNMovimiento): Evolucio
     ejercicioId: row.ejercicioId,
     tipo: row.tipo,
     orden: row.orden,
-    capitalSuscripto: Number(row.capitalSuscripto),
-    ajusteCapital: Number(row.ajusteCapital),
-    aportesIrrevocables: Number(row.aportesIrrevocables),
-    reservaLegal: Number(row.reservaLegal),
-    otrasReservas: Number(row.otrasReservas),
-    rdosNoAsignados: Number(row.rdosNoAsignados),
-    totalAnterior: Number(row.totalAnterior),
+    capitalSuscripto: importe(row.capitalSuscripto),
+    ajusteCapital: importe(row.ajusteCapital),
+    aportesIrrevocables: importe(row.aportesIrrevocables),
+    reservaLegal: importe(row.reservaLegal),
+    otrasReservas: importe(row.otrasReservas),
+    rdosNoAsignados: importe(row.rdosNoAsignados),
+    totalAnterior: importe(row.totalAnterior),
   }
 }
 
@@ -69,12 +70,12 @@ export function totalMovimientoPN(
     | 'rdosNoAsignados'
   >,
 ): number {
-  return (
-    row.capitalSuscripto +
-    row.ajusteCapital +
-    row.aportesIrrevocables +
-    row.reservaLegal +
-    row.otrasReservas +
-    row.rdosNoAsignados
+  return sumar(
+    row.capitalSuscripto,
+    row.ajusteCapital,
+    row.aportesIrrevocables,
+    row.reservaLegal,
+    row.otrasReservas,
+    row.rdosNoAsignados,
   )
 }

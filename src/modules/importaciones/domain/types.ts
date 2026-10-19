@@ -1,4 +1,5 @@
 import type { CuentaContable, ImportacionExcel, EstadoImportacion } from '@prisma/client'
+import { importe } from '@/lib/importe'
 
 // ─── Cuenta contable ──────────────────────────────────────────────────────────
 
@@ -27,9 +28,9 @@ export function toCuentaDTO(c: WithRubro): CuentaContableDTO {
     ejercicioId: c.ejercicioId,
     codigo: c.codigo,
     nombre: c.nombre,
-    saldoDeudor: Number(c.saldoDeudor),
-    saldoAcreedor: Number(c.saldoAcreedor),
-    saldoFinal: Number(c.saldoFinal),
+    saldoDeudor: importe(c.saldoDeudor),
+    saldoAcreedor: importe(c.saldoAcreedor),
+    saldoFinal: importe(c.saldoFinal),
     rubroBaseId: c.rubroBaseId,
     rubroNombre: c.rubroBase?.nombre ?? null,
     notaEjercicioId: c.notaEjercicioId,

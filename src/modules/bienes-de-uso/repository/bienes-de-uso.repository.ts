@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { toBienDeUsoDTO, calcularCierre, type BienDeUsoDTO } from '../domain/types'
+import { importe } from '@/lib/importe'
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
@@ -25,14 +26,14 @@ export async function findNetoResidualAnterior(
   for (const r of rows) {
     const { netoResidual } = calcularCierre({
       categoria: r.categoria,
-      costoInicioReexpresado: Number(r.costoInicioReexpresado),
-      costoAjusteInflacion: Number(r.costoAjusteInflacion),
-      altas: Number(r.altas),
-      bajas: Number(r.bajas),
-      depAcumInicio: Number(r.depAcumInicio),
-      depAjusteInflacion: Number(r.depAjusteInflacion),
-      depEjercicio: Number(r.depEjercicio),
-      depBajas: Number(r.depBajas),
+      costoInicioReexpresado: importe(r.costoInicioReexpresado),
+      costoAjusteInflacion: importe(r.costoAjusteInflacion),
+      altas: importe(r.altas),
+      bajas: importe(r.bajas),
+      depAcumInicio: importe(r.depAcumInicio),
+      depAjusteInflacion: importe(r.depAjusteInflacion),
+      depEjercicio: importe(r.depEjercicio),
+      depBajas: importe(r.depBajas),
     })
     map.set(r.categoria, netoResidual)
   }
@@ -99,14 +100,14 @@ export async function updateBienDeUso(
   // Recalculate cierre fields if any input changed
   const current = await db.bienDeUsoCategoria.findUniqueOrThrow({ where: { id } })
   const merged: BienInput = {
-    costoInicioReexpresado: Number(current.costoInicioReexpresado),
-    costoAjusteInflacion: Number(current.costoAjusteInflacion),
-    altas: Number(current.altas),
-    bajas: Number(current.bajas),
-    depAcumInicio: Number(current.depAcumInicio),
-    depAjusteInflacion: Number(current.depAjusteInflacion),
-    depEjercicio: Number(current.depEjercicio),
-    depBajas: Number(current.depBajas),
+    costoInicioReexpresado: importe(current.costoInicioReexpresado),
+    costoAjusteInflacion: importe(current.costoAjusteInflacion),
+    altas: importe(current.altas),
+    bajas: importe(current.bajas),
+    depAcumInicio: importe(current.depAcumInicio),
+    depAjusteInflacion: importe(current.depAjusteInflacion),
+    depEjercicio: importe(current.depEjercicio),
+    depBajas: importe(current.depBajas),
     ...input,
   }
   const data = buildData(merged)

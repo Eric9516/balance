@@ -30,6 +30,7 @@ import {
 import type { EstadosData } from '../domain/types'
 import { buildEstadosData } from '../lib/aggregate'
 import { ajustarCostoVentas, ajustarCuentas, getCoeficienteComparativo } from '../lib/ajuste'
+import { sumar, sumarPor } from '@/lib/importe'
 
 export type EstadosConPN = {
   estadosData: EstadosData
@@ -105,12 +106,13 @@ export async function cargarEstadosConPN(
 /** Totales de la columna "Ejercicio anterior" del SSP (para el cuadre del anterior). */
 export function totalesAnteriorSSP(estadosData: EstadosData, pnData: EvolucionPNData) {
   const sec = (key: string) =>
-    estadosData.sspRubros
-      .filter((r) => r.seccionSSP === key)
-      .reduce((acc, r) => acc + r.displayValueAnt, 0)
+    sumarPor(
+      estadosData.sspRubros.filter((r) => r.seccionSSP === key),
+      (r) => r.displayValueAnt,
+    )
   return {
-    activo: sec('ACTIVO_CORRIENTE') + sec('ACTIVO_NO_CORRIENTE'),
-    pasivo: sec('PASIVO_CORRIENTE') + sec('PASIVO_NO_CORRIENTE'),
+    activo: sumar(sec('ACTIVO_CORRIENTE'), sec('ACTIVO_NO_CORRIENTE')),
+    pasivo: sumar(sec('PASIVO_CORRIENTE'), sec('PASIVO_NO_CORRIENTE')),
     patrimonioNeto: pnData.totalAnterior,
   }
 }

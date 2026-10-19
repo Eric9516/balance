@@ -26,6 +26,7 @@ import {
 import { marcarComparativoModificado } from '@/modules/ejercicios/repository/ejercicio.repository'
 import type { NotaDTO, DetalleNotaDTO } from '../domain/types'
 import type { AdopcionRT54, CriteriosBienesCambio } from '@prisma/client'
+import { importe } from '@/lib/importe'
 
 function revalPath(sociedadId: string, ejercicioId: string) {
   revalidatePath(`/sociedades/${sociedadId}/ejercicios/${ejercicioId}/notas`)
@@ -94,8 +95,8 @@ export async function crearDetalleAction(
       notaEjercicioId: det.notaEjercicioId,
       orden: det.orden,
       concepto: det.concepto,
-      importeActual: Number(det.importeActual),
-      importeAnterior: Number(det.importeAnterior),
+      importeActual: importe(det.importeActual),
+      importeAnterior: importe(det.importeAnterior),
       esTotal: det.esTotal,
     })
   } catch (error) {

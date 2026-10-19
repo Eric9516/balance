@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import { db } from '@/lib/db'
 import { SECCION_EERR_LABELS, SECCIONES_EERR_GASTO } from '@/modules/rubros-base/domain/secciones'
+import { importe, sumar, sumarPor } from '@/lib/importe'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -134,11 +135,11 @@ async function _findGastosDinamicos(
 
   for (const c of cuentasGrupoAnterior) {
     const key = `grupo:${c.rubroBase?.rubroGrupoId}:${c.nombre}`
-    anteriorMap.set(key, (anteriorMap.get(key) ?? 0) + Math.abs(Number(c.saldoFinal)))
+    anteriorMap.set(key, sumar(anteriorMap.get(key), Math.abs(importe(c.saldoFinal))))
   }
   for (const c of cuentasLegacyAnterior) {
     const key = `legacy:${c.rubroBase?.seccionEERR}:${c.nombre}`
-    anteriorMap.set(key, (anteriorMap.get(key) ?? 0) + Math.abs(Number(c.saldoFinal)))
+    anteriorMap.set(key, sumar(anteriorMap.get(key), Math.abs(importe(c.saldoFinal))))
   }
 
   // ── 6. Construir secciones de grupo personalizado ───────────────────────────
@@ -147,7 +148,7 @@ async function _findGastosDinamicos(
     const filas: GastoFila[] = cuentas.map((c) => ({
       cuentaId: c.id,
       cuentaNombre: c.nombre,
-      importe: Math.abs(Number(c.saldoFinal)),
+      importe: Math.abs(importe(c.saldoFinal)),
       importeAnterior: anteriorMap.get(`grupo:${g.id}:${c.nombre}`) ?? 0,
     }))
     return {
@@ -158,8 +159,8 @@ async function _findGastosDinamicos(
       esGastoDefault: g.esGasto,
       aparecEnEERR: g.aparecEnEERR,
       filas,
-      total: filas.reduce((s, f) => s + f.importe, 0),
-      totalAnterior: filas.reduce((s, f) => s + f.importeAnterior, 0),
+      total: sumarPor(filas, (f) => f.importe),
+      totalAnterior: sumarPor(filas, (f) => f.importeAnterior),
     }
   })
 
@@ -178,7 +179,7 @@ async function _findGastosDinamicos(
     const filas: GastoFila[] = cuentas.map((c) => ({
       cuentaId: c.id,
       cuentaNombre: c.nombre,
-      importe: Math.abs(Number(c.saldoFinal)),
+      importe: Math.abs(importe(c.saldoFinal)),
       importeAnterior: anteriorMap.get(`${key}:${c.nombre}`) ?? 0,
     }))
     seccionesLegacy.push({
@@ -189,8 +190,8 @@ async function _findGastosDinamicos(
       esGastoDefault: true,
       aparecEnEERR: cfg?.aparecEnEERR ?? true,
       filas,
-      total: filas.reduce((s, f) => s + f.importe, 0),
-      totalAnterior: filas.reduce((s, f) => s + f.importeAnterior, 0),
+      total: sumarPor(filas, (f) => f.importe),
+      totalAnterior: sumarPor(filas, (f) => f.importeAnterior),
     })
   }
 

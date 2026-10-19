@@ -22,6 +22,7 @@ import {
   type FlujoItemDTO,
   type SeccionFlujo,
 } from './types'
+import { multiplicar, restar, sumar, sumarPor } from '@/lib/importe'
 
 const TOLERANCIA = 0.005
 
@@ -54,14 +55,11 @@ export type EfectivoSSP = { actual: number; anterior: number }
 
 /** Suma de los rubros de efectivo del SSP (ya resuelto por modo) en ambas columnas. */
 export function efectivoDesdeSSP(sspRubros: RubroFila[], rubrosEfectivo: Set<string>): EfectivoSSP {
-  let actual = 0
-  let anterior = 0
-  for (const r of sspRubros) {
-    if (!rubrosEfectivo.has(r.id)) continue
-    actual += r.displayValue
-    anterior += r.displayValueAnt
+  const deEfectivo = sspRubros.filter((r) => rubrosEfectivo.has(r.id))
+  return {
+    actual: sumarPor(deEfectivo, (r) => r.displayValue),
+    anterior: sumarPor(deEfectivo, (r) => r.displayValueAnt),
   }
-  return { actual, anterior }
 }
 
 // ─── Armado ──────────────────────────────────────────────────────────────────
@@ -128,11 +126,16 @@ function totales(
     SeccionFlujo,
     number
   >
-  for (const i of items) porSeccion[i.seccion] += importe(i)
-  const sumaActividades = SECCIONES_FLUJO.reduce((acc, s) => acc + porSeccion[s], 0)
-  const efectivoInicioModificado = efectivoInicio + modificaciones
-  const variacionNeta = efectivoCierre - efectivoInicioModificado
-  const diferencia = variacionNeta - sumaActividades
+  for (const s of SECCIONES_FLUJO) {
+    porSeccion[s] = sumarPor(
+      items.filter((i) => i.seccion === s),
+      importe,
+    )
+  }
+  const sumaActividades = sumarPor(SECCIONES_FLUJO, (s) => porSeccion[s])
+  const efectivoInicioModificado = sumar(efectivoInicio, modificaciones)
+  const variacionNeta = restar(efectivoCierre, efectivoInicioModificado)
+  const diferencia = restar(variacionNeta, sumaActividades)
   return {
     efectivoInicio,
     modificaciones,
@@ -178,12 +181,12 @@ export function armarFlujo(params: {
 
   if (modo === 'VINCULADO') {
     if (flujoAnterior) {
-      saldoInicialAnterior = flujoAnterior.saldoInicial * coeficiente
-      modificacionesEjAntAnt = flujoAnterior.modificacionesEjAnt * coeficiente
+      saldoInicialAnterior = multiplicar(flujoAnterior.saldoInicial, coeficiente)
+      modificacionesEjAntAnt = multiplicar(flujoAnterior.modificacionesEjAnt, coeficiente)
       const porClave = new Map(
         flujoAnterior.items.map((i) => [
           claveLinea(i.seccion, i.concepto),
-          i.importe * coeficiente,
+          multiplicar(i.importe, coeficiente),
         ]),
       )
       const usadas = new Set<string>()
@@ -200,7 +203,7 @@ export function armarFlujo(params: {
           conceptosSoloAnterior.push({
             seccion: i.seccion,
             concepto: i.concepto,
-            importe: i.importe * coeficiente,
+            importe: multiplicar(i.importe, coeficiente),
           })
         }
       }
@@ -271,7 +274,7 @@ export function totalesFlujo(
 
 /** ¿Cambió algo de la columna anterior? (en MANUAL anula la autorización del comparativo) */
 export function cambioColumnaAnterior(antes: FlujoGuardadoDTO, despues: FlujoGuardadoDTO): boolean {
-  const dif = (a: number, b: number) => Math.abs(a - b) > TOLERANCIA
+  const dif = (a: number, b: number) => Math.abs(restar(a, b)) > TOLERANCIA
   if (dif(antes.saldoInicialAnterior, despues.saldoInicialAnterior)) return true
   if (dif(antes.modificacionesEjAntAnt, despues.modificacionesEjAntAnt)) return true
   const previo = new Map(antes.items.map((i) => [i.id, i.importeAnterior]))

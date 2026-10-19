@@ -1,4 +1,5 @@
 import type { BienDeUsoCategoria } from '@prisma/client'
+import { importe, restar, sumar } from '@/lib/importe'
 
 export type BienDeUsoDTO = {
   id: string
@@ -29,18 +30,18 @@ export function toBienDeUsoDTO(b: BienDeUsoCategoria): BienDeUsoDTO {
     ejercicioId: b.ejercicioId,
     categoria: b.categoria,
     orden: b.orden,
-    costoInicioReexpresado: Number(b.costoInicioReexpresado),
-    costoAjusteInflacion: Number(b.costoAjusteInflacion),
-    altas: Number(b.altas),
-    bajas: Number(b.bajas),
-    costoFinReexpresado: Number(b.costoFinReexpresado),
-    depAcumInicio: Number(b.depAcumInicio),
-    depAjusteInflacion: Number(b.depAjusteInflacion),
-    depEjercicio: Number(b.depEjercicio),
-    depBajas: Number(b.depBajas),
-    depAcumFin: Number(b.depAcumFin),
+    costoInicioReexpresado: importe(b.costoInicioReexpresado),
+    costoAjusteInflacion: importe(b.costoAjusteInflacion),
+    altas: importe(b.altas),
+    bajas: importe(b.bajas),
+    costoFinReexpresado: importe(b.costoFinReexpresado),
+    depAcumInicio: importe(b.depAcumInicio),
+    depAjusteInflacion: importe(b.depAjusteInflacion),
+    depEjercicio: importe(b.depEjercicio),
+    depBajas: importe(b.depBajas),
+    depAcumFin: importe(b.depAcumFin),
     netoResidualAnteriorManual:
-      b.netoResidualAnteriorManual !== null ? Number(b.netoResidualAnteriorManual) : null,
+      b.netoResidualAnteriorManual !== null ? importe(b.netoResidualAnteriorManual) : null,
   }
 }
 
@@ -56,11 +57,11 @@ export function calcularCierre(
     | 'netoResidualAnteriorManual'
   >,
 ) {
-  const costoFin = b.costoInicioReexpresado + b.costoAjusteInflacion + b.altas - b.bajas
-  const depFin = b.depAcumInicio + b.depAjusteInflacion + b.depEjercicio - b.depBajas
+  const costoFin = restar(sumar(b.costoInicioReexpresado, b.costoAjusteInflacion, b.altas), b.bajas)
+  const depFin = restar(sumar(b.depAcumInicio, b.depAjusteInflacion, b.depEjercicio), b.depBajas)
   return {
     costoFinReexpresado: costoFin,
     depAcumFin: depFin,
-    netoResidual: costoFin - depFin,
+    netoResidual: restar(costoFin, depFin),
   }
 }

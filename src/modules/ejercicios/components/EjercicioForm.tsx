@@ -32,6 +32,7 @@ import {
 } from '../domain/ejercicioAnterior'
 import type { AuditorDTO } from '@/modules/auditores/domain/types'
 import { formatFecha, toDateInputValue } from '@/lib/utils/dates'
+import { dividir } from '@/lib/importe'
 
 function buildAutoDenomin(fechaCierre: string): string {
   if (!fechaCierre) return ''
@@ -229,7 +230,7 @@ export function EjercicioForm({
     const ant = parseFloat(indAnterior ?? '')
     const act = parseFloat(indActual ?? '')
     if (isNaN(ant) || isNaN(act) || ant === 0) return null
-    return (act / ant).toFixed(4)
+    return dividir(act, ant).toFixed(4)
   })()
 
   // ── Ejercicio anterior: elegibles y candidato (dominio puro) ────────────────

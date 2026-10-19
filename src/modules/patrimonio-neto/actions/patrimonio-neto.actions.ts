@@ -16,6 +16,7 @@ import { findMovimientosPN, guardarMovimientosPN } from '../repository/patrimoni
 import { derivarDesdeAnteriorPN } from '../domain/saldosInicio'
 import { armarEvolucionPN, conResultado } from '../domain/evolucion'
 import type { EvolucionPNData, EvolucionPNInput } from '../domain/types'
+import { restar } from '@/lib/importe'
 
 /**
  * Guarda el E.E.P.N. Lo que manda el cliente se SANEA en el servidor:
@@ -65,7 +66,7 @@ export async function guardarEvolucionPNAction(
     if (modo === 'MANUAL') {
       const previo = new Map(guardadosPrevios.map((m) => [m.tipo, m.totalAnterior]))
       const cambioAnterior = saneado.movimientos.some(
-        (m) => Math.abs((previo.get(m.tipo) ?? 0) - m.totalAnterior) > 0.005,
+        (m) => Math.abs(restar(previo.get(m.tipo), m.totalAnterior)) > 0.005,
       )
       if (cambioAnterior) await marcarComparativoModificado(ejercicioId)
     }

@@ -21,6 +21,7 @@ import {
   EliminarFilaAnterior,
   useComparativoLote,
 } from '@/modules/comparativo-manual/components/CeldaAnteriorEditable'
+import { sumar } from '@/lib/importe'
 
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
 
@@ -326,8 +327,8 @@ export function SSPTab({
   const totalPasivoAnt = bloqueTotalAnt(SECCIONES_PASIVO)
   const totalPN = patrimonioNetoSSP(sspRubros, patrimonioNetoFinal, 'actual')
   const totalPNAnt = patrimonioNetoSSP(sspRubros, patrimonioNetoFinalAnt, 'anterior')
-  const totalPasivoPN = totalPasivo + totalPN
-  const totalPasivoPNAnt = totalPasivoAnt + totalPNAnt
+  const totalPasivoPN = sumar(totalPasivo, totalPN)
+  const totalPasivoPNAnt = sumar(totalPasivoAnt, totalPNAnt)
   const { diferencia: diferenciaCuadre, cuadrado } = calcularCuadreSP(
     sspRubros,
     patrimonioNetoFinal,

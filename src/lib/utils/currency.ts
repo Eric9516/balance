@@ -1,10 +1,14 @@
 import Decimal from 'decimal.js'
 
-// Argentine format: period for thousands, comma for decimals, parentheses for negatives
+/**
+ * Formato argentino: punto de miles, coma decimal y paréntesis para los negativos.
+ * `decimales: 'todos'` muestra el valor completo, SIN redondear (mínimo 2 decimales):
+ * es lo que corresponde en mensajes de control, donde la diferencia puede estar en el tercer decimal.
+ */
 export function formatCurrency(
   valor: Decimal | number | string | null | undefined,
   opciones?: {
-    decimales?: number
+    decimales?: number | 'todos'
     mostrarSimbolo?: boolean
     ceroComoGuion?: boolean
   },
@@ -17,7 +21,7 @@ export function formatCurrency(
 
   if (ceroComoGuion && d.isZero()) return '-'
 
-  const absVal = d.abs().toFixed(decimales)
+  const absVal = d.abs().toFixed(decimales === 'todos' ? Math.max(2, d.decimalPlaces()) : decimales)
   const [entero = '0', fraccion] = absVal.split('.')
 
   const enteroFormateado = entero.replace(/\B(?=(\d{3})+(?!\d))/g, '.')

@@ -1,5 +1,6 @@
 import type { CuentaContableDTO } from '@/modules/importaciones/domain/types'
 import type { CostoVentasDTO } from '@/modules/costo-ventas/domain/types'
+import { dividir, multiplicar } from '@/lib/importe'
 
 export function getCoeficienteComparativo(ejercicio: {
   indiceInflacionAnterior: number | null
@@ -8,7 +9,7 @@ export function getCoeficienteComparativo(ejercicio: {
   const anterior = ejercicio.indiceInflacionAnterior
   const actual = ejercicio.indiceInflacionActual
   if (!anterior || !actual || anterior === 0) return 1
-  return actual / anterior
+  return dividir(actual, anterior)
 }
 
 export function ajustarCuentas(
@@ -18,9 +19,9 @@ export function ajustarCuentas(
   if (coeficiente === 1) return cuentas
   return cuentas.map((c) => ({
     ...c,
-    saldoDeudor: c.saldoDeudor * coeficiente,
-    saldoAcreedor: c.saldoAcreedor * coeficiente,
-    saldoFinal: c.saldoFinal * coeficiente,
+    saldoDeudor: multiplicar(c.saldoDeudor, coeficiente),
+    saldoAcreedor: multiplicar(c.saldoAcreedor, coeficiente),
+    saldoFinal: multiplicar(c.saldoFinal, coeficiente),
   }))
 }
 
@@ -31,9 +32,9 @@ export function ajustarCostoVentas(
   if (!dto || coeficiente === 1) return dto
   return {
     ...dto,
-    existenciaInicial: dto.existenciaInicial * coeficiente,
-    compras: dto.compras * coeficiente,
-    gastosFabricacion: dto.gastosFabricacion * coeficiente,
-    existenciaFinal: dto.existenciaFinal * coeficiente,
+    existenciaInicial: multiplicar(dto.existenciaInicial, coeficiente),
+    compras: multiplicar(dto.compras, coeficiente),
+    gastosFabricacion: multiplicar(dto.gastosFabricacion, coeficiente),
+    existenciaFinal: multiplicar(dto.existenciaFinal, coeficiente),
   }
 }

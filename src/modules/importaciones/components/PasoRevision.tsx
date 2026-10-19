@@ -5,6 +5,7 @@ import { formatCurrency } from '@/lib/utils/currency'
 import type { EditableRow } from '../lib/excelParsing'
 import { importesDeFila } from '../domain/importacion'
 import { RowEditable } from './RowEditable'
+import { restar } from '@/lib/importe'
 
 export function PasoRevision({
   denominacion,
@@ -73,7 +74,7 @@ export function PasoRevision({
             <span>
               {cuadrado
                 ? `Cuadre OK — ${formatCurrency(totalDeudor, { decimales: 2 })}`
-                : `Descuadre ${formatCurrency(Math.abs(totalDeudor - totalAcreedor), { decimales: 2 })}`}
+                : `Descuadre ${formatCurrency(Math.abs(restar(totalDeudor, totalAcreedor)), { decimales: 2 })}`}
             </span>
           </div>
         </div>
@@ -128,7 +129,7 @@ export function PasoRevision({
                 >
                   {cuadrado
                     ? '✓'
-                    : `Δ ${formatCurrency(Math.abs(totalDeudor - totalAcreedor), { decimales: 2 })}`}
+                    : `Δ ${formatCurrency(Math.abs(restar(totalDeudor, totalAcreedor)), { decimales: 2 })}`}
                 </td>
                 <td />
               </tr>

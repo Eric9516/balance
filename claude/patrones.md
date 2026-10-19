@@ -128,17 +128,16 @@ if (input.esDefault === true) { ... }
 
 ---
 
-## 6. DTO mapper: conversión de Prisma.Decimal
+## 6. Importes: leer con importe(), calcular con @/lib/importe
 
-Los campos `Decimal` de Prisma llegan como `Prisma.Decimal`, no como `number`. Siempre convertir en el mapper:
+Los `Decimal` de Prisma se pasan a `number` en el mapper del DTO con `importe(row.campo)` (nunca `Number(...)`), que además controla el límite de exactitud. Toda cuenta con importes (sumas, restas, totales, reexpresión por coeficiente, diferencias de cuadre) usa `sumar`, `sumarPor`, `restar`, `multiplicar`, `dividir` y `comparaImportes` de `@/lib/importe`, también en las pantallas.
 
 ```typescript
-// ✅ Correcto
-indiceInflacionAnterior: e.indiceInflacionAnterior != null ? Number(e.indiceInflacionAnterior) : null,
-
-// ❌ Incorrecto — Prisma.Decimal no es number
-indiceInflacionAnterior: e.indiceInflacionAnterior,
+const totalSaldo = sumarPor(cuentas, (c) => c.saldoFinal) // no: cuentas.reduce((a, c) => a + c.saldoFinal, 0)
+const costoFin = restar(sumar(b.costoInicio, b.ajuste, b.altas), b.bajas)
 ```
+
+Ver `docs/decisiones/0009-importes-exactos.md`.
 
 ---
 

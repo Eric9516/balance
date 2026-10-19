@@ -1,4 +1,5 @@
 import type { TipoDoc } from './reglas'
+import { importe } from '@/lib/importe'
 
 export type EstadoDoc = 'SUGERIDO' | 'ACEPTADO' | 'DESCARTADO' | 'NO_APLICA'
 export type OrigenDoc = 'AUTOMATICO' | 'MANUAL'
@@ -75,6 +76,6 @@ export function toDocumentoDTO(r: {
     titulo: r.titulo,
     estado: r.estado as EstadoDoc,
     origen: r.origen as OrigenDoc,
-    saldoAlAceptar: r.saldoAlAceptar == null ? null : Number(r.saldoAlAceptar),
+    saldoAlAceptar: r.saldoAlAceptar == null ? null : importe(r.saldoAlAceptar),
   }
 }

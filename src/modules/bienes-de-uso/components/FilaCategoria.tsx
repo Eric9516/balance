@@ -4,6 +4,7 @@ import { calcularCierre, type BienDeUsoDTO } from '../domain/types'
 import { totalColumnaBDU, type ColumnaBDU } from '../domain/columnas'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
 import { CeldaBloqueada } from '@/components/shared/CeldaBloqueada'
+import { sumar, sumarPor } from '@/lib/importe'
 
 // El modelo de columnas del Anexo I vive en domain/columnas.ts (compartido con el documento).
 
@@ -152,15 +153,15 @@ export function FilaTotal({
   editarAnterior: boolean
 }) {
   const totalCol = (col: ColumnaBDU) => totalColumnaBDU(col, bienes)
-  const totNetoActual = bienes.reduce((acc, b) => acc + calcularCierre(b).netoResidual, 0)
+  const totNetoActual = sumarPor(bienes, (b) => calcularCierre(b).netoResidual)
 
   // MANUAL: suma lo cargado en el borrador. VINCULADO: suma lo derivado del anterior.
   const hayNetoAnterior = editarAnterior
     ? bienes.some((b) => b.netoResidualAnteriorManual != null)
     : netoAnteriorMap.size > 0
   const totNetoAnterior = editarAnterior
-    ? bienes.reduce((acc, b) => acc + (b.netoResidualAnteriorManual ?? 0), 0)
-    : Array.from(netoAnteriorMap.values()).reduce((acc, v) => acc + v, 0)
+    ? sumarPor(bienes, (b) => b.netoResidualAnteriorManual)
+    : sumar(...netoAnteriorMap.values())
 
   const td = 'celda border-t-2 border-t-slate-800 bg-slate-50 text-right'
   const num = (v: number, negativo = false) => (

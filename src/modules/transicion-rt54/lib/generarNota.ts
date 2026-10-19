@@ -9,8 +9,10 @@
 
 import type { CategoriaEnteRT54 } from '@prisma/client'
 import { formatFecha } from '@/lib/utils/dates'
+import { formatCurrency } from '@/lib/utils/currency'
 import { CATEGORIA_ENTE_LABELS } from '@/modules/ejercicios/domain/types'
 import { COMPONENTE_PN_LABELS, type AjusteTransicionDTO } from '../domain/types'
+import { restar, sumarPor } from '@/lib/importe'
 
 export type FilaConciliacion = {
   concepto: string
@@ -73,7 +75,7 @@ export function generarNotaTransicionRT54(ctx: ContextoNotaTransicion): NotaTran
       importe: a.importePN,
     })),
   ]
-  const totalPN = conciliacionPN.reduce((acc, f) => acc + f.importe, 0)
+  const totalPN = sumarPor(conciliacionPN, (f) => f.importe)
   conciliacionPN.push({
     concepto: `Patrimonio neto al ${formatFecha(fechaTransicion)} según RT 54`,
     importe: totalPN,
@@ -90,7 +92,7 @@ export function generarNotaTransicionRT54(ctx: ContextoNotaTransicion): NotaTran
       .filter((a) => Math.abs(a.importeResultadoAnterior) > TOLERANCIA)
       .map((a) => ({ concepto: a.concepto, importe: a.importeResultadoAnterior })),
   ]
-  const totalResultado = conciliacionResultado.reduce((acc, f) => acc + f.importe, 0)
+  const totalResultado = sumarPor(conciliacionResultado, (f) => f.importe)
   conciliacionResultado.push({
     concepto: 'Resultado del ejercicio anterior según RT 54',
     importe: totalResultado,
@@ -140,10 +142,10 @@ export function generarNotaTransicionRT54(ctx: ContextoNotaTransicion): NotaTran
     'Borrador generado automáticamente a partir de los ajustes cargados. Debe ser revisado y completado por el profesional antes de su emisión.',
   ]
   if (ctx.modificacionInicioEEPN != null) {
-    const suma = ajustesMedicion.reduce((acc, a) => acc + a.importePN, 0)
-    if (Math.abs(suma - ctx.modificacionInicioEEPN) > TOLERANCIA) {
+    const suma = sumarPor(ajustesMedicion, (a) => a.importePN)
+    if (Math.abs(restar(suma, ctx.modificacionInicioEEPN)) > TOLERANCIA) {
       advertencias.push(
-        `La suma de los ajustes de medición (${suma.toFixed(2)}) no coincide con la fila "Modificación de saldos al inicio" del E.E.P.N. (${ctx.modificacionInicioEEPN.toFixed(2)}).`,
+        `La suma de los ajustes de medición (${formatCurrency(suma, { decimales: 'todos' })}) no coincide con la fila "Modificación de saldos al inicio" del E.E.P.N. (${formatCurrency(ctx.modificacionInicioEEPN, { decimales: 'todos' })}).`,
       )
     }
   }

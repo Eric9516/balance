@@ -4,6 +4,7 @@
  */
 
 import type { RubroFila } from './types'
+import { sumarPor } from '@/lib/importe'
 
 export const SSP_STRUCTURE = [
   {
@@ -43,7 +44,7 @@ export function sumarSeccion(
   seccion: string,
   columna: ColumnaEjercicio,
 ): number {
-  return rubrosDeSeccion(sspRubros, seccion).reduce((acc, r) => acc + valorDe(r, columna), 0)
+  return sumarPor(rubrosDeSeccion(sspRubros, seccion), (r) => valorDe(r, columna))
 }
 
 /** Suma de varias secciones (un bloque) en la columna indicada. */
@@ -52,7 +53,7 @@ export function sumarSecciones(
   secciones: readonly string[],
   columna: ColumnaEjercicio,
 ): number {
-  return secciones.reduce((acc, s) => acc + sumarSeccion(sspRubros, s, columna), 0)
+  return sumarPor(secciones, (s) => sumarSeccion(sspRubros, s, columna))
 }
 
 /**

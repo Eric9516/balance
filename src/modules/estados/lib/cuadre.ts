@@ -1,3 +1,4 @@
+import { restar, sumar, sumarPor } from '@/lib/importe'
 import type { RubroFila } from '../domain/types'
 
 export interface ResultadoCuadreSP {
@@ -12,18 +13,19 @@ export function calcularCuadreSP(
   patrimonioNetoFinal: number | null,
 ): ResultadoCuadreSP {
   const secTotal = (key: string) =>
-    sspRubros.filter((r) => r.seccionSSP === key).reduce((acc, r) => acc + r.displayValue, 0)
+    sumarPor(
+      sspRubros.filter((r) => r.seccionSSP === key),
+      (r) => r.displayValue,
+    )
 
-  const totalActivo = secTotal('ACTIVO_CORRIENTE') + secTotal('ACTIVO_NO_CORRIENTE')
-  const totalPasivoPN =
-    secTotal('PASIVO_CORRIENTE') +
-    secTotal('PASIVO_NO_CORRIENTE') +
-    (patrimonioNetoFinal ??
-      sspRubros
-        .filter((r) => r.seccionSSP === 'PATRIMONIO_NETO')
-        .reduce((acc, r) => acc + r.displayValue, 0))
+  const totalActivo = sumar(secTotal('ACTIVO_CORRIENTE'), secTotal('ACTIVO_NO_CORRIENTE'))
+  const totalPasivoPN = sumar(
+    secTotal('PASIVO_CORRIENTE'),
+    secTotal('PASIVO_NO_CORRIENTE'),
+    patrimonioNetoFinal ?? secTotal('PATRIMONIO_NETO'),
+  )
 
-  const diferencia = totalActivo - totalPasivoPN
+  const diferencia = restar(totalActivo, totalPasivoPN)
   const cuadrado = Math.abs(diferencia) < 0.01
 
   return { totalActivo, totalPasivoPN, diferencia, cuadrado }

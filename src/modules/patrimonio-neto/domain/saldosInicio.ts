@@ -15,6 +15,7 @@
 import type { TipoMovimientoPN } from '@prisma/client'
 import type { ModoAnteriorEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import { totalMovimientoPN, type EvolucionPNMovimientoDTO } from './types'
+import { multiplicar, sumar } from '@/lib/importe'
 
 export type ColumnasPN = Pick<
   EvolucionPNMovimientoDTO,
@@ -37,12 +38,12 @@ export const COLUMNAS_PN_CERO: ColumnasPN = {
 
 export function sumarColumnasPN(acc: ColumnasPN, mov: ColumnasPN): ColumnasPN {
   return {
-    capitalSuscripto: acc.capitalSuscripto + mov.capitalSuscripto,
-    ajusteCapital: acc.ajusteCapital + mov.ajusteCapital,
-    aportesIrrevocables: acc.aportesIrrevocables + mov.aportesIrrevocables,
-    reservaLegal: acc.reservaLegal + mov.reservaLegal,
-    otrasReservas: acc.otrasReservas + mov.otrasReservas,
-    rdosNoAsignados: acc.rdosNoAsignados + mov.rdosNoAsignados,
+    capitalSuscripto: sumar(acc.capitalSuscripto, mov.capitalSuscripto),
+    ajusteCapital: sumar(acc.ajusteCapital, mov.ajusteCapital),
+    aportesIrrevocables: sumar(acc.aportesIrrevocables, mov.aportesIrrevocables),
+    reservaLegal: sumar(acc.reservaLegal, mov.reservaLegal),
+    otrasReservas: sumar(acc.otrasReservas, mov.otrasReservas),
+    rdosNoAsignados: sumar(acc.rdosNoAsignados, mov.rdosNoAsignados),
   }
 }
 
@@ -64,7 +65,7 @@ export function derivarDesdeAnteriorPN(
     ...COLUMNAS_PN_CERO,
   })
   const totalAnteriorByTipo = Object.fromEntries(
-    movimientosAnterior.map((mov) => [mov.tipo, totalMovimientoPN(mov) * coeficiente]),
+    movimientosAnterior.map((mov) => [mov.tipo, multiplicar(totalMovimientoPN(mov), coeficiente)]),
   ) as Partial<Record<TipoMovimientoPN, number>>
   return { saldoInicio, totalAnteriorByTipo }
 }

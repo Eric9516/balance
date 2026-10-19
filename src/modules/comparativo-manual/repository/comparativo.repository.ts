@@ -1,6 +1,7 @@
 import type { ComparativoManual } from '@prisma/client'
 import { db } from '@/lib/db'
 import type { ComparativoManualDTO, ModuloComparativo } from '../domain/types'
+import { importe } from '@/lib/importe'
 
 function toDTO(r: ComparativoManual): ComparativoManualDTO {
   return {
@@ -9,7 +10,7 @@ function toDTO(r: ComparativoManual): ComparativoManualDTO {
     modulo: r.modulo as ModuloComparativo,
     clave: r.clave,
     label: r.label,
-    valor: Number(r.valor),
+    valor: importe(r.valor),
     esHuerfano: r.esHuerfano,
     orden: r.orden,
   }

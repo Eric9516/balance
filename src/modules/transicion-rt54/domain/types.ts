@@ -1,4 +1,5 @@
 import type { AjusteTransicionRT54, ComponentePN, TipoAjusteTransicion } from '@prisma/client'
+import { importe, sumarPor } from '@/lib/importe'
 
 export type { ComponentePN, TipoAjusteTransicion }
 
@@ -28,11 +29,11 @@ export function toAjusteTransicionDTO(a: AjusteTransicionRT54): AjusteTransicion
     concepto: a.concepto,
     descripcion: a.descripcion,
     componentePN: a.componentePN,
-    importePN: Number(a.importePN),
-    importeResultadoAnterior: Number(a.importeResultadoAnterior),
+    importePN: importe(a.importePN),
+    importeResultadoAnterior: importe(a.importeResultadoAnterior),
     rubroOrigen: a.rubroOrigen,
     rubroDestino: a.rubroDestino,
-    importeReclasificado: Number(a.importeReclasificado),
+    importeReclasificado: importe(a.importeReclasificado),
   }
 }
 
@@ -93,7 +94,8 @@ export const PLANTILLAS_AJUSTE_TRANSICION: ReadonlyArray<Omit<AjusteTransicionIn
 ]
 
 export function sumaAjustesMedicionPN(ajustes: AjusteTransicionDTO[]): number {
-  return ajustes
-    .filter((a) => a.tipo === 'AJUSTE_MEDICION')
-    .reduce((acc, a) => acc + a.importePN, 0)
+  return sumarPor(
+    ajustes.filter((a) => a.tipo === 'AJUSTE_MEDICION'),
+    (a) => a.importePN,
+  )
 }
