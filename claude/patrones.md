@@ -240,6 +240,10 @@ La validación ocurre en el Server Action, no en el componente. El componente so
 | Components | NombrePascalCase | `AuditorForm`, `EjercicioTable` |
 | DB models | singular PascalCase (Prisma) | `Auditor`, `EjercicioContable` |
 | DB tables | plural snake_case (@@map) | `auditores`, `ejercicios_contables` |
+| Campos en Prisma | camelCase | `ejercicioAnteriorId`, `fechaCierre` |
+| Columnas en la base | snake_case (@map en cada campo camelCase) | `ejercicio_anterior_id`, `fecha_cierre` |
+
+Todo campo nuevo con mayúsculas lleva su `@map("snake_case")`. El SQL escrito a mano (`$queryRaw`, migraciones, reglas por fila, disparadores) usa los nombres de columna en snake_case, sin comillas.
 
 ---
 

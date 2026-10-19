@@ -163,11 +163,11 @@ const MAX_SALTOS_CADENA = 100
 export async function findCadenaAnterior(desdeId: string): Promise<string[]> {
   const filas = await db.$queryRaw<{ id: string }[]>`
     WITH RECURSIVE cadena (id, nivel) AS (
-      SELECT e."ejercicioAnteriorId", 1
+      SELECT e."ejercicio_anterior_id", 1
         FROM "ejercicios_contables" e
        WHERE e."id" = ${desdeId}
       UNION ALL
-      SELECT e."ejercicioAnteriorId", c.nivel + 1
+      SELECT e."ejercicio_anterior_id", c.nivel + 1
         FROM cadena c
         JOIN "ejercicios_contables" e ON e."id" = c.id
        WHERE c.nivel < ${MAX_SALTOS_CADENA}

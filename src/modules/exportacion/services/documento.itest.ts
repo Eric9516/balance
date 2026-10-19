@@ -145,7 +145,10 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await db.ejercicioContable.deleteMany({ where: { estudioId: ctx.estudioId } })
+  // Por sociedad y no por estudioId: crearEjercicio asigna el "estudio actual" (el primero
+  // activo de la base), que puede ser el de otro archivo de pruebas. Se corrige de raíz en la
+  // Fase 2: la clave foránea del ejercicio a su sociedad va a incluir el estudio.
+  await db.ejercicioContable.deleteMany({ where: { sociedad: { estudioId: ctx.estudioId } } })
   await db.sociedad.deleteMany({ where: { estudioId: ctx.estudioId } })
   await db.estudio.delete({ where: { id: ctx.estudioId } })
   await db.$disconnect()

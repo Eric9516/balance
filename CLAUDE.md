@@ -68,6 +68,7 @@ Toda modificación de base de datos debe cuidar:
 - No borrar información sensible sin control.
 - Evitar campos genéricos tipo "otros", "data", "config" salvo justificación clara.
 - **Fechas:** las contables son `DateTime @db.Date` (un día, sin hora) y los instantes `DateTime @db.Timestamptz(3)`. Todo campo `DateTime` nuevo declara uno de los dos (ver `docs/decisiones/0006`).
+- **Nombres:** tablas y columnas en snake_case. Cada campo camelCase de `schema.prisma` lleva `@map("snake_case")`; el SQL escrito a mano usa los nombres de columna (ver `docs/decisiones/0007`).
 - **Conexiones:** toda conexión a la base se crea con `crearPoolPg` (`src/lib/pool-pg.ts`), que fija la sesión en UTC. El adaptador de Prisma lo necesita para leer y escribir bien los instantes.
 
 ### Seguridad
@@ -127,9 +128,10 @@ Actualizar esta lista al terminar cada fase. Cada fase se hace en avances chicos
 - **Urgente (hecho, 2026-10-19):** cierre del acceso anónimo, paso a pnpm, Next 16.4.2, SheetJS 0.20.3 y Prisma como dependencia de desarrollo.
 - **Hecho, 2026-10-19:** registro de decisiones (`docs/decisiones`), medición con `pnpm rendimiento` y línea base (`docs/RENDIMIENTO.md`), índices para todas las claves foráneas y lecturas con menos viajes a la base.
 - **Hecho, 2026-10-19:** Fase 0, paso 2: fechas contables sin hora, instantes con zona horaria y sesión fijada en UTC.
+- **Hecho, 2026-10-19:** Fase 0, paso 3: columnas en snake_case.
 - **Fase 0, decisiones irreversibles** mientras hay pocos datos: claves UUIDv7, fechas contables sin hora, un tipo de importe con margen amplio, columnas en snake_case, catálogo RT 54 versionado y registro de decisiones de arquitectura.
 - **Fase 1, login:** Supabase Auth, roles, cuenta nueva bloqueada, nunca sin dueño y doble factor para dueños y administradores.
-- **Fase 2, la base como última barrera:** roles de base separados, reglas por fila, CHECK, ejercicio cerrado inmutable, control de versión en lo editable y permisos por defecto de funciones cerrados.
+- **Fase 2, la base como última barrera:** roles de base separados, reglas por fila, CHECK, ejercicio cerrado inmutable, control de versión en lo editable permisos por defecto de funciones cerrados y clave foránea del ejercicio a su sociedad que incluya el estudio (hoy `crearEjercicio` usa el primer estudio activo y puede dejar un ejercicio con un estudio distinto al de su sociedad).
 - **Fase 3, auditoría legal:** historial solo de agregado, particionado por mes, cadena de hashes, retención de 10 años y versión emitida con su hash.
 - **Fase 4, rendimiento y escala:** metas de volumen escritas y medidas con datos sintéticos.
 - **Fase 5, pruebas al nivel de la referencia:** matriz de permisos, pgTAP, deriva de esquema, escala, concurrencia, mutación y pantalla con accesibilidad.

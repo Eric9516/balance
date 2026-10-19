@@ -93,7 +93,7 @@ describe('fechas contables (DATE)', () => {
   })
 
   it('la base guarda el día exacto, lo lea quien lo lea', async () => {
-    const consulta = `SELECT "fechaInicio"::text AS inicio, "fechaCierre"::text AS cierre
+    const consulta = `SELECT "fecha_inicio"::text AS inicio, "fecha_cierre"::text AS cierre
                         FROM "ejercicios_contables" WHERE "id" = $1`
     const [app] = await db.$queryRawUnsafe<{ inicio: string; cierre: string }[]>(
       consulta,
@@ -128,7 +128,7 @@ describe('instantes (TIMESTAMPTZ)', () => {
 
     // Otro cliente, con la zona por defecto de la base, ve el mismo instante absoluto.
     const r = await sinUtc.query<{ ms: string }>(
-      `SELECT (extract(epoch FROM "comparativoAutorizadoEn") * 1000)::bigint::text AS ms
+      `SELECT (extract(epoch FROM "comparativo_autorizado_en") * 1000)::bigint::text AS ms
          FROM "ejercicios_contables" WHERE "id" = $1`,
       [ctx.ejercicioId],
     )
