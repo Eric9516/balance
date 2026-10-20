@@ -90,14 +90,18 @@ export function useComparativoLote(
     })
   }
 
+  // Alta o baja ya persistida: se aplica a lo guardado y al borrador por separado, así la fila se ve
+  // al instante también en edición y Cancelar sigue descartando solo lo no guardado.
   function agregar(entry: ComparativoEntry) {
-    sincronizar(new Map(valor).set(entry.clave, entry))
+    sincronizar((prev) => new Map(prev).set(entry.clave, entry))
   }
 
   function quitar(clave: string) {
-    const next = new Map(valor)
-    next.delete(clave)
-    sincronizar(next)
+    sincronizar((prev) => {
+      const next = new Map(prev)
+      next.delete(clave)
+      return next
+    })
   }
 
   return {

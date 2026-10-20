@@ -47,8 +47,8 @@ export function NotasView({
   const mounted = useMontado()
   const [pendienteRegenerar, setPendienteRegenerar] = useState(false)
 
-  function handleChange(updated: NotaDTO) {
-    setNotas((prev) => prev.map((n) => (n.id === updated.id ? updated : n)))
+  function handleChange(id: string, cambio: (prev: NotaDTO) => NotaDTO) {
+    setNotas((prev) => prev.map((n) => (n.id === id ? cambio(n) : n)))
   }
 
   function handleDelete(id: string) {
@@ -182,7 +182,7 @@ export function NotasView({
                 mostrarAnterior={mostrarAnterior}
                 ejercicioId={ejercicioId}
                 sociedadId={sociedadId}
-                onChange={handleChange}
+                onChange={(cambio) => handleChange(nota.id, cambio)}
                 onDelete={() => handleDelete(nota.id)}
               />
             ) : (
@@ -191,7 +191,7 @@ export function NotasView({
                 nota={nota}
                 ejercicioId={ejercicioId}
                 sociedadId={sociedadId}
-                onChange={handleChange}
+                onChange={(cambio) => handleChange(nota.id, cambio)}
                 onDelete={() => handleDelete(nota.id)}
               />
             ),

@@ -19,7 +19,8 @@ export function NotaTexto({
   nota: NotaDTO
   ejercicioId: string
   sociedadId: string
-  onChange: (updated: NotaDTO) => void
+  /** Avisa a la lista de notas cómo cambió la nota ya guardada. */
+  onChange: (cambio: (prev: NotaDTO) => NotaDTO) => void
   onDelete: () => void
 }) {
   const [isPending, startTransition] = useTransition()
@@ -29,7 +30,7 @@ export function NotaTexto({
       const result = await actualizarNotaAction(nota.id, ejercicioId, sociedadId, {
         textoApertura: value || null,
       })
-      if (result.ok) onChange(result.data)
+      if (result.ok) onChange(() => result.data)
     })
   }
 

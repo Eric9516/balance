@@ -118,7 +118,11 @@ export function NotaCuantitativa({
   mostrarAnterior: boolean
   ejercicioId: string
   sociedadId: string
-  onChange: (updated: NotaDTO) => void
+  /**
+   * Avisa a la lista de notas cómo cambió la nota ya guardada. Recibe una función para que la
+   * lista la aplique sobre su propia copia (la usa al volver a dibujar las notas).
+   */
+  onChange: (cambio: (prev: NotaDTO) => NotaDTO) => void
   onDelete: () => void
 }) {
   const {
@@ -130,7 +134,11 @@ export function NotaCuantitativa({
     confirmar,
     actualizar,
     sincronizar,
-  } = useEdicionLote(notaInicial, (borrador) => guardarNota(ejercicioId, sociedadId, borrador))
+  } = useEdicionLote(notaInicial, async (borrador) => {
+    const resultado = await guardarNota(ejercicioId, sociedadId, borrador)
+    if (resultado.ok) onChange(() => resultado.data)
+    return resultado
+  })
   const { isPending: isPendingAcciones, ejecutar } = useGuardarAccion()
 
   const { actual: totalActual, anterior: totalAnterior } = totalesNota(nota)
@@ -152,16 +160,21 @@ export function NotaCuantitativa({
     }))
   }
 
+  /**
+   * Alta o baja de una fila ya persistida: se aplica a lo guardado y al borrador por separado (las
+   * ediciones sin guardar siguen siendo borrador) y a la copia de la lista de notas.
+   */
+  function aplicarEstructural(cambio: (n: NotaDTO) => NotaDTO) {
+    sincronizar((prev) => cambio(prev))
+    onChange(cambio)
+  }
+
   // ── Agregar fila — estructural, se persiste de inmediato
   function agregarFila() {
     const orden = nota.detalles.filter((d) => !d.esTotal).length + 1
     ejecutar(
       () => crearDetalleAction(nota.id, ejercicioId, sociedadId, orden),
-      (detalle) => {
-        const actualizada = { ...nota, detalles: [...nota.detalles, detalle] }
-        sincronizar(actualizada)
-        onChange(actualizada)
-      },
+      (detalle) => aplicarEstructural((n) => ({ ...n, detalles: [...n.detalles, detalle] })),
     )
   }
 
@@ -169,11 +182,7 @@ export function NotaCuantitativa({
   function eliminarFila(id: string) {
     ejecutar(
       () => eliminarDetalleAction(id, ejercicioId, sociedadId),
-      () => {
-        const actualizada = { ...nota, detalles: nota.detalles.filter((d) => d.id !== id) }
-        sincronizar(actualizada)
-        onChange(actualizada)
-      },
+      () => aplicarEstructural((n) => ({ ...n, detalles: n.detalles.filter((d) => d.id !== id) })),
     )
   }
 
