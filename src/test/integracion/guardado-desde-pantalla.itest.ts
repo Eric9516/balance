@@ -45,6 +45,11 @@ import {
   desactivarAuditor,
   reactivarAuditor,
 } from '@/modules/auditores/actions/auditor.actions'
+import {
+  actualizarSociedad,
+  desactivarSociedad,
+  reactivarSociedad,
+} from '@/modules/sociedades/actions/sociedad.actions'
 
 const ctx = {} as {
   sociedadId: string
@@ -257,5 +262,39 @@ describe('Auditores', () => {
     expect(fallo(await reactivarAuditor(ctx.auditorAjenoId))).toBe('TECH-002')
     const despues = await db.auditor.findUniqueOrThrow({ where: { id: ctx.auditorAjenoId } })
     expect(despues.activo).toBe(false)
+  })
+})
+
+describe('Sociedades', () => {
+  it('no modifica una sociedad de otro estudio', async () => {
+    const r = await actualizarSociedad(ctx.sociedadAjenaId, {
+      razonSocial: 'Pisada SA',
+      cuit: '30-71234567-1',
+      tipoPersona: 'JURIDICA',
+      domicilioLegal: 'Calle 1',
+      localidad: 'Rosario',
+      provincia: 'Santa Fe',
+      codigoPostal: '2000',
+      actividadPpal: 'Servicios',
+      categoriaEnte: 'PEQUENA',
+      fechaInscripcion: '2020-01-01',
+      matriculaPJ: '123',
+      plazoDuracion: '2099-01-01',
+    })
+    expect(fallo(r)).toBe('TECH-002')
+    const enBase = await db.sociedad.findUniqueOrThrow({ where: { id: ctx.sociedadAjenaId } })
+    expect(enBase.razonSocial).toBe('Ajena SA')
+  })
+
+  it('no desactiva ni reactiva una sociedad de otro estudio', async () => {
+    expect(fallo(await desactivarSociedad(ctx.sociedadAjenaId))).toBe('TECH-002')
+    const enBase = await db.sociedad.findUniqueOrThrow({ where: { id: ctx.sociedadAjenaId } })
+    expect(enBase.activo).toBe(true)
+
+    await db.sociedad.update({ where: { id: ctx.sociedadAjenaId }, data: { activo: false } })
+    expect(fallo(await reactivarSociedad(ctx.sociedadAjenaId))).toBe('TECH-002')
+    const despues = await db.sociedad.findUniqueOrThrow({ where: { id: ctx.sociedadAjenaId } })
+    expect(despues.activo).toBe(false)
+    await db.sociedad.update({ where: { id: ctx.sociedadAjenaId }, data: { activo: true } })
   })
 })

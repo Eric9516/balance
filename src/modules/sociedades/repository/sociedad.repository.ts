@@ -56,10 +56,17 @@ export async function updateSociedad(id: string, input: UpdateSociedadInput): Pr
   return toSociedadDTO(s)
 }
 
-export async function deactivateSociedad(id: string): Promise<void> {
-  await db.sociedad.update({ where: { id }, data: { activo: false } })
+/** Activa o desactiva una sociedad solo si es de este estudio. Devuelve si la encontró. */
+async function setActivo(estudioId: string, id: string, activo: boolean): Promise<boolean> {
+  if (!esUuid(id)) return false
+  const { count } = await db.sociedad.updateMany({ where: { id, estudioId }, data: { activo } })
+  return count > 0
 }
 
-export async function reactivateSociedad(id: string): Promise<void> {
-  await db.sociedad.update({ where: { id }, data: { activo: true } })
+export async function deactivateSociedad(estudioId: string, id: string): Promise<boolean> {
+  return setActivo(estudioId, id, false)
+}
+
+export async function reactivateSociedad(estudioId: string, id: string): Promise<boolean> {
+  return setActivo(estudioId, id, true)
 }
