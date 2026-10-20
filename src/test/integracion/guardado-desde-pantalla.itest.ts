@@ -69,6 +69,15 @@ import {
   eliminarCuentaAction,
 } from '@/modules/importaciones/actions/clasificacion.actions'
 import type { CambiosCuenta } from '@/modules/importaciones/repository/cuentas.repository'
+import {
+  actualizarDetalleAction,
+  actualizarNotaAction,
+  crearDetalleAction,
+  eliminarDetalleAction,
+  eliminarNotaAction,
+  guardarConfigNotaIAction,
+} from '@/modules/notas/actions/notas.actions'
+import type { CambiosDetalle, CambiosNota } from '@/modules/notas/repository/notas.repository'
 
 const ctx = {} as {
   sociedadId: string
@@ -480,5 +489,86 @@ describe('Clasificación de cuentas', () => {
 
     const enBase = await db.cuentaContable.findUniqueOrThrow({ where: { id: ajena.id } })
     expect(enBase).toMatchObject({ nombre: 'Cuenta 1.1.02', rubroBaseId: null })
+  })
+})
+
+describe('Notas', () => {
+  const nota = (ejercicioId: string, titulo: string) =>
+    db.notaEjercicio.create({
+      data: {
+        ejercicioId,
+        titulo,
+        tipo: 'CUANTITATIVA',
+        orden: 1,
+        detalles: {
+          create: { concepto: 'Caja', importeActual: 100, importeAnterior: 0, orden: 1 },
+        },
+      },
+      include: { detalles: true },
+    })
+
+  it('guarda solo las columnas editables de la nota y del detalle', async () => {
+    const propia = await nota(ctx.ejercicioId, 'CAJA Y BANCOS')
+    const otra = await nota(ctx.ejercicioId, 'CRÉDITOS')
+    const args = [ctx.ejercicioId, ctx.sociedadId] as const
+
+    const cambiosNota = { textoApertura: 'Nuevo', ejercicioId: ctx.otroEjercicioId, orden: 99 }
+    ok(await actualizarNotaAction(propia.id, ...args, cambiosNota as CambiosNota))
+    const cambiosDetalle = { importeActual: 250.75, notaEjercicioId: otra.id, esTotal: true }
+    ok(
+      await actualizarDetalleAction(
+        propia.detalles[0]!.id,
+        ...args,
+        cambiosDetalle as CambiosDetalle,
+      ),
+    )
+
+    const enBase = await db.notaEjercicio.findUniqueOrThrow({
+      where: { id: propia.id },
+      include: { detalles: true },
+    })
+    expect(enBase).toMatchObject({ ejercicioId: ctx.ejercicioId, orden: 1, textoApertura: 'Nuevo' })
+    expect(enBase.detalles).toHaveLength(1)
+    expect(enBase.detalles[0]!.esTotal).toBe(false)
+    expect(enBase.detalles[0]!.importeActual.toString()).toBe('250.75')
+  })
+
+  it('no modifica ni borra notas o detalles de otro ejercicio', async () => {
+    const ajena = await nota(ctx.otroEjercicioId, 'AJENA')
+    const detalleId = ajena.detalles[0]!.id
+    const args = [ctx.ejercicioId, ctx.sociedadId] as const
+
+    expect(fallo(await actualizarNotaAction(ajena.id, ...args, { textoApertura: 'x' }))).toBe(
+      'TECH-002',
+    )
+    expect(fallo(await crearDetalleAction(ajena.id, ...args, 2))).toBe('TECH-002')
+    expect(fallo(await actualizarDetalleAction(detalleId, ...args, { concepto: 'x' }))).toBe(
+      'TECH-002',
+    )
+    expect(fallo(await eliminarDetalleAction(detalleId, ...args))).toBe('TECH-002')
+    expect(fallo(await eliminarNotaAction(ajena.id, ...args))).toBe('TECH-002')
+
+    const enBase = await db.notaEjercicio.findUniqueOrThrow({
+      where: { id: ajena.id },
+      include: { detalles: true },
+    })
+    expect(enBase.textoApertura).toBeNull()
+    expect(enBase.detalles.map((d) => d.concepto)).toEqual(['Caja'])
+  })
+
+  it('la configuración de la Nota I no toca otras columnas del ejercicio', async () => {
+    const manipulada = {
+      adopcionRT54: 'APLICACION_CONTINUADA',
+      estado: 'CERRADO',
+      estadosConfirmado: true,
+    } as Parameters<typeof guardarConfigNotaIAction>[2]
+    ok(await guardarConfigNotaIAction(ctx.ejercicioId, ctx.sociedadId, manipulada))
+
+    const enBase = await db.ejercicioContable.findUniqueOrThrow({ where: { id: ctx.ejercicioId } })
+    expect(enBase).toMatchObject({
+      adopcionRT54: 'APLICACION_CONTINUADA',
+      estado: 'BORRADOR',
+      estadosConfirmado: false,
+    })
   })
 })

@@ -23,28 +23,3 @@ export async function assertEjercicioBelongsToCurrentEstudio(ejercicioId: string
     throw unauthorized('No tenés permiso para modificar este ejercicio.')
   }
 }
-
-export async function assertNotaBelongsToCurrentEstudio(notaId: string): Promise<void> {
-  if (!esUuid(notaId)) throw unauthorized('No tenés permiso para modificar esta nota.')
-  const estudioId = await getCurrentEstudioId()
-  const nota = await db.notaEjercicio.findFirst({
-    where: { id: notaId, ejercicio: { estudioId } },
-    select: { id: true },
-  })
-  if (!nota) {
-    throw unauthorized('No tenés permiso para modificar esta nota.')
-  }
-}
-
-export async function assertDetalleNotaBelongsToCurrentEstudio(detalleId: string): Promise<void> {
-  if (!esUuid(detalleId))
-    throw unauthorized('No tenés permiso para modificar este detalle de nota.')
-  const estudioId = await getCurrentEstudioId()
-  const detalle = await db.detalleNota.findFirst({
-    where: { id: detalleId, nota: { ejercicio: { estudioId } } },
-    select: { id: true },
-  })
-  if (!detalle) {
-    throw unauthorized('No tenés permiso para modificar este detalle de nota.')
-  }
-}

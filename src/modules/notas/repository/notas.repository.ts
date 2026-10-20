@@ -1,6 +1,7 @@
 import { cache } from 'react'
+import { Prisma, type TipoNota } from '@prisma/client'
 import { db } from '@/lib/db'
-import type { TipoNota } from '@prisma/client'
+import { esUuid } from '@/lib/utils/uuid'
 import { toNotaDTO, type NotaDTO } from '../domain/types'
 import type { CuentaContableDTO, RubroBaseSimple } from '@/modules/importaciones/domain/types'
 
@@ -117,25 +118,59 @@ export async function createNota(data: {
   return toNotaDTO(nota)
 }
 
-export async function updateNota(
-  id: string,
-  data: {
-    titulo?: string
-    numero?: number | null
-    criterioMedicion?: string | null
-    textoApertura?: string | null
-  },
-): Promise<NotaDTO> {
-  const nota = await db.notaEjercicio.update({
-    where: { id },
-    data,
-    include: { detalles: { orderBy: { orden: 'asc' } } },
-  })
-  return toNotaDTO(nota)
+export type CambiosNota = {
+  titulo?: string
+  numero?: number | null
+  criterioMedicion?: string | null
+  textoApertura?: string | null
 }
 
-export async function deleteNota(id: string): Promise<void> {
-  await db.notaEjercicio.delete({ where: { id } })
+const noEncontrado = (e: unknown) =>
+  e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025'
+
+/**
+ * Modifica una nota solo si es de este ejercicio (está en la condición: una nota ajena no
+ * matchea) y solo con las columnas que se editan. Devuelve null si no la encuentra.
+ */
+export async function updateNota(
+  ejercicioId: string,
+  id: string,
+  cambios: CambiosNota,
+): Promise<NotaDTO | null> {
+  if (!esUuid(id)) return null
+  try {
+    const nota = await db.notaEjercicio.update({
+      where: { id, ejercicioId },
+      data: {
+        titulo: cambios.titulo,
+        numero: cambios.numero,
+        criterioMedicion: cambios.criterioMedicion,
+        textoApertura: cambios.textoApertura,
+      },
+      include: { detalles: { orderBy: { orden: 'asc' } } },
+    })
+    return toNotaDTO(nota)
+  } catch (e) {
+    if (noEncontrado(e)) return null
+    throw e
+  }
+}
+
+/** Borra una nota solo si es de este ejercicio. Devuelve si borró. */
+export async function deleteNota(ejercicioId: string, id: string): Promise<boolean> {
+  if (!esUuid(id)) return false
+  const { count } = await db.notaEjercicio.deleteMany({ where: { id, ejercicioId } })
+  return count > 0
+}
+
+/** ¿La nota es de este ejercicio? Responde que no ante un identificador inválido. */
+export async function esNotaDelEjercicio(ejercicioId: string, id: string): Promise<boolean> {
+  if (!esUuid(id)) return false
+  const nota = await db.notaEjercicio.findFirst({
+    where: { id, ejercicioId },
+    select: { id: true },
+  })
+  return nota !== null
 }
 
 export async function renumerarNotas(ejercicioId: string): Promise<void> {
@@ -164,15 +199,34 @@ export async function createDetalle(data: {
   return db.detalleNota.create({ data })
 }
 
+export type CambiosDetalle = { concepto?: string; importeActual?: number; importeAnterior?: number }
+
+/**
+ * Modifica un detalle solo si su nota es de este ejercicio y solo con las columnas que se
+ * editan. Devuelve si lo encontró.
+ */
 export async function updateDetalle(
+  ejercicioId: string,
   id: string,
-  data: { concepto?: string; importeActual?: number; importeAnterior?: number },
-) {
-  return db.detalleNota.update({ where: { id }, data })
+  cambios: CambiosDetalle,
+): Promise<boolean> {
+  if (!esUuid(id)) return false
+  const { count } = await db.detalleNota.updateMany({
+    where: { id, nota: { ejercicioId } },
+    data: {
+      concepto: cambios.concepto,
+      importeActual: cambios.importeActual,
+      importeAnterior: cambios.importeAnterior,
+    },
+  })
+  return count > 0
 }
 
-export async function deleteDetalle(id: string): Promise<void> {
-  await db.detalleNota.delete({ where: { id } })
+/** Borra un detalle solo si su nota es de este ejercicio. Devuelve si borró. */
+export async function deleteDetalle(ejercicioId: string, id: string): Promise<boolean> {
+  if (!esUuid(id)) return false
+  const { count } = await db.detalleNota.deleteMany({ where: { id, nota: { ejercicioId } } })
+  return count > 0
 }
 
 // ─── Auto-generación desde rubros clasificados ────────────────────────────────
