@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { actionOk, actionError } from '@/modules/errores/types'
 import { errorHandler } from '@/modules/errores/handler'
-import type { ActionResult } from '@/modules/errores/types'
+import type { ActionResult, AppError } from '@/modules/errores/types'
 import { getCurrentEstudioId } from '@/lib/estudio-context'
 import {
   CreateAuditorSchema,
@@ -16,9 +16,15 @@ import {
   updateAuditor,
   deactivateAuditor,
   reactivateAuditor,
-  findAuditorById,
 } from '../repository/auditor.repository'
 import type { AuditorDTO } from '../domain/types'
+
+const AUDITOR_NO_ENCONTRADO: AppError = {
+  tipo: 'TECNICO',
+  severidad: 'ALTO',
+  codigo: 'TECH-002',
+  mensaje: 'Auditor no encontrado en este estudio. Recargá la página y volvé a intentar.',
+}
 
 export async function crearAuditor(input: CreateAuditorInput): Promise<ActionResult<AuditorDTO>> {
   try {
@@ -58,16 +64,10 @@ export async function actualizarAuditor(
         campo: parsed.error.issues[0]?.path.join('.'),
       })
     }
-    const existing = await findAuditorById(id)
-    if (!existing) {
-      return actionError({
-        tipo: 'TECNICO',
-        severidad: 'ALTO',
-        codigo: 'TECH-002',
-        mensaje: 'Auditor no encontrado',
-      })
-    }
-    const auditor = await updateAuditor(id, parsed.data)
+    // Solo un auditor del estudio actual: el identificador viene de la pantalla.
+    const estudioId = await getCurrentEstudioId()
+    const auditor = await updateAuditor(estudioId, id, parsed.data)
+    if (!auditor) return actionError(AUDITOR_NO_ENCONTRADO)
     revalidatePath('/auditores')
     return actionOk(auditor)
   } catch (error) {
@@ -77,7 +77,8 @@ export async function actualizarAuditor(
 
 export async function desactivarAuditor(id: string): Promise<ActionResult<void>> {
   try {
-    await deactivateAuditor(id)
+    const estudioId = await getCurrentEstudioId()
+    if (!(await deactivateAuditor(estudioId, id))) return actionError(AUDITOR_NO_ENCONTRADO)
     revalidatePath('/auditores')
     return actionOk(undefined)
   } catch (error) {
@@ -87,7 +88,8 @@ export async function desactivarAuditor(id: string): Promise<ActionResult<void>>
 
 export async function reactivarAuditor(id: string): Promise<ActionResult<void>> {
   try {
-    await reactivateAuditor(id)
+    const estudioId = await getCurrentEstudioId()
+    if (!(await reactivateAuditor(estudioId, id))) return actionError(AUDITOR_NO_ENCONTRADO)
     revalidatePath('/auditores')
     return actionOk(undefined)
   } catch (error) {

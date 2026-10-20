@@ -44,11 +44,15 @@ export async function createAuditor(
   return toAuditorDTO(a)
 }
 
-export async function updateAuditor(id: string, input: UpdateAuditorInput): Promise<AuditorDTO> {
-  const existing = await db.auditor.findUniqueOrThrow({
-    where: { id },
-    select: { estudioId: true },
-  })
+/** Modifica un auditor solo si es de este estudio. Devuelve null si no lo encuentra. */
+export async function updateAuditor(
+  estudioId: string,
+  id: string,
+  input: UpdateAuditorInput,
+): Promise<AuditorDTO | null> {
+  if (!esUuid(id)) return null
+  const existing = await db.auditor.findFirst({ where: { id, estudioId }, select: { id: true } })
+  if (!existing) return null
 
   const data = {
     ...input,
@@ -63,7 +67,7 @@ export async function updateAuditor(id: string, input: UpdateAuditorInput): Prom
   if (input.esDefault === true) {
     const a = await db.$transaction(async (tx) => {
       await tx.auditor.updateMany({
-        where: { estudioId: existing.estudioId, id: { not: id } },
+        where: { estudioId, id: { not: id } },
         data: { esDefault: false },
       })
       return tx.auditor.update({ where: { id }, data })
@@ -75,10 +79,17 @@ export async function updateAuditor(id: string, input: UpdateAuditorInput): Prom
   return toAuditorDTO(a)
 }
 
-export async function deactivateAuditor(id: string): Promise<void> {
-  await db.auditor.update({ where: { id }, data: { activo: false } })
+/** Activa o desactiva un auditor solo si es de este estudio. Devuelve si lo encontró. */
+async function setActivo(estudioId: string, id: string, activo: boolean): Promise<boolean> {
+  if (!esUuid(id)) return false
+  const { count } = await db.auditor.updateMany({ where: { id, estudioId }, data: { activo } })
+  return count > 0
 }
 
-export async function reactivateAuditor(id: string): Promise<void> {
-  await db.auditor.update({ where: { id }, data: { activo: true } })
+export async function deactivateAuditor(estudioId: string, id: string): Promise<boolean> {
+  return setActivo(estudioId, id, false)
+}
+
+export async function reactivateAuditor(estudioId: string, id: string): Promise<boolean> {
+  return setActivo(estudioId, id, true)
 }

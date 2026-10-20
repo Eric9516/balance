@@ -40,6 +40,11 @@ import {
   guardarLoteAjustesTransicionAction,
 } from '@/modules/transicion-rt54/actions/ajustes.actions'
 import type { AjusteTransicionInput } from '@/modules/transicion-rt54/domain/types'
+import {
+  actualizarAuditor,
+  desactivarAuditor,
+  reactivarAuditor,
+} from '@/modules/auditores/actions/auditor.actions'
 
 const ctx = {} as {
   sociedadId: string
@@ -49,6 +54,7 @@ const ctx = {} as {
   estudioAjenoId: string
   sociedadAjenaId: string
   ejercicioAjenoId: string
+  auditorAjenoId: string
 }
 
 function ok<T>(r: ActionResult<T>): T {
@@ -118,7 +124,9 @@ beforeAll(async () => {
     },
   })
   ctx.sociedadAjenaId = sociedadAjena.id
-  ctx.ejercicioAjenoId = (await nuevoEjercicio(ajeno.id, '2025-12-31', sociedadAjena.id)).id
+  const ejercicioAjeno = await nuevoEjercicio(ajeno.id, '2025-12-31', sociedadAjena.id)
+  ctx.ejercicioAjenoId = ejercicioAjeno.id
+  ctx.auditorAjenoId = ejercicioAjeno.auditorId!
 })
 
 afterAll(async () => {
@@ -229,5 +237,25 @@ describe('Ajustes de transición a la RT 54', () => {
     const r = await eliminarAjusteTransicionAction(ajena.id, ctx.ejercicioId, ctx.sociedadId)
     expect(fallo(r)).toBe('TECH-002')
     expect(await db.ajusteTransicionRT54.findUnique({ where: { id: ajena.id } })).not.toBeNull()
+  })
+})
+
+describe('Auditores', () => {
+  it('no modifica un auditor de otro estudio', async () => {
+    const r = await actualizarAuditor(ctx.auditorAjenoId, { nombre: 'Pisado', apellido: 'X' })
+    expect(fallo(r)).toBe('TECH-002')
+    const enBase = await db.auditor.findUniqueOrThrow({ where: { id: ctx.auditorAjenoId } })
+    expect(enBase).toMatchObject({ nombre: 'Ana', apellido: 'Pérez' })
+  })
+
+  it('no desactiva ni reactiva un auditor de otro estudio', async () => {
+    expect(fallo(await desactivarAuditor(ctx.auditorAjenoId))).toBe('TECH-002')
+    const enBase = await db.auditor.findUniqueOrThrow({ where: { id: ctx.auditorAjenoId } })
+    expect(enBase.activo).toBe(true)
+
+    await db.auditor.update({ where: { id: ctx.auditorAjenoId }, data: { activo: false } })
+    expect(fallo(await reactivarAuditor(ctx.auditorAjenoId))).toBe('TECH-002')
+    const despues = await db.auditor.findUniqueOrThrow({ where: { id: ctx.auditorAjenoId } })
+    expect(despues.activo).toBe(false)
   })
 })
