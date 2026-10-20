@@ -50,6 +50,11 @@ import {
   desactivarSociedad,
   reactivarSociedad,
 } from '@/modules/sociedades/actions/sociedad.actions'
+import {
+  aceptarDocumentoAction,
+  agregarDocumentoManualAction,
+  eliminarDocumentoManualAction,
+} from '@/modules/documentos/actions/documento.actions'
 
 const ctx = {} as {
   sociedadId: string
@@ -296,5 +301,42 @@ describe('Sociedades', () => {
     const despues = await db.sociedad.findUniqueOrThrow({ where: { id: ctx.sociedadAjenaId } })
     expect(despues.activo).toBe(false)
     await db.sociedad.update({ where: { id: ctx.sociedadAjenaId }, data: { activo: true } })
+  })
+})
+
+describe('Documentos del ejercicio', () => {
+  it('no acepta ni agrega documentos en un ejercicio de otro estudio', async () => {
+    const aceptar = await aceptarDocumentoAction(
+      ctx.ejercicioAjenoId,
+      ctx.sociedadAjenaId,
+      'ANEXO_BIENES_USO',
+    )
+    expect(fallo(aceptar)).toBe('AUTH-001')
+    const agregar = await agregarDocumentoManualAction(
+      ctx.ejercicioAjenoId,
+      ctx.sociedadAjenaId,
+      'NOTA',
+      'Ajeno',
+    )
+    expect(fallo(agregar)).toBe('AUTH-001')
+    expect(
+      await db.documentoEjercicio.count({ where: { ejercicioId: ctx.ejercicioAjenoId } }),
+    ).toBe(0)
+  })
+
+  it('no borra un documento de otro ejercicio ni uno sugerido', async () => {
+    const ajeno = ok(
+      await agregarDocumentoManualAction(ctx.otroEjercicioId, ctx.sociedadId, 'NOTA', 'Otro'),
+    )
+    const r = await eliminarDocumentoManualAction(ctx.ejercicioId, ctx.sociedadId, ajeno.id)
+    expect(fallo(r)).toBe('TECH-002')
+    expect(await db.documentoEjercicio.findUnique({ where: { id: ajeno.id } })).not.toBeNull()
+
+    const sugerido = ok(
+      await aceptarDocumentoAction(ctx.ejercicioId, ctx.sociedadId, 'ANEXO_BIENES_USO'),
+    )
+    const r2 = await eliminarDocumentoManualAction(ctx.ejercicioId, ctx.sociedadId, sugerido.id)
+    expect(fallo(r2)).toBe('TECH-002')
+    expect(await db.documentoEjercicio.findUnique({ where: { id: sugerido.id } })).not.toBeNull()
   })
 })

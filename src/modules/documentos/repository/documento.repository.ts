@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { esUuid } from '@/lib/utils/uuid'
 import { idAnteriorDerivable } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import { toDocumentoDTO, type DocumentoEjercicioDTO } from '../domain/types'
 import type { TipoDoc } from '../domain/reglas'
@@ -149,7 +150,14 @@ export async function createDocumentoManual(input: {
   return toDocumentoDTO(row)
 }
 
-/** Borra un documento por id (usado para manuales). */
-export async function deleteDocumentoById(id: string): Promise<void> {
-  await db.documentoEjercicio.deleteMany({ where: { id } })
+/**
+ * Borra un documento MANUAL solo si es de este ejercicio (los automáticos se descartan, no se
+ * borran). Devuelve si borró.
+ */
+export async function deleteDocumentoManual(ejercicioId: string, id: string): Promise<boolean> {
+  if (!esUuid(id)) return false
+  const { count } = await db.documentoEjercicio.deleteMany({
+    where: { id, ejercicioId, origen: 'MANUAL' },
+  })
+  return count > 0
 }

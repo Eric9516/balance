@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { assertEjercicioBelongsToCurrentEstudio } from '@/lib/authz'
 import { actionOk, actionError, type ActionResult } from '@/modules/errores/types'
 import { errorHandler } from '@/modules/errores/handler'
 import { REGLA_POR_CLAVE, type TipoDoc } from '../domain/reglas'
@@ -9,7 +10,7 @@ import {
   upsertDecisionRegla,
   deleteDecisionRegla,
   createDocumentoManual,
-  deleteDocumentoById,
+  deleteDocumentoManual,
   saldoPorCodigoRubro,
 } from '../repository/documento.repository'
 import { sumarPor } from '@/lib/importe'
@@ -19,6 +20,8 @@ function revalidate(sociedadId: string, ejercicioId: string) {
 }
 
 const ctxErr = (operacion: string) => ({ modulo: 'DOCUMENTOS', operacion })
+
+const TIPOS_DOC: readonly TipoDoc[] = ['ANEXO', 'NOTA']
 
 /** Suma de los saldos de los rubros que disparan una regla — para guardar la foto. */
 async function saldoDeRegla(ejercicioId: string, reglaClave: string): Promise<number> {
@@ -34,6 +37,7 @@ export async function aceptarDocumentoAction(
   reglaClave: string,
 ): Promise<ActionResult<DocumentoEjercicioDTO>> {
   try {
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
     const regla = REGLA_POR_CLAVE.get(reglaClave)
     if (!regla) {
       return actionError(
@@ -80,6 +84,7 @@ async function setEstadoRegla(
   op: string,
 ): Promise<ActionResult<DocumentoEjercicioDTO>> {
   try {
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
     const regla = REGLA_POR_CLAVE.get(reglaClave)
     if (!regla) {
       return actionError(errorHandler(new Error(`Regla desconocida: ${reglaClave}`), ctxErr(op)))
@@ -105,6 +110,7 @@ export async function reactivarDocumentoAction(
   reglaClave: string,
 ): Promise<ActionResult<void>> {
   try {
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
     await deleteDecisionRegla(ejercicioId, reglaClave)
     revalidate(sociedadId, ejercicioId)
     return actionOk(undefined)
@@ -120,6 +126,16 @@ export async function agregarDocumentoManualAction(
   titulo: string,
 ): Promise<ActionResult<DocumentoEjercicioDTO>> {
   try {
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    if (!TIPOS_DOC.includes(tipo)) {
+      return actionError({
+        tipo: 'FORMULARIO',
+        severidad: 'BAJO',
+        codigo: 'FORM-001',
+        mensaje: 'Elegí si el documento es un anexo o una nota.',
+        campo: 'tipo',
+      })
+    }
     if (!titulo.trim()) {
       return actionError(
         errorHandler(new Error('El título es obligatorio'), ctxErr('agregar_manual')),
@@ -140,7 +156,16 @@ export async function eliminarDocumentoManualAction(
   id: string,
 ): Promise<ActionResult<void>> {
   try {
-    await deleteDocumentoById(id)
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    if (!(await deleteDocumentoManual(ejercicioId, id))) {
+      return actionError({
+        tipo: 'TECNICO',
+        severidad: 'ALTO',
+        codigo: 'TECH-002',
+        mensaje:
+          'No se encontró ese documento manual en este ejercicio. Los documentos sugeridos no se eliminan: se descartan.',
+      })
+    }
     revalidate(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {
