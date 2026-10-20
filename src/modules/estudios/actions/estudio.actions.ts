@@ -4,13 +4,14 @@ import { revalidatePath } from 'next/cache'
 import { actionOk, actionError } from '@/modules/errores/types'
 import { errorHandler } from '@/modules/errores/handler'
 import type { ActionResult } from '@/modules/errores/types'
+import { getCurrentEstudioId } from '@/lib/estudio-context'
 import {
   CreateEstudioSchema,
   UpdateEstudioSchema,
   type CreateEstudioInput,
   type UpdateEstudioInput,
 } from '../schemas/estudio.schemas'
-import { createEstudio, updateEstudio, findEstudioById } from '../repository/estudio.repository'
+import { createEstudio, updateEstudio } from '../repository/estudio.repository'
 import type { EstudioDTO } from '../domain/types'
 
 export async function crearEstudio(input: CreateEstudioInput): Promise<ActionResult<EstudioDTO>> {
@@ -50,13 +51,13 @@ export async function actualizarEstudio(
         campo: parsed.error.issues[0]?.path.join('.'),
       })
     }
-    const existing = await findEstudioById(id)
-    if (!existing) {
+    // Solo se modifica el estudio actual: el identificador viene de la pantalla.
+    if (id !== (await getCurrentEstudioId())) {
       return actionError({
         tipo: 'TECNICO',
         severidad: 'ALTO',
         codigo: 'TECH-002',
-        mensaje: 'Estudio no encontrado',
+        mensaje: 'Estudio no encontrado. Recargá la página y volvé a intentar.',
       })
     }
     const estudio = await updateEstudio(id, parsed.data)

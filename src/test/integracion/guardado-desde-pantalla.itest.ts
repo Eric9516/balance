@@ -61,6 +61,7 @@ import {
   agregarDocumentoManualAction,
   eliminarDocumentoManualAction,
 } from '@/modules/documentos/actions/documento.actions'
+import { actualizarEstudio } from '@/modules/estudios/actions/estudio.actions'
 
 const ctx = {} as {
   sociedadId: string
@@ -423,5 +424,19 @@ describe('Ejercicios', () => {
       where: { id: ctx.otroEjercicioId },
       data: { estado: 'BORRADOR' },
     })
+  })
+})
+
+describe('Estudios', () => {
+  it('no modifica otro estudio que el actual', async () => {
+    const r = await actualizarEstudio(ctx.estudioAjenoId, {
+      tipoPersona: 'JURIDICA',
+      nombre: 'Pisado',
+      cuit: '30-71234567-1',
+      razonSocial: 'Pisado SA',
+    })
+    expect(fallo(r)).toBe('TECH-002')
+    const enBase = await db.estudio.findUniqueOrThrow({ where: { id: ctx.estudioAjenoId } })
+    expect(enBase.nombre).toBe('Estudio ajeno')
   })
 })
