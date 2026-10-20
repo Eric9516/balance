@@ -36,6 +36,7 @@ import {
 import { findBienesDeUso } from '@/modules/bienes-de-uso/repository/bienes-de-uso.repository'
 import {
   crearAjusteTransicionAction,
+  eliminarAjusteTransicionAction,
   guardarLoteAjustesTransicionAction,
 } from '@/modules/transicion-rt54/actions/ajustes.actions'
 import type { AjusteTransicionInput } from '@/modules/transicion-rt54/domain/types'
@@ -219,5 +220,14 @@ describe('Ajustes de transición a la RT 54', () => {
     )
     const enBase = await db.ajusteTransicionRT54.findUniqueOrThrow({ where: { id: ajena.id } })
     expect(enBase).toMatchObject({ ejercicioId: ctx.otroEjercicioId, concepto: 'Ajena' })
+  })
+
+  it('no borra una partida de otro ejercicio', async () => {
+    const ajena = ok(
+      await crearAjusteTransicionAction(ctx.otroEjercicioId, ctx.sociedadId, partida('No borrar')),
+    )
+    const r = await eliminarAjusteTransicionAction(ajena.id, ctx.ejercicioId, ctx.sociedadId)
+    expect(fallo(r)).toBe('TECH-002')
+    expect(await db.ajusteTransicionRT54.findUnique({ where: { id: ajena.id } })).not.toBeNull()
   })
 })

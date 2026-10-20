@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { esUuid } from '@/lib/utils/uuid'
 import {
   toAjusteTransicionDTO,
   type AjusteTransicionDTO,
@@ -65,6 +66,9 @@ export async function reemplazarAjustes(
   return findAjustesByEjercicio(ejercicioId)
 }
 
-export async function deleteAjuste(id: string): Promise<void> {
-  await db.ajusteTransicionRT54.delete({ where: { id } })
+/** Borra una partida solo si es de este ejercicio. Devuelve si borró. */
+export async function deleteAjuste(ejercicioId: string, id: string): Promise<boolean> {
+  if (!esUuid(id)) return false
+  const { count } = await db.ajusteTransicionRT54.deleteMany({ where: { id, ejercicioId } })
+  return count > 0
 }

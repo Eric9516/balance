@@ -67,7 +67,15 @@ export async function eliminarAjusteTransicionAction(
 ): Promise<ActionResult<void>> {
   try {
     await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
-    await deleteAjuste(id)
+    if (!(await deleteAjuste(ejercicioId, id))) {
+      return actionError({
+        tipo: 'TECNICO',
+        severidad: 'ALTO',
+        codigo: 'TECH-002',
+        mensaje:
+          'No se encontró esa partida de transición en este ejercicio. Recargá la página y volvé a intentar.',
+      })
+    }
     revalidar(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {
