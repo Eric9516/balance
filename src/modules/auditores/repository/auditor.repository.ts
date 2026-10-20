@@ -17,6 +17,13 @@ export async function findAuditorById(id: string): Promise<AuditorDTO | null> {
   return a ? toAuditorDTO(a) : null
 }
 
+/** ¿El auditor es de este estudio? Responde que no ante un identificador inválido. */
+export async function esAuditorDelEstudio(estudioId: string, id: string): Promise<boolean> {
+  if (!esUuid(id)) return false
+  const a = await db.auditor.findFirst({ where: { id, estudioId }, select: { id: true } })
+  return a !== null
+}
+
 export async function createAuditor(
   estudioId: string,
   input: CreateAuditorInput,

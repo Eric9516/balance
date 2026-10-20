@@ -27,6 +27,12 @@ import { getCurrentEstudioId } from '@/lib/estudio-context'
 import type { ActionResult } from '@/modules/errores/types'
 import { CreateEjercicioSchema } from '@/modules/ejercicios/schemas/ejercicio.schemas'
 import { createEjercicio } from '@/modules/ejercicios/repository/ejercicio.repository'
+import {
+  actualizarEjercicio,
+  avanzarEstadoEjercicio,
+  crearEjercicio,
+  eliminarEjercicio,
+} from '@/modules/ejercicios/actions/ejercicio.actions'
 import { calcularCierre, type BienDeUsoDTO } from '@/modules/bienes-de-uso/domain/types'
 import {
   crearBienDeUsoAction,
@@ -60,6 +66,9 @@ const ctx = {} as {
   sociedadId: string
   ejercicioId: string
   otroEjercicioId: string
+  /** Otra sociedad del mismo estudio, con un ejercicio al 31/12/2024. */
+  otraSociedadId: string
+  ejercicioOtraSociedadId: string
   /** Otro estudio de la misma base, con su sociedad y su ejercicio: nada de eso es del actual. */
   estudioAjenoId: string
   sociedadAjenaId: string
@@ -78,11 +87,11 @@ function fallo<T>(r: ActionResult<T>): string {
   return r.error.codigo
 }
 
-async function nuevoEjercicio(estudioId: string, cierre: string, sociedadId = ctx.sociedadId) {
+async function inputEjercicio(estudioId: string, cierre: string) {
   const auditor = await db.auditor.create({
     data: { estudioId, nombre: 'Ana', apellido: 'Pérez' },
   })
-  const input = CreateEjercicioSchema.parse({
+  return CreateEjercicioSchema.parse({
     fechaInicio: `${Number(cierre.slice(0, 4))}-01-01`,
     fechaCierre: cierre,
     denominacion: '',
@@ -95,7 +104,10 @@ async function nuevoEjercicio(estudioId: string, cierre: string, sociedadId = ct
     indiceInflacionAnterior: '100',
     indiceInflacionActual: '125',
   })
-  return createEjercicio(sociedadId, estudioId, input)
+}
+
+async function nuevoEjercicio(estudioId: string, cierre: string, sociedadId = ctx.sociedadId) {
+  return createEjercicio(sociedadId, estudioId, await inputEjercicio(estudioId, cierre))
 }
 
 beforeAll(async () => {
@@ -115,6 +127,15 @@ beforeAll(async () => {
   ctx.sociedadId = sociedad.id
   ctx.ejercicioId = (await nuevoEjercicio(estudioId, '2025-12-31')).id
   ctx.otroEjercicioId = (await nuevoEjercicio(estudioId, '2024-12-31')).id
+  const otraSociedad = await db.sociedad.create({
+    data: {
+      estudioId,
+      razonSocial: 'Otra Sociedad SA',
+      cuit: `34${Date.now().toString().slice(-8)}4`,
+    },
+  })
+  ctx.otraSociedadId = otraSociedad.id
+  ctx.ejercicioOtraSociedadId = (await nuevoEjercicio(estudioId, '2024-12-31', otraSociedad.id)).id
 
   // Creado después del actual: el estudio actual sigue siendo el primero activo.
   const ajeno = await db.estudio.create({
@@ -140,7 +161,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  const sociedades = [ctx.sociedadId, ctx.sociedadAjenaId]
+  const sociedades = [ctx.sociedadId, ctx.otraSociedadId, ctx.sociedadAjenaId]
   await db.ejercicioContable.deleteMany({ where: { sociedadId: { in: sociedades } } })
   await db.sociedad.deleteMany({ where: { id: { in: sociedades } } })
   await db.estudio.deleteMany({ where: { id: ctx.estudioAjenoId } })
@@ -338,5 +359,69 @@ describe('Documentos del ejercicio', () => {
     const r2 = await eliminarDocumentoManualAction(ctx.ejercicioId, ctx.sociedadId, sugerido.id)
     expect(fallo(r2)).toBe('TECH-002')
     expect(await db.documentoEjercicio.findUnique({ where: { id: sugerido.id } })).not.toBeNull()
+  })
+})
+
+describe('Ejercicios', () => {
+  it('no crea un ejercicio en una sociedad de otro estudio', async () => {
+    const input = await inputEjercicio(await getCurrentEstudioId(), '2026-12-31')
+    expect(fallo(await crearEjercicio(ctx.sociedadAjenaId, input))).toBe('TECH-002')
+    expect(await db.ejercicioContable.count({ where: { sociedadId: ctx.sociedadAjenaId } })).toBe(1)
+  })
+
+  it('no acepta un auditor de otro estudio', async () => {
+    const input = await inputEjercicio(await getCurrentEstudioId(), '2026-12-31')
+    const r = await crearEjercicio(ctx.sociedadId, { ...input, auditorId: ctx.auditorAjenoId })
+    expect(fallo(r)).toBe('FORM-001')
+    expect(await db.ejercicioContable.count({ where: { auditorId: ctx.auditorAjenoId } })).toBe(1)
+  })
+
+  it('valida el ejercicio anterior contra la sociedad guardada y no contra la que manda la pantalla', async () => {
+    const input = await inputEjercicio(await getCurrentEstudioId(), '2025-12-31')
+    const r = await actualizarEjercicio(ctx.ejercicioId, ctx.otraSociedadId, {
+      ...input,
+      modoAnterior: 'VINCULADO',
+      ejercicioAnteriorId: ctx.ejercicioOtraSociedadId,
+    })
+    expect(fallo(r)).toBe('NEG-010')
+    const enBase = await db.ejercicioContable.findUniqueOrThrow({ where: { id: ctx.ejercicioId } })
+    expect(enBase.ejercicioAnteriorId).toBeNull()
+  })
+
+  it('no cambia de estado ni borra un ejercicio de otro estudio', async () => {
+    const avanzar = await avanzarEstadoEjercicio(
+      ctx.ejercicioAjenoId,
+      ctx.sociedadAjenaId,
+      'BORRADOR',
+      'EN_PROCESO',
+    )
+    expect(fallo(avanzar)).toBe('AUTH-001')
+    expect(fallo(await eliminarEjercicio(ctx.ejercicioAjenoId, ctx.sociedadAjenaId))).toBe(
+      'AUTH-001',
+    )
+    const enBase = await db.ejercicioContable.findUnique({ where: { id: ctx.ejercicioAjenoId } })
+    expect(enBase?.estado).toBe('BORRADOR')
+  })
+
+  it('no reabre un ejercicio cerrado aunque la pantalla diga que está en borrador', async () => {
+    await db.ejercicioContable.update({
+      where: { id: ctx.otroEjercicioId },
+      data: { estado: 'CERRADO' },
+    })
+    const r = await avanzarEstadoEjercicio(
+      ctx.otroEjercicioId,
+      ctx.sociedadId,
+      'BORRADOR',
+      'EN_PROCESO',
+    )
+    expect(fallo(r)).toBe('NEG-001')
+    const enBase = await db.ejercicioContable.findUniqueOrThrow({
+      where: { id: ctx.otroEjercicioId },
+    })
+    expect(enBase.estado).toBe('CERRADO')
+    await db.ejercicioContable.update({
+      where: { id: ctx.otroEjercicioId },
+      data: { estado: 'BORRADOR' },
+    })
   })
 })

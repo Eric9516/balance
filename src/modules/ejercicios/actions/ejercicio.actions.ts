@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { actionOk, actionError } from '@/modules/errores/types'
 import { errorHandler } from '@/modules/errores/handler'
-import type { ActionResult } from '@/modules/errores/types'
+import type { ActionResult, AppError } from '@/modules/errores/types'
 import { getCurrentEstudioId } from '@/lib/estudio-context'
 import { assertEjercicioBelongsToCurrentEstudio } from '@/lib/authz'
 import {
@@ -29,7 +29,9 @@ import {
   evaluarAutorizacionEjercicio,
   type EvaluacionAutorizacion,
 } from '../services/autorizacion.service'
-import type { EjercicioContableDTO } from '../domain/types'
+import { findSociedadById } from '@/modules/sociedades/repository/sociedad.repository'
+import { esAuditorDelEstudio } from '@/modules/auditores/repository/auditor.repository'
+import { ESTADO_LABELS, type EjercicioContableDTO } from '../domain/types'
 import type { EstadoEjercicio } from '@prisma/client'
 
 const VALID_TRANSITIONS: Record<EstadoEjercicio, EstadoEjercicio[]> = {
@@ -37,6 +39,13 @@ const VALID_TRANSITIONS: Record<EstadoEjercicio, EstadoEjercicio[]> = {
   EN_PROCESO: ['REVISION'],
   REVISION: ['CERRADO', 'EN_PROCESO'],
   CERRADO: [],
+}
+
+const EJERCICIO_NO_ENCONTRADO: AppError = {
+  tipo: 'TECNICO',
+  severidad: 'ALTO',
+  codigo: 'TECH-002',
+  mensaje: 'Ejercicio no encontrado',
 }
 
 /** Estados a los que solo se llega con la compuerta de autorización aprobada. */
@@ -50,6 +59,21 @@ function formError(parsed: { error: { issues: { message: string; path: PropertyK
     mensaje: 'Datos inválidos',
     detalle: parsed.error.issues[0]?.message,
     campo: parsed.error.issues[0]?.path.join('.'),
+  })
+}
+
+/** El auditor viene de la pantalla: tiene que ser del estudio actual (sale en el informe). */
+async function validarAuditor(
+  estudioId: string,
+  input: CreateEjercicioInput,
+): Promise<ActionResult<never> | null> {
+  if (!input.auditorId || (await esAuditorDelEstudio(estudioId, input.auditorId))) return null
+  return actionError({
+    tipo: 'FORMULARIO',
+    severidad: 'BAJO',
+    codigo: 'FORM-001',
+    mensaje: 'El auditor elegido no es de este estudio. Elegí otro de la lista.',
+    campo: 'auditorId',
   })
 }
 
@@ -83,10 +107,24 @@ export async function crearEjercicio(
   try {
     const parsed = CreateEjercicioSchema.safeParse(input)
     if (!parsed.success) return formError(parsed)
-    const invalido = await validarAnterior(sociedadId, null, parsed.data)
+    // La sociedad viene de la pantalla: tiene que ser del estudio actual.
+    const [sociedad, estudioId] = await Promise.all([
+      findSociedadById(sociedadId),
+      getCurrentEstudioId(),
+    ])
+    if (!sociedad || sociedad.estudioId !== estudioId) {
+      return actionError({
+        tipo: 'TECNICO',
+        severidad: 'ALTO',
+        codigo: 'TECH-002',
+        mensaje: 'Sociedad no encontrada en este estudio. Recargá la página y volvé a intentar.',
+      })
+    }
+    const invalido =
+      (await validarAuditor(estudioId, parsed.data)) ??
+      (await validarAnterior(sociedadId, null, parsed.data))
     if (invalido) return invalido
 
-    const estudioId = await getCurrentEstudioId()
     const ejercicio = await createEjercicio(sociedadId, estudioId, parsed.data)
     revalidatePath(`/sociedades/${sociedadId}/ejercicios`)
     return actionOk(ejercicio)
@@ -105,15 +143,11 @@ export async function actualizarEjercicio(
     if (!parsed.success) return formError(parsed)
     await assertEjercicioBelongsToCurrentEstudio(id)
     const existing = await findEjercicioById(id)
-    if (!existing) {
-      return actionError({
-        tipo: 'TECNICO',
-        severidad: 'ALTO',
-        codigo: 'TECH-002',
-        mensaje: 'Ejercicio no encontrado',
-      })
-    }
-    const invalido = await validarAnterior(sociedadId, id, parsed.data)
+    if (!existing) return actionError(EJERCICIO_NO_ENCONTRADO)
+    // El anterior se valida contra la sociedad guardada, no contra la que mande la pantalla.
+    const invalido =
+      (await validarAuditor(existing.estudioId, parsed.data)) ??
+      (await validarAnterior(existing.sociedadId, id, parsed.data))
     if (invalido) return invalido
 
     const ejercicio = await updateEjercicio(id, parsed.data)
@@ -139,20 +173,34 @@ export async function avanzarEstadoEjercicio(
   nuevoEstado: EstadoEjercicio,
 ): Promise<ActionResult<EjercicioContableDTO>> {
   try {
-    const validos = VALID_TRANSITIONS[estadoActual]
+    await assertEjercicioBelongsToCurrentEstudio(id)
+    const existing = await findEjercicioById(id)
+    if (!existing) return actionError(EJERCICIO_NO_ENCONTRADO)
+    // La transición se valida contra el estado guardado y no contra el que muestra la pantalla:
+    // si no, una petición manipulada podría reabrir un ejercicio cerrado.
+    const estado = existing.estado
+    if (estado !== estadoActual) {
+      return actionError({
+        tipo: 'NEGOCIO',
+        severidad: 'MEDIO',
+        codigo: 'NEG-001',
+        mensaje: `El ejercicio está en estado "${ESTADO_LABELS[estado]}" y no "${ESTADO_LABELS[estadoActual] ?? estadoActual}". Recargá la página para ver su estado actual.`,
+      })
+    }
+    const validos = VALID_TRANSITIONS[estado]
     if (!validos.includes(nuevoEstado)) {
       return actionError({
         tipo: 'NEGOCIO',
         severidad: 'MEDIO',
         codigo: 'NEG-001',
-        mensaje: `Transición de estado inválida: ${estadoActual} → ${nuevoEstado}`,
+        mensaje: `Transición de estado inválida: ${estado} → ${nuevoEstado}`,
       })
     }
     if (ESTADOS_CON_COMPUERTA.includes(nuevoEstado)) {
       const bloqueo = await compuertaAutorizacion(id)
       if (bloqueo) return actionError(bloqueo)
     }
-    const ejercicio = await cambiarEstado(id, nuevoEstado)
+    const ejercicio = await cambiarEstado(id, estado, nuevoEstado)
     revalidatePath(`/sociedades/${sociedadId}/ejercicios`)
     return actionOk(ejercicio)
   } catch (error) {
@@ -165,15 +213,9 @@ export async function eliminarEjercicio(
   sociedadId: string,
 ): Promise<ActionResult<void>> {
   try {
+    await assertEjercicioBelongsToCurrentEstudio(id)
     const existing = await findEjercicioById(id)
-    if (!existing) {
-      return actionError({
-        tipo: 'TECNICO',
-        severidad: 'ALTO',
-        codigo: 'TECH-002',
-        mensaje: 'Ejercicio no encontrado',
-      })
-    }
+    if (!existing) return actionError(EJERCICIO_NO_ENCONTRADO)
     if (existing.estado !== 'BORRADOR') {
       return actionError({
         tipo: 'NEGOCIO',
@@ -210,14 +252,7 @@ export async function evaluarAutorizacionAction(
   try {
     await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
     const evaluacion = await evaluarAutorizacionEjercicio(ejercicioId)
-    if (!evaluacion) {
-      return actionError({
-        tipo: 'TECNICO',
-        severidad: 'ALTO',
-        codigo: 'TECH-002',
-        mensaje: 'Ejercicio no encontrado',
-      })
-    }
+    if (!evaluacion) return actionError(EJERCICIO_NO_ENCONTRADO)
     return actionOk(evaluacion)
   } catch (error) {
     return actionError(
@@ -249,14 +284,7 @@ export async function autorizarComparativoAction(
       })
     }
     const ejercicio = await findEjercicioById(ejercicioId)
-    if (!ejercicio) {
-      return actionError({
-        tipo: 'TECNICO',
-        severidad: 'ALTO',
-        codigo: 'TECH-002',
-        mensaje: 'Ejercicio no encontrado',
-      })
-    }
+    if (!ejercicio) return actionError(EJERCICIO_NO_ENCONTRADO)
     if (ejercicio.modoAnterior !== 'MANUAL') {
       return actionError({
         tipo: 'NEGOCIO',

@@ -250,20 +250,26 @@ export async function aplicarEfectosCambioModo(
   ])
 }
 
+/**
+ * Cambia el estado solo si el ejercicio sigue en `desde`: si otro lo cambió entre la lectura y la
+ * escritura, no matchea y Prisma avisa que no lo encontró.
+ */
 export async function cambiarEstado(
   id: string,
-  estado: EstadoEjercicio,
+  desde: EstadoEjercicio,
+  hacia: EstadoEjercicio,
 ): Promise<EjercicioContableDTO> {
   const e = await db.ejercicioContable.update({
-    where: { id },
-    data: { estado },
+    where: { id, estado: desde },
+    data: { estado: hacia },
     include: { auditor: auditorSelect },
   })
   return toEjercicioDTO(e)
 }
 
+/** Solo se borra un ejercicio en Borrador (también en la condición, por si cambió recién). */
 export async function deleteEjercicio(id: string): Promise<void> {
-  await db.ejercicioContable.delete({ where: { id } })
+  await db.ejercicioContable.delete({ where: { id, estado: 'BORRADOR' } })
 }
 
 /** Revoca la confirmación de estados cuando se hace un cambio que puede descuadrar el balance. */
