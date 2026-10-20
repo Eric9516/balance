@@ -13,11 +13,32 @@ export async function findAjustesByEjercicio(ejercicioId: string): Promise<Ajust
   return rows.map(toAjusteTransicionDTO)
 }
 
+/**
+ * Solo las columnas que carga el usuario. Nunca copia el objeto recibido: lo que manda la pantalla
+ * puede traer campos de más (Prisma los rechaza) o, en una petición manipulada, otro ejercicio.
+ */
+function columnas(a: AjusteTransicionInput, orden: number) {
+  return {
+    orden,
+    tipo: a.tipo,
+    concepto: a.concepto,
+    descripcion: a.descripcion,
+    componentePN: a.componentePN,
+    importePN: a.importePN,
+    importeResultadoAnterior: a.importeResultadoAnterior,
+    rubroOrigen: a.rubroOrigen,
+    rubroDestino: a.rubroDestino,
+    importeReclasificado: a.importeReclasificado,
+  }
+}
+
 export async function createAjuste(
   ejercicioId: string,
   input: AjusteTransicionInput,
 ): Promise<AjusteTransicionDTO> {
-  const row = await db.ajusteTransicionRT54.create({ data: { ejercicioId, ...input } })
+  const row = await db.ajusteTransicionRT54.create({
+    data: { ejercicioId, ...columnas(input, input.orden) },
+  })
   return toAjusteTransicionDTO(row)
 }
 
@@ -32,20 +53,10 @@ export async function reemplazarAjustes(
       where: { ejercicioId, ...(ids.length > 0 ? { id: { notIn: ids } } : {}) },
     })
     for (const [i, a] of ajustes.entries()) {
-      const data = {
-        orden: i + 1,
-        tipo: a.tipo,
-        concepto: a.concepto,
-        descripcion: a.descripcion,
-        componentePN: a.componentePN,
-        importePN: a.importePN,
-        importeResultadoAnterior: a.importeResultadoAnterior,
-        rubroOrigen: a.rubroOrigen,
-        rubroDestino: a.rubroDestino,
-        importeReclasificado: a.importeReclasificado,
-      }
+      const data = columnas(a, i + 1)
       if (a.id) {
-        await tx.ajusteTransicionRT54.update({ where: { id: a.id }, data })
+        // Con el ejercicio en la condición: una partida de otro ejercicio no se toca.
+        await tx.ajusteTransicionRT54.updateMany({ where: { id: a.id, ejercicioId }, data })
       } else {
         await tx.ajusteTransicionRT54.create({ data: { ejercicioId, ...data } })
       }

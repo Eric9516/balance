@@ -53,9 +53,13 @@ type BienInput = {
   depBajas: number
 }
 
+/**
+ * Solo las columnas que carga el usuario, más el cierre recalculado acá. Nunca copia el objeto
+ * recibido: lo que manda la pantalla puede traer campos calculados (el neto residual), que Prisma
+ * rechaza, o, en una petición manipulada, otro ejercicio, otro orden u otro cierre.
+ */
 function buildData(input: BienInput) {
-  const { costoFinReexpresado, depAcumFin } = calcularCierre({
-    categoria: '',
+  const valores = {
     costoInicioReexpresado: input.costoInicioReexpresado,
     costoAjusteInflacion: input.costoAjusteInflacion,
     altas: input.altas,
@@ -64,8 +68,9 @@ function buildData(input: BienInput) {
     depAjusteInflacion: input.depAjusteInflacion,
     depEjercicio: input.depEjercicio,
     depBajas: input.depBajas,
-  })
-  return { ...input, costoFinReexpresado, depAcumFin }
+  }
+  const { costoFinReexpresado, depAcumFin } = calcularCierre({ categoria: '', ...valores })
+  return { ...valores, costoFinReexpresado, depAcumFin }
 }
 
 export async function createBienDeUso(
