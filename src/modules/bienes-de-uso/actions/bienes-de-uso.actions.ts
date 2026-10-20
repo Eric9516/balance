@@ -12,11 +12,9 @@ import {
 import { idAnteriorDerivable, modoEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import {
   createBienDeUso,
-  updateBienDeUso,
   updateBienesLote,
   deleteBienDeUso,
   findBienesDeUso,
-  updateNetoAnteriorManual,
 } from '../repository/bienes-de-uso.repository'
 import { aplicarArrastreBienesDeUso, derivarArrastreBienesDeUso } from '../domain/saldosInicio'
 import type { BienDeUsoDTO } from '../domain/types'
@@ -87,6 +85,7 @@ export async function crearBienDeUsoAction(
   categoria: string,
 ): Promise<ActionResult<BienDeUsoDTO>> {
   try {
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
     const existing = await findBienesDeUso(ejercicioId)
     const orden = existing.length + 1
     const row = await createBienDeUso(ejercicioId, categoria, orden)
@@ -99,57 +98,22 @@ export async function crearBienDeUsoAction(
   }
 }
 
-export async function actualizarBienDeUsoAction(
-  id: string,
-  ejercicioId: string,
-  sociedadId: string,
-  data: {
-    categoria?: string
-    costoInicioReexpresado?: number
-    costoAjusteInflacion?: number
-    altas?: number
-    bajas?: number
-    depAcumInicio?: number
-    depAjusteInflacion?: number
-    depEjercicio?: number
-    depBajas?: number
-  },
-): Promise<ActionResult<BienDeUsoDTO>> {
-  try {
-    const row = await updateBienDeUso(id, data)
-    revalPath(sociedadId, ejercicioId)
-    return actionOk(row)
-  } catch (error) {
-    return actionError(
-      errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'actualizar_bien_de_uso' }),
-    )
-  }
-}
-
-export async function actualizarNetoAnteriorManualAction(
-  id: string,
-  ejercicioId: string,
-  sociedadId: string,
-  valor: number | null,
-): Promise<ActionResult<BienDeUsoDTO>> {
-  try {
-    const row = await updateNetoAnteriorManual(id, valor)
-    revalPath(sociedadId, ejercicioId)
-    return actionOk(row)
-  } catch (error) {
-    return actionError(
-      errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'actualizar_neto_anterior' }),
-    )
-  }
-}
-
 export async function eliminarBienDeUsoAction(
   id: string,
   ejercicioId: string,
   sociedadId: string,
 ): Promise<ActionResult<void>> {
   try {
-    await deleteBienDeUso(id)
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    if (!(await deleteBienDeUso(ejercicioId, id))) {
+      return actionError({
+        tipo: 'TECNICO',
+        severidad: 'ALTO',
+        codigo: 'TECH-002',
+        mensaje:
+          'No se encontró esa categoría en el Anexo I de este ejercicio. Recargá la página y volvé a intentar.',
+      })
+    }
     revalPath(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {

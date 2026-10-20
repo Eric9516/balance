@@ -2,6 +2,9 @@
  * Integración (PostgreSQL real): el servidor guarda SOLO las columnas que carga el usuario. Nunca
  * copia el objeto que manda la pantalla, que puede traer campos calculados (Prisma los rechaza y el
  * usuario ve "Error de base de datos") o, en una petición manipulada, otro ejercicio u otro orden.
+ *
+ * Tampoco modifica ni borra por identificador una fila que no sea del ejercicio o del estudio
+ * actual: una petición manipulada puede mandar el identificador de una fila ajena.
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -27,6 +30,7 @@ import { createEjercicio } from '@/modules/ejercicios/repository/ejercicio.repos
 import { calcularCierre, type BienDeUsoDTO } from '@/modules/bienes-de-uso/domain/types'
 import {
   crearBienDeUsoAction,
+  eliminarBienDeUsoAction,
   guardarLoteBienesAction,
 } from '@/modules/bienes-de-uso/actions/bienes-de-uso.actions'
 import { findBienesDeUso } from '@/modules/bienes-de-uso/repository/bienes-de-uso.repository'
@@ -36,14 +40,28 @@ import {
 } from '@/modules/transicion-rt54/actions/ajustes.actions'
 import type { AjusteTransicionInput } from '@/modules/transicion-rt54/domain/types'
 
-const ctx = {} as { sociedadId: string; ejercicioId: string; otroEjercicioId: string }
+const ctx = {} as {
+  sociedadId: string
+  ejercicioId: string
+  otroEjercicioId: string
+  /** Otro estudio de la misma base, con su sociedad y su ejercicio: nada de eso es del actual. */
+  estudioAjenoId: string
+  sociedadAjenaId: string
+  ejercicioAjenoId: string
+}
 
 function ok<T>(r: ActionResult<T>): T {
   if (!r.ok) throw new Error(`${r.error.codigo}: ${r.error.mensaje}`)
   return r.data
 }
 
-async function nuevoEjercicio(estudioId: string, cierre: string) {
+/** Código del error de una acción que tiene que fallar. */
+function fallo<T>(r: ActionResult<T>): string {
+  if (r.ok) throw new Error('La acción tenía que fallar y respondió bien')
+  return r.error.codigo
+}
+
+async function nuevoEjercicio(estudioId: string, cierre: string, sociedadId = ctx.sociedadId) {
   const auditor = await db.auditor.create({
     data: { estudioId, nombre: 'Ana', apellido: 'Pérez' },
   })
@@ -60,7 +78,7 @@ async function nuevoEjercicio(estudioId: string, cierre: string) {
     indiceInflacionAnterior: '100',
     indiceInflacionActual: '125',
   })
-  return createEjercicio(ctx.sociedadId, estudioId, input)
+  return createEjercicio(sociedadId, estudioId, input)
 }
 
 beforeAll(async () => {
@@ -80,11 +98,33 @@ beforeAll(async () => {
   ctx.sociedadId = sociedad.id
   ctx.ejercicioId = (await nuevoEjercicio(estudioId, '2025-12-31')).id
   ctx.otroEjercicioId = (await nuevoEjercicio(estudioId, '2024-12-31')).id
+
+  // Creado después del actual: el estudio actual sigue siendo el primero activo.
+  const ajeno = await db.estudio.create({
+    data: {
+      nombre: 'Estudio ajeno',
+      cuit: `30${Date.now().toString().slice(-8)}2`,
+      razonSocial: 'Estudio ajeno',
+    },
+  })
+  expect(await getCurrentEstudioId()).not.toBe(ajeno.id)
+  ctx.estudioAjenoId = ajeno.id
+  const sociedadAjena = await db.sociedad.create({
+    data: {
+      estudioId: ajeno.id,
+      razonSocial: 'Ajena SA',
+      cuit: `30${Date.now().toString().slice(-8)}3`,
+    },
+  })
+  ctx.sociedadAjenaId = sociedadAjena.id
+  ctx.ejercicioAjenoId = (await nuevoEjercicio(ajeno.id, '2025-12-31', sociedadAjena.id)).id
 })
 
 afterAll(async () => {
-  await db.ejercicioContable.deleteMany({ where: { sociedadId: ctx.sociedadId } })
-  await db.sociedad.deleteMany({ where: { id: ctx.sociedadId } })
+  const sociedades = [ctx.sociedadId, ctx.sociedadAjenaId]
+  await db.ejercicioContable.deleteMany({ where: { sociedadId: { in: sociedades } } })
+  await db.sociedad.deleteMany({ where: { id: { in: sociedades } } })
+  await db.estudio.deleteMany({ where: { id: ctx.estudioAjenoId } })
 })
 
 describe('Anexo I — Bienes de uso', () => {
@@ -125,6 +165,21 @@ describe('Anexo I — Bienes de uso', () => {
     expect(enBase.costoFinReexpresado.toString()).toBe('1000')
     expect(enBase.depAcumFin.toString()).toBe('0')
     expect(await findBienesDeUso(ctx.otroEjercicioId)).toEqual([])
+  })
+
+  it('no agrega categorías a un ejercicio de otro estudio', async () => {
+    const r = await crearBienDeUsoAction(ctx.ejercicioAjenoId, ctx.sociedadAjenaId, 'Inmuebles')
+    expect(fallo(r)).toBe('AUTH-001')
+    expect(await findBienesDeUso(ctx.ejercicioAjenoId)).toEqual([])
+  })
+
+  it('no borra una categoría de otro ejercicio', async () => {
+    const ajena = ok(
+      await crearBienDeUsoAction(ctx.otroEjercicioId, ctx.sociedadId, 'Instalaciones'),
+    )
+    const r = await eliminarBienDeUsoAction(ajena.id, ctx.ejercicioId, ctx.sociedadId)
+    expect(fallo(r)).toBe('TECH-002')
+    expect(await db.bienDeUsoCategoria.findUnique({ where: { id: ajena.id } })).not.toBeNull()
   })
 })
 

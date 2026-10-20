@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { toBienDeUsoDTO, calcularCierre, type BienDeUsoDTO } from '../domain/types'
 import { importe } from '@/lib/importe'
+import { esUuid } from '@/lib/utils/uuid'
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
@@ -98,31 +99,6 @@ export async function createBienDeUso(
   return toBienDeUsoDTO(row)
 }
 
-export async function updateBienDeUso(
-  id: string,
-  input: Partial<BienInput> & { categoria?: string },
-): Promise<BienDeUsoDTO> {
-  // Recalculate cierre fields if any input changed
-  const current = await db.bienDeUsoCategoria.findUniqueOrThrow({ where: { id } })
-  const merged: BienInput = {
-    costoInicioReexpresado: importe(current.costoInicioReexpresado),
-    costoAjusteInflacion: importe(current.costoAjusteInflacion),
-    altas: importe(current.altas),
-    bajas: importe(current.bajas),
-    depAcumInicio: importe(current.depAcumInicio),
-    depAjusteInflacion: importe(current.depAjusteInflacion),
-    depEjercicio: importe(current.depEjercicio),
-    depBajas: importe(current.depBajas),
-    ...input,
-  }
-  const data = buildData(merged)
-  const row = await db.bienDeUsoCategoria.update({
-    where: { id },
-    data: { ...data, ...(input.categoria ? { categoria: input.categoria } : {}) },
-  })
-  return toBienDeUsoDTO(row)
-}
-
 /** Persiste todas las filas (ya saneadas) en una sola transacción. */
 export async function updateBienesLote(
   bienes: (BienInput & {
@@ -146,17 +122,9 @@ export async function updateBienesLote(
   return rows.map(toBienDeUsoDTO)
 }
 
-export async function deleteBienDeUso(id: string): Promise<void> {
-  await db.bienDeUsoCategoria.delete({ where: { id } })
-}
-
-export async function updateNetoAnteriorManual(
-  id: string,
-  valor: number | null,
-): Promise<BienDeUsoDTO> {
-  const row = await db.bienDeUsoCategoria.update({
-    where: { id },
-    data: { netoResidualAnteriorManual: valor },
-  })
-  return toBienDeUsoDTO(row)
+/** Borra una categoría solo si es de este ejercicio. Devuelve si borró. */
+export async function deleteBienDeUso(ejercicioId: string, id: string): Promise<boolean> {
+  if (!esUuid(id)) return false
+  const { count } = await db.bienDeUsoCategoria.deleteMany({ where: { id, ejercicioId } })
+  return count > 0
 }
