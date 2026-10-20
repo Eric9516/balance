@@ -62,6 +62,13 @@ import {
   eliminarDocumentoManualAction,
 } from '@/modules/documentos/actions/documento.actions'
 import { actualizarEstudio } from '@/modules/estudios/actions/estudio.actions'
+import {
+  actualizarCuentaAction,
+  asignarRubroAction,
+  asignarRubrosBulkAction,
+  eliminarCuentaAction,
+} from '@/modules/importaciones/actions/clasificacion.actions'
+import type { CambiosCuenta } from '@/modules/importaciones/repository/cuentas.repository'
 
 const ctx = {} as {
   sociedadId: string
@@ -438,5 +445,40 @@ describe('Estudios', () => {
     expect(fallo(r)).toBe('TECH-002')
     const enBase = await db.estudio.findUniqueOrThrow({ where: { id: ctx.estudioAjenoId } })
     expect(enBase.nombre).toBe('Estudio ajeno')
+  })
+})
+
+describe('Clasificación de cuentas', () => {
+  const cuenta = (ejercicioId: string, codigo: string) =>
+    db.cuentaContable.create({ data: { ejercicioId, codigo, nombre: `Cuenta ${codigo}` } })
+
+  it('guarda solo el nombre y los saldos aunque la pantalla mande otras columnas', async () => {
+    const c = await cuenta(ctx.ejercicioId, '1.1.01')
+    const manipulada = {
+      saldoFinal: 1_234.5,
+      ejercicioId: ctx.otroEjercicioId,
+      codigo: '9.9.99',
+    } as CambiosCuenta
+    ok(await actualizarCuentaAction(c.id, manipulada, ctx.ejercicioId, ctx.sociedadId))
+
+    const enBase = await db.cuentaContable.findUniqueOrThrow({ where: { id: c.id } })
+    expect(enBase).toMatchObject({ ejercicioId: ctx.ejercicioId, codigo: '1.1.01' })
+    expect(enBase.saldoFinal.toString()).toBe('1234.5')
+  })
+
+  it('no modifica, clasifica ni borra una cuenta de otro ejercicio', async () => {
+    const ajena = await cuenta(ctx.otroEjercicioId, '1.1.02')
+    const rubro = await db.rubroBase.findFirstOrThrow({ select: { id: true } })
+    const args = [ctx.ejercicioId, ctx.sociedadId] as const
+
+    expect(fallo(await actualizarCuentaAction(ajena.id, { nombre: 'Pisada' }, ...args))).toBe(
+      'TECH-002',
+    )
+    expect(fallo(await asignarRubroAction(ajena.id, rubro.id, ...args))).toBe('TECH-002')
+    ok(await asignarRubrosBulkAction([ajena.id], rubro.id, ...args))
+    expect(fallo(await eliminarCuentaAction(ajena.id, ...args))).toBe('TECH-002')
+
+    const enBase = await db.cuentaContable.findUniqueOrThrow({ where: { id: ajena.id } })
+    expect(enBase).toMatchObject({ nombre: 'Cuenta 1.1.02', rubroBaseId: null })
   })
 })

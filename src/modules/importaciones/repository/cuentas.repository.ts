@@ -1,36 +1,67 @@
 import { cache } from 'react'
 import type { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
+import { esUuid } from '@/lib/utils/uuid'
 import { toCuentaDTO, type CuentaContableDTO, type RubroBaseSimple } from '../domain/types'
 
 // ─── Mutaciones ───────────────────────────────────────────────────────────────
+// Toda modificación por identificador lleva el ejercicio en la condición: una cuenta de otro
+// ejercicio no matchea y no se toca. Las que reciben una sola cuenta devuelven si la encontraron.
 
 export async function asignarRubroCuenta(
+  ejercicioId: string,
   cuentaId: string,
   rubroBaseId: string | null,
-): Promise<void> {
-  await db.cuentaContable.update({
-    where: { id: cuentaId },
+): Promise<boolean> {
+  if (!esUuid(cuentaId)) return false
+  const { count } = await db.cuentaContable.updateMany({
+    where: { id: cuentaId, ejercicioId },
     data: { rubroBaseId, clasificadaManual: rubroBaseId !== null },
   })
+  return count > 0
 }
 
-export async function asignarRubrosBulk(cuentaIds: string[], rubroBaseId: string): Promise<void> {
+export async function asignarRubrosBulk(
+  ejercicioId: string,
+  cuentaIds: string[],
+  rubroBaseId: string,
+): Promise<void> {
   await db.cuentaContable.updateMany({
-    where: { id: { in: cuentaIds } },
+    where: { id: { in: cuentaIds.filter(esUuid) }, ejercicioId },
     data: { rubroBaseId, clasificadaManual: true },
   })
 }
 
-export async function updateCuenta(
-  cuentaId: string,
-  data: { nombre?: string; saldoDeudor?: number; saldoAcreedor?: number; saldoFinal?: number },
-): Promise<void> {
-  await db.cuentaContable.update({ where: { id: cuentaId }, data })
+export type CambiosCuenta = {
+  nombre?: string
+  saldoDeudor?: number
+  saldoAcreedor?: number
+  saldoFinal?: number
 }
 
-export async function deleteCuenta(cuentaId: string): Promise<void> {
-  await db.cuentaContable.delete({ where: { id: cuentaId } })
+/** Solo las columnas que se editan en la pantalla: nunca copia el objeto recibido. */
+export async function updateCuenta(
+  ejercicioId: string,
+  cuentaId: string,
+  cambios: CambiosCuenta,
+): Promise<boolean> {
+  if (!esUuid(cuentaId)) return false
+  const { count } = await db.cuentaContable.updateMany({
+    where: { id: cuentaId, ejercicioId },
+    data: {
+      ...(cambios.nombre !== undefined && { nombre: cambios.nombre }),
+      ...(cambios.saldoDeudor !== undefined && { saldoDeudor: cambios.saldoDeudor }),
+      ...(cambios.saldoAcreedor !== undefined && { saldoAcreedor: cambios.saldoAcreedor }),
+      ...(cambios.saldoFinal !== undefined && { saldoFinal: cambios.saldoFinal }),
+    },
+  })
+  return count > 0
+}
+
+export async function deleteCuenta(ejercicioId: string, cuentaId: string): Promise<boolean> {
+  if (!esUuid(cuentaId)) return false
+  const { count } = await db.cuentaContable.deleteMany({ where: { id: cuentaId, ejercicioId } })
+  return count > 0
 }
 
 export async function replaceCuentas(

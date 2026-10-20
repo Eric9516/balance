@@ -1,20 +1,36 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
 import { actionOk, actionError } from '@/modules/errores/types'
 import { errorHandler } from '@/modules/errores/handler'
-import type { ActionResult } from '@/modules/errores/types'
-import {
-  assertCuentaBelongsToCurrentEstudio,
-  assertEjercicioBelongsToCurrentEstudio,
-} from '@/lib/authz'
+import type { ActionResult, AppError } from '@/modules/errores/types'
+import { assertEjercicioBelongsToCurrentEstudio } from '@/lib/authz'
 import {
   asignarRubroCuenta,
   asignarRubrosBulk,
   updateCuenta,
   deleteCuenta,
+  type CambiosCuenta,
 } from '../repository/cuentas.repository'
 import { resetEstadosConfirmado } from '@/modules/ejercicios/repository/ejercicio.repository'
+
+const importe = z.number().finite()
+
+/** Lo que se edita de una cuenta. zod descarta cualquier otra clave que mande la pantalla. */
+const CambiosCuentaSchema = z.object({
+  nombre: z.string().trim().min(1, 'El nombre de la cuenta no puede quedar vacío.').optional(),
+  saldoDeudor: importe.optional(),
+  saldoAcreedor: importe.optional(),
+  saldoFinal: importe.optional(),
+})
+
+const CUENTA_NO_ENCONTRADA: AppError = {
+  tipo: 'TECNICO',
+  severidad: 'ALTO',
+  codigo: 'TECH-002',
+  mensaje: 'No se encontró esa cuenta en este ejercicio. Recargá la página y volvé a intentar.',
+}
 
 function revalidateClasificacion(sociedadId: string, ejercicioId: string) {
   revalidatePath(`/sociedades/${sociedadId}/ejercicios/${ejercicioId}/clasificar`)
@@ -28,8 +44,10 @@ export async function asignarRubroAction(
   sociedadId: string,
 ): Promise<ActionResult<void>> {
   try {
-    await assertCuentaBelongsToCurrentEstudio(cuentaId)
-    await asignarRubroCuenta(cuentaId, rubroBaseId)
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    if (!(await asignarRubroCuenta(ejercicioId, cuentaId, rubroBaseId))) {
+      return actionError(CUENTA_NO_ENCONTRADA)
+    }
     await resetEstadosConfirmado(ejercicioId)
     revalidateClasificacion(sociedadId, ejercicioId)
     return actionOk(undefined)
@@ -40,13 +58,25 @@ export async function asignarRubroAction(
 
 export async function actualizarCuentaAction(
   cuentaId: string,
-  data: { nombre?: string; saldoDeudor?: number; saldoAcreedor?: number; saldoFinal?: number },
+  data: CambiosCuenta,
   ejercicioId: string,
   sociedadId: string,
 ): Promise<ActionResult<void>> {
   try {
-    await assertCuentaBelongsToCurrentEstudio(cuentaId)
-    await updateCuenta(cuentaId, data)
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    const parsed = CambiosCuentaSchema.safeParse(data)
+    if (!parsed.success) {
+      return actionError({
+        tipo: 'FORMULARIO',
+        severidad: 'BAJO',
+        codigo: 'FORM-001',
+        mensaje: parsed.error.issues[0]?.message ?? 'Datos inválidos en la cuenta.',
+        campo: parsed.error.issues[0]?.path.join('.'),
+      })
+    }
+    if (!(await updateCuenta(ejercicioId, cuentaId, parsed.data))) {
+      return actionError(CUENTA_NO_ENCONTRADA)
+    }
     await resetEstadosConfirmado(ejercicioId)
     revalidateClasificacion(sociedadId, ejercicioId)
     return actionOk(undefined)
@@ -63,8 +93,8 @@ export async function eliminarCuentaAction(
   sociedadId: string,
 ): Promise<ActionResult<void>> {
   try {
-    await assertCuentaBelongsToCurrentEstudio(cuentaId)
-    await deleteCuenta(cuentaId)
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    if (!(await deleteCuenta(ejercicioId, cuentaId))) return actionError(CUENTA_NO_ENCONTRADA)
     await resetEstadosConfirmado(ejercicioId)
     revalidateClasificacion(sociedadId, ejercicioId)
     return actionOk(undefined)
@@ -84,8 +114,8 @@ export async function asignarRubrosBulkAction(
   try {
     if (!cuentaIds.length) return actionOk(undefined)
     await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
-    await Promise.all(cuentaIds.map((id) => assertCuentaBelongsToCurrentEstudio(id)))
-    await asignarRubrosBulk(cuentaIds, rubroBaseId)
+    // Una sola escritura con el ejercicio en la condición: las cuentas ajenas no se tocan.
+    await asignarRubrosBulk(ejercicioId, cuentaIds, rubroBaseId)
     await resetEstadosConfirmado(ejercicioId)
     revalidateClasificacion(sociedadId, ejercicioId)
     return actionOk(undefined)

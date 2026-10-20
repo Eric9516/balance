@@ -24,18 +24,6 @@ export async function assertEjercicioBelongsToCurrentEstudio(ejercicioId: string
   }
 }
 
-export async function assertCuentaBelongsToCurrentEstudio(cuentaId: string): Promise<void> {
-  if (!esUuid(cuentaId)) throw unauthorized('No tenés permiso para modificar esta cuenta.')
-  const estudioId = await getCurrentEstudioId()
-  const cuenta = await db.cuentaContable.findFirst({
-    where: { id: cuentaId, ejercicio: { estudioId } },
-    select: { id: true },
-  })
-  if (!cuenta) {
-    throw unauthorized('No tenés permiso para modificar esta cuenta.')
-  }
-}
-
 export async function assertNotaBelongsToCurrentEstudio(notaId: string): Promise<void> {
   if (!esUuid(notaId)) throw unauthorized('No tenés permiso para modificar esta nota.')
   const estudioId = await getCurrentEstudioId()
