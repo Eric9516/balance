@@ -15,6 +15,7 @@ import {
 } from '@/modules/costo-ventas/domain/types'
 import { esSeccionHuerfana } from '@/modules/gastos/lib/seccionHuerfana'
 import type { GastosSecciones } from '@/modules/gastos/repository/gastos-dinamico.repository'
+import { filasAnexoGastos } from '@/modules/gastos/domain/filasAnexo'
 import { TEXTOS_DOCUMENTO as T } from '../domain/textos'
 import type { AnexoCostoVentas, ColumnasDocumento } from '../domain/types'
 import { EncabezadoColumnas, Importe, ThEjercicio, TituloSeccion } from './piezas'
@@ -178,17 +179,18 @@ export function columnasGastos(anexo: GastosSecciones, columnas: ColumnasDocumen
 
 export function AnexoGastosDoc({ titulo, subtitulo, anexo, columnas }: Props<GastosSecciones>) {
   const cols = columnasGastos(anexo, columnas)
-  const cuentas = Array.from(
-    new Set(cols.flatMap((s) => s.filas.map((f) => f.cuentaNombre))),
-  ).sort()
-  // La columna anterior por fila solo existe cuando viene del ejercicio vinculado.
-  const anteriorPorFila = columnas.mostrarAnterior && !columnas.anteriorManual
+  // Mismas filas que la pantalla (regla única). Como el modelo de la RT 54, el ejercicio anterior va
+  // en una columna fila por fila, también cuando se cargó a mano.
+  const filas = filasAnexoGastos(
+    cols,
+    columnas.anteriorManual ? (anexo.anteriorManualPorFila ?? []) : null,
+  ).filter((f) => columnas.mostrarAnterior || !f.soloAnterior)
+  const anteriorPorFila = columnas.mostrarAnterior
   const totalActual = sumarPor(cols, (s) => s.total)
-  const totalAnterior = sumarPor(cols, (s) => s.totalAnterior)
-  const importeFila = (s: (typeof cols)[number], nombre: string, ant = false) => {
-    const fila = s.filas.find((f) => f.cuentaNombre === nombre)
-    return fila ? (ant ? fila.importeAnterior : fila.importe) : 0
-  }
+  const totalAnteriorPorSeccion = sumarPor(cols, (s) => s.totalAnterior)
+  const totalColumnaAnterior = columnas.anteriorManual
+    ? sumarPor(filas, (f) => f.totalAnterior)
+    : totalAnteriorPorSeccion
   const columnasImporte = cols.length + 1 + (anteriorPorFila ? 1 : 0)
 
   return (
@@ -209,19 +211,20 @@ export function AnexoGastosDoc({ titulo, subtitulo, anexo, columnas }: Props<Gas
           </tr>
         </thead>
         <tbody>
-          {cuentas.map((nombre) => (
-            <tr key={nombre}>
-              <td>{nombre}</td>
+          {filas.map((fila) => (
+            <tr key={fila.clave}>
+              <td>
+                {fila.soloAnterior && <div className="fecha">{T.anexos.soloAnterior}</div>}
+                {fila.nombre}
+              </td>
               {cols.map((s) => (
-                <Importe key={s.key} valor={importeFila(s, nombre)} />
+                <Importe key={s.key} valor={fila.importes[s.key] ?? 0} />
               ))}
               <Importe
-                valor={sumarPor(cols, (s) => importeFila(s, nombre))}
+                valor={fila.soloAnterior ? null : fila.totalActual}
                 className="font-semibold"
               />
-              {anteriorPorFila && (
-                <Importe valor={sumarPor(cols, (s) => importeFila(s, nombre, true))} />
-              )}
+              {anteriorPorFila && <Importe valor={fila.totalAnterior} />}
             </tr>
           ))}
         </tbody>
@@ -232,7 +235,7 @@ export function AnexoGastosDoc({ titulo, subtitulo, anexo, columnas }: Props<Gas
               <Importe key={s.key} valor={esSeccionHuerfana(s.key) ? null : s.total} />
             ))}
             <Importe valor={totalActual} />
-            {anteriorPorFila && <Importe valor={totalAnterior} />}
+            {anteriorPorFila && <Importe valor={totalColumnaAnterior} />}
           </tr>
           {columnas.mostrarAnterior && (
             <tr className="fila-total">
@@ -240,7 +243,7 @@ export function AnexoGastosDoc({ titulo, subtitulo, anexo, columnas }: Props<Gas
               {cols.map((s) => (
                 <Importe key={s.key} valor={s.totalAnterior} />
               ))}
-              <Importe valor={totalAnterior} />
+              <Importe valor={totalAnteriorPorSeccion} />
               {anteriorPorFila && <td />}
             </tr>
           )}

@@ -15,7 +15,10 @@ export async function cargarGastos(ejercicio: EjercicioContableDTO): Promise<Gas
   const [gastos, comparativos] = await Promise.all([
     findGastosDinamicos(ejercicio.id, idAnteriorDerivable(ejercicio)),
     editarAnteriorManual(modo)
-      ? findComparativoByEjercicio(ejercicio.id, 'GASTOS')
+      ? // Totales por sección ('GASTOS') y filas ('GASTOS_FILA') en una sola consulta.
+        findComparativoByEjercicio(ejercicio.id).then((cs) =>
+          cs.filter((c) => c.modulo === 'GASTOS' || c.modulo === 'GASTOS_FILA'),
+        )
       : Promise.resolve([] as ComparativoManualDTO[]),
   ])
   return resolverGastos(gastos, modo, comparativos)

@@ -86,9 +86,21 @@ export function resolverGastos(
   modo: ModoAnteriorEfectivo,
   comparativos: ComparativoManualDTO[],
 ): GastosSecciones {
-  return fuenteComparativo(modo) === 'MANUAL'
-    ? applyComparativosToGastos(raw, seleccionarManual(modo, comparativos))
-    : raw
+  if (fuenteComparativo(modo) !== 'MANUAL') return raw
+  const manual = seleccionarManual(modo, comparativos)
+  return {
+    // Los totales por sección ('GASTOS') van al Estado de Resultados.
+    ...applyComparativosToGastos(raw, manual),
+    // La columna "Total ejercicio anterior" del anexo, fila por fila ('GASTOS_FILA').
+    anteriorManualPorFila: manual
+      .filter((c) => c.modulo === 'GASTOS_FILA')
+      .map((c) => ({
+        clave: c.clave,
+        nombre: c.label,
+        valor: c.valor,
+        soloAnterior: c.esHuerfano,
+      })),
+  }
 }
 
 // ─── Anexo II: costo de ventas (comparativo) ─────────────────────────────────

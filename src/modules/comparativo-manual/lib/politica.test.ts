@@ -209,6 +209,42 @@ describe('resolverGastos / resolverCostoVentasAnterior', () => {
     expect(resolverGastos(gastos, 'MANUAL', residuos).secciones[0]?.totalAnterior).toBe(777)
     expect(resolverGastos(gastos, 'SIN_ANTERIOR', residuos).secciones[0]?.totalAnterior).toBe(90)
   })
+  it('gastos: el anterior fila por fila solo en MANUAL, y no se mezcla con los totales por sección', () => {
+    const conFilas: ComparativoManualDTO[] = [
+      ...residuos,
+      {
+        id: 'f1',
+        ejercicioId: 'e',
+        modulo: 'GASTOS_FILA',
+        clave: 'fila:SUELDOS',
+        label: 'SUELDOS',
+        valor: 600.555,
+        esHuerfano: false,
+        orden: 0,
+      },
+      {
+        id: 'f2',
+        ejercicioId: 'e',
+        modulo: 'GASTOS_FILA',
+        clave: 'huerfano:1',
+        label: 'PUBLICIDAD',
+        valor: 400,
+        esHuerfano: true,
+        orden: 1,
+      },
+    ]
+    const manual = resolverGastos(gastos, 'MANUAL', conFilas)
+    expect(manual.anteriorManualPorFila).toEqual([
+      { clave: 'fila:SUELDOS', nombre: 'SUELDOS', valor: 600.555, soloAnterior: false },
+      { clave: 'huerfano:1', nombre: 'PUBLICIDAD', valor: 400, soloAnterior: true },
+    ])
+    // La fila solo del anterior no se convierte en una sección, y el total por sección no cambia.
+    expect(manual.secciones.map((s) => s.key)).toEqual(['legacy:GASTOS_ADM'])
+    expect(manual.secciones[0]?.totalAnterior).toBe(777)
+    expect(resolverGastos(gastos, 'VINCULADO', conFilas).anteriorManualPorFila).toBeUndefined()
+    expect(resolverGastos(gastos, 'SIN_ANTERIOR', conFilas).anteriorManualPorFila).toBeUndefined()
+  })
+
   it('costo de ventas anterior según fuente', () => {
     const derivado = {
       id: 'd',

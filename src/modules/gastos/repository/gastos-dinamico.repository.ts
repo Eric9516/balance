@@ -1,3 +1,4 @@
+import type { AnteriorManualFila } from '../domain/filasAnexo'
 import { cache } from 'react'
 import { db } from '@/lib/db'
 import { SECCION_EERR_LABELS, SECCIONES_EERR_GASTO } from '@/modules/rubros-base/domain/secciones'
@@ -26,6 +27,11 @@ export type GastoSeccion = {
 
 export type GastosSecciones = {
   secciones: GastoSeccion[]
+  /**
+   * Ejercicio anterior fila por fila, cargado a mano. Solo en modo MANUAL (ver resolverGastos);
+   * ausente cuando el anterior se deriva del ejercicio vinculado.
+   */
+  anteriorManualPorFila?: AnteriorManualFila[]
   todasSecciones: {
     key: string
     nombre: string

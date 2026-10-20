@@ -11,6 +11,7 @@ import {
 } from '../actions/gastos-config.actions'
 import type { GastosSecciones } from '../repository/gastos-dinamico.repository'
 import { esSeccionHuerfana } from '../lib/seccionHuerfana'
+import { filasAnexoGastos } from '../domain/filasAnexo'
 import {
   ToggleEditarAnterior,
   useComparativoLote,
@@ -56,16 +57,31 @@ export function GastosView({
   // el balance anterior, para que el dato cargado quede siempre reflejado.
   const huerfanasVisibles = puedeEditarAnterior ? seccionesHuerfanas : []
 
-  // Columna "Ejercicio Anterior" — borrador independiente, propio Guardar/Cancelar.
-  const entradasAnterior: ComparativoEntry[] = [...seccionesVisibles, ...huerfanasVisibles].map(
-    (s) => ({
+  // Filas del anexo (regla única, también la usa el documento). En carga manual traen el
+  // importe anterior de cada fila y las filas que solo existieron en el anterior.
+  const filas = filasAnexoGastos(seccionesVisibles, data.anteriorManualPorFila)
+
+  // Columna "Ejercicio Anterior" — borrador independiente, propio Guardar/Cancelar. Mezcla los
+  // totales por sección ('GASTOS', van al EERR) y, en carga manual, los importes por fila
+  // ('GASTOS_FILA', columna "Total ejercicio anterior" del anexo) bajo un solo Guardar.
+  const entradasAnterior: ComparativoEntry[] = [
+    ...[...seccionesVisibles, ...huerfanasVisibles].map((s) => ({
       modulo: 'GASTOS' as const,
       clave: s.key,
       label: s.grupoNombre,
       valor: s.totalAnterior,
       esHuerfano: esSeccionHuerfana(s.key),
-    }),
-  )
+    })),
+    ...(puedeEditarAnterior
+      ? filas.map((f) => ({
+          modulo: 'GASTOS_FILA' as const,
+          clave: f.clave,
+          label: f.nombre,
+          valor: f.totalAnterior,
+          esHuerfano: f.soloAnterior,
+        }))
+      : []),
+  ]
   const comparativo = useComparativoLote(entradasAnterior, ejercicioId, sociedadId)
 
   function handleToggle(key: string, value: boolean) {
@@ -152,6 +168,7 @@ export function GastosView({
           <TablaGastos
             secciones={seccionesVisibles}
             huerfanas={huerfanasVisibles}
+            filas={filas}
             conComparativo={conComparativo}
             editarAnterior={puedeEditarAnterior}
             comparativo={comparativo}

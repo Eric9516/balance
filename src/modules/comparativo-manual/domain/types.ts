@@ -1,4 +1,9 @@
-export type ModuloComparativo = 'SSP' | 'EERR' | 'GASTOS' | 'BDU' | 'COSTO_VENTAS'
+/**
+ * Módulos del ejercicio anterior cargado a mano. 'GASTOS' guarda el total anterior por sección del
+ * Anexo III (va al Estado de Resultados); 'GASTOS_FILA', el importe anterior de cada fila de gasto
+ * (columna "Total ejercicio anterior" del anexo).
+ */
+export type ModuloComparativo = 'SSP' | 'EERR' | 'GASTOS' | 'GASTOS_FILA' | 'BDU' | 'COSTO_VENTAS'
 
 export type ComparativoManualDTO = {
   id: string
