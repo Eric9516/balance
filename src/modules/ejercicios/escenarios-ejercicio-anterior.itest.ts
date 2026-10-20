@@ -162,11 +162,15 @@ const CUENTAS_2024: [string, string, number][] = [
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
 beforeAll(async () => {
+  // El más antiguo, para que sea el estudio actual (el primero activo) mientras corre este archivo:
+  // crearEjercicio exige que la sociedad y el auditor sean del estudio actual. Otros archivos de
+  // pruebas pueden dejar estudios creados antes.
   const estudio = await db.estudio.create({
     data: {
       nombre: 'Estudio Test',
       cuit: `30${Date.now().toString().slice(-8)}1`,
       razonSocial: 'Estudio Test',
+      createdAt: new Date('2000-01-01T00:00:00Z'),
     },
   })
   const auditor = await db.auditor.create({
@@ -197,9 +201,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  // Por sociedad y no por estudioId: crearEjercicio asigna el "estudio actual" (el primero
-  // activo de la base), que puede ser el de otro archivo de pruebas. Se corrige de raíz en la
-  // Fase 2: la clave foránea del ejercicio a su sociedad va a incluir el estudio.
+  // Por sociedad: así se borran también los ejercicios que hubieran quedado con otro estudio.
   await db.ejercicioContable.deleteMany({ where: { sociedad: { estudioId: ctx.estudioId } } })
   await db.sociedad.deleteMany({ where: { estudioId: ctx.estudioId } })
   await db.estudio.delete({ where: { id: ctx.estudioId } })
