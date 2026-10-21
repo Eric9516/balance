@@ -54,6 +54,7 @@ import {
   upsertComparativoLote,
 } from '@/modules/comparativo-manual/repository/comparativo.repository'
 import { cargarEstadosConPN } from '@/modules/estados/services/estados.service'
+import { claveFilaAnterior } from '@/modules/gastos/domain/filasAnexo'
 import { findCuentasByEjercicio } from '@/modules/importaciones/repository/cuentas.repository'
 import {
   crearItemFlujoAction,
@@ -530,10 +531,12 @@ describe('Escenario B — saldos del ejercicio anterior cargados a mano', () => 
           esHuerfano: false,
           orden: 0,
         },
+        // Los gastos del anterior se cargan fila por fila en el Anexo III: la cuenta "Gastos"
+        // está en Gastos de administración, así que el EERR anterior recibe 180.000 ahí.
         {
-          modulo: 'GASTOS',
-          clave: 'legacy:GASTOS_ADM',
-          label: 'Gastos adm.',
+          modulo: 'GASTOS_FILA',
+          clave: claveFilaAnterior('Gastos'),
+          label: 'Gastos',
           valor: 180_000,
           esHuerfano: false,
           orden: 0,

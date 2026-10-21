@@ -6,7 +6,6 @@ import { ETIQUETAS_EERR, etiquetaResultado } from '../domain/lineasEERR'
 import { esRubroHuerfano } from '../lib/rubroHuerfano'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
 import {
-  AgregarFilaAnterior,
   EliminarFilaAnterior,
   useComparativoLote,
 } from '@/modules/comparativo-manual/components/CeldaAnteriorEditable'
@@ -246,6 +245,8 @@ export function EERRTab({
               valueAnt={eerr.utilidadBrutaAnt}
               conComparativo={conComparativo}
             />
+            {/* Los gastos del ejercicio anterior no se cargan acá: salen del Anexo III, donde se
+                cargan fila por fila y se suman solos por columna (una sola fuente). */}
             {eerr.seccionesGasto.map((s) => (
               <EERRLine
                 key={s.key}
@@ -254,35 +255,14 @@ export function EERRTab({
                 valueAnt={s.totalAnt}
                 deduccion
                 conComparativo={conComparativo}
-                editarAnterior={editarAnterior}
-                modulo="GASTOS"
-                claveAnterior={s.key}
-                comparativo={comparativo}
-                ejercicioId={ejercicioId}
-                sociedadId={sociedadId}
                 esHuerfano={esRubroHuerfano(s.key)}
               />
             ))}
-            {editarAnterior && conComparativo && (
+            {editarAnterior && conComparativo && eerr.seccionesGasto.length > 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-2">
-                  <AgregarFilaAnterior
-                    ejercicioId={ejercicioId}
-                    sociedadId={sociedadId}
-                    modulo="GASTOS"
-                    ordenBase={eerr.seccionesGasto.length}
-                    texto="Agregar línea de gasto del período anterior"
-                    onAdded={(dto) =>
-                      comparativo.agregar({
-                        modulo: dto.modulo,
-                        clave: dto.clave,
-                        label: dto.label,
-                        valor: dto.valor,
-                        esHuerfano: true,
-                        orden: dto.orden,
-                      })
-                    }
-                  />
+                <td colSpan={3} className="px-4 py-2 text-xs text-slate-400">
+                  Los gastos del ejercicio anterior se cargan fila por fila en el Anexo III — Gastos
+                  y se suman solos en estas líneas.
                 </td>
               </tr>
             )}

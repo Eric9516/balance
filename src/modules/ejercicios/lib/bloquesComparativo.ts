@@ -55,7 +55,6 @@ export function armarBloquesComparativo(params: {
     (r) => !esRubroHuerfano(r.id) && r.seccionSSP !== 'PATRIMONIO_NETO',
   )
   const eerrClaves = claves('EERR')
-  const gastosClaves = claves('GASTOS')
   const secciones = estadosData.eerr.seccionesGasto.filter((s) => !esRubroHuerfano(s.key))
   const cvClaves = claves('COSTO_VENTAS')
   const cuantitativas = notas.filter((n) => n.tipo === 'CUANTITATIVA')
@@ -82,8 +81,11 @@ export function armarBloquesComparativo(params: {
     {
       clave: 'GASTOS',
       label: 'Gastos (Anexo III)',
-      descripcion: 'Un total por cada sección de gastos del ejercicio anterior.',
-      cargados: secciones.filter((s) => gastosClaves.has(s.key)).length,
+      descripcion:
+        'Importes del ejercicio anterior fila por fila en el Anexo III; el total de cada sección se calcula solo.',
+      // En carga manual el total por sección se calcula desde las filas del anexo: cuenta como
+      // cargada la sección que tiene importe del ejercicio anterior.
+      cargados: secciones.filter((s) => s.totalAnt !== 0).length,
       total: secciones.length,
       aplica: secciones.length > 0,
       href: `${base}?paso=anexos&anexo=gastos`,

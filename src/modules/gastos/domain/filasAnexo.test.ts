@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { GastoSeccion } from '../repository/gastos-dinamico.repository'
 import {
-  advertenciaCuadreAnterior,
+  advertenciaFilasSinSeccion,
+  anteriorPorSeccionDesdeFilas,
   claveFilaAnterior,
-  cuadreAnteriorGastos,
+  claveFilaAnteriorEnSeccion,
   filasAnexoGastos,
+  seccionDeFilaSoloAnterior,
+  type AnteriorManualFila,
 } from './filasAnexo'
 
 const seccion = (
@@ -27,80 +30,117 @@ const seccion = (
   totalAnterior: 0,
 })
 
+// "SUELDOS" está en dos secciones; las demás filas, en una sola.
 const secciones = [
-  seccion('ADM', [
+  seccion('legacy:GASTOS_ADM', [
     ['SUELDOS', 1000.1, 800],
     ['ALQUILERES', 300, 250.5],
   ]),
-  seccion('COM', [
+  seccion('grupo:operativos', [
     ['SUELDOS', 500, 400],
     ['FLETES', 120.25, 0],
   ]),
 ]
+
+const manual = (clave: string, nombre: string, valor: number, soloAnterior = false) =>
+  ({ clave, nombre, valor, soloAnterior }) satisfies AnteriorManualFila
 
 describe('filasAnexoGastos', () => {
   it('una fila por cuenta, ordenadas por nombre, con su importe en cada sección', () => {
     const filas = filasAnexoGastos(secciones)
     expect(filas.map((f) => f.nombre)).toEqual(['ALQUILERES', 'FLETES', 'SUELDOS'])
     const sueldos = filas.find((f) => f.nombre === 'SUELDOS')!
-    expect(sueldos.importes).toEqual({ ADM: 1000.1, COM: 500 })
+    expect(sueldos.importes).toEqual({ 'legacy:GASTOS_ADM': 1000.1, 'grupo:operativos': 500 })
     expect(sueldos.totalActual).toBe(1500.1)
-    expect(sueldos.clave).toBe(claveFilaAnterior('SUELDOS'))
+    expect(sueldos.secciones).toEqual(['legacy:GASTOS_ADM', 'grupo:operativos'])
   })
 
-  it('anterior vinculado: el total anterior sale de las cuentas del ejercicio anterior', () => {
+  it('anterior vinculado: sale de las cuentas del ejercicio anterior, sección por sección', () => {
     const filas = filasAnexoGastos(secciones)
-    expect(Object.fromEntries(filas.map((f) => [f.nombre, f.totalAnterior]))).toEqual({
-      ALQUILERES: 250.5,
-      FLETES: 0,
-      SUELDOS: 1200,
+    expect(filas.find((f) => f.nombre === 'SUELDOS')).toMatchObject({
+      anteriorPorSeccion: { 'legacy:GASTOS_ADM': 800, 'grupo:operativos': 400 },
+      totalAnterior: 1200,
     })
   })
 
-  it('carga manual: usa lo cargado fila por fila (cero si falta) y agrega las filas solo del anterior', () => {
+  it('carga manual: una fila en una sola sección suma en esa sección', () => {
     const filas = filasAnexoGastos(secciones, [
-      {
-        clave: claveFilaAnterior('SUELDOS'),
-        nombre: 'SUELDOS',
-        valor: 1111.111,
-        soloAnterior: false,
-      },
-      { clave: 'huerfano:1', nombre: 'PUBLICIDAD', valor: 75, soloAnterior: true },
+      manual(claveFilaAnterior('ALQUILERES'), 'ALQUILERES', 240.555),
     ])
-    expect(filas.map((f) => [f.nombre, f.totalAnterior, f.soloAnterior])).toEqual([
-      ['ALQUILERES', 0, false],
-      ['FLETES', 0, false],
-      ['SUELDOS', 1111.111, false],
-      ['PUBLICIDAD', 75, true],
-    ])
-    const publicidad = filas.at(-1)!
-    expect(publicidad).toMatchObject({ clave: 'huerfano:1', importes: {}, totalActual: 0 })
+    expect(filas.find((f) => f.nombre === 'ALQUILERES')).toMatchObject({
+      anteriorPorSeccion: { 'legacy:GASTOS_ADM': 240.555 },
+      totalAnterior: 240.555,
+      sinSeccion: false,
+    })
+    // Lo que no se cargó queda en cero, sin derivar nada del anterior.
+    expect(filas.find((f) => f.nombre === 'FLETES')?.totalAnterior).toBe(0)
   })
 
-  it('carga manual sin nada cargado todavía: todas las filas en cero, sin derivar del anterior', () => {
-    expect(filasAnexoGastos(secciones, []).map((f) => f.totalAnterior)).toEqual([0, 0, 0])
+  it('carga manual: una fila en varias secciones tiene un importe por sección', () => {
+    const filas = filasAnexoGastos(secciones, [
+      manual(claveFilaAnteriorEnSeccion('SUELDOS', 'legacy:GASTOS_ADM'), 'SUELDOS', 700),
+      manual(claveFilaAnteriorEnSeccion('SUELDOS', 'grupo:operativos'), 'SUELDOS', 300.3),
+    ])
+    expect(filas.find((f) => f.nombre === 'SUELDOS')).toMatchObject({
+      anteriorPorSeccion: { 'legacy:GASTOS_ADM': 700, 'grupo:operativos': 300.3 },
+      totalAnterior: 1000.3,
+      sinSeccion: false,
+    })
+  })
+
+  it('carga manual: un gasto solo del año anterior suma en la sección que eligió el contador', () => {
+    const filas = filasAnexoGastos(secciones, [
+      manual('sec:grupo:operativos:1700000000000', 'PUBLICIDAD', 5000, true),
+    ])
+    expect(filas.at(-1)).toMatchObject({
+      nombre: 'PUBLICIDAD',
+      soloAnterior: true,
+      importes: {},
+      totalActual: 0,
+      secciones: ['grupo:operativos'],
+      anteriorPorSeccion: { 'grupo:operativos': 5000 },
+      totalAnterior: 5000,
+    })
+  })
+
+  it('un importe que no se puede asignar a ninguna sección queda marcado', () => {
+    const filas = filasAnexoGastos(secciones, [
+      manual(claveFilaAnterior('SUELDOS'), 'SUELDOS', 100), // fila en dos secciones
+      manual('huerfano:1', 'PUBLICIDAD', 50, true), // gasto viejo sin clasificación
+    ])
+    expect(filas.filter((f) => f.sinSeccion).map((f) => f.nombre)).toEqual([
+      'SUELDOS',
+      'PUBLICIDAD',
+    ])
+    expect(advertenciaFilasSinSeccion(filas)).toContain(
+      'SUELDOS, PUBLICIDAD no tiene clasificación',
+    )
+    expect(advertenciaFilasSinSeccion(filasAnexoGastos(secciones, []))).toBeNull()
   })
 })
 
-describe('cuadreAnteriorGastos', () => {
-  it('cuadra cuando la columna por filas suma lo mismo que los totales por sección', () => {
-    const c = cuadreAnteriorGastos([0.1, 0.2, 1000], [1000.3])
-    expect(c).toEqual({ porFilas: 1000.3, porSecciones: 1000.3, diferencia: 0, coincide: true })
-    expect(advertenciaCuadreAnterior(c)).toBeNull()
+describe('anteriorPorSeccionDesdeFilas', () => {
+  it('suma lo que cada fila aporta a cada sección, sin redondear', () => {
+    const filas = filasAnexoGastos(secciones, [
+      manual(claveFilaAnterior('ALQUILERES'), 'ALQUILERES', 0.1),
+      manual(claveFilaAnterior('FLETES'), 'FLETES', 2000),
+      manual(claveFilaAnteriorEnSeccion('SUELDOS', 'legacy:GASTOS_ADM'), 'SUELDOS', 0.2),
+      manual(claveFilaAnteriorEnSeccion('SUELDOS', 'grupo:operativos'), 'SUELDOS', 9000.005),
+      manual('sec:grupo:operativos:1', 'PUBLICIDAD', 5000, true),
+    ])
+    expect(Object.fromEntries(anteriorPorSeccionDesdeFilas(filas))).toEqual({
+      'legacy:GASTOS_ADM': 0.3,
+      'grupo:operativos': 16000.005,
+    })
   })
+})
 
-  it('si no cuadra, avisa con los importes completos y la diferencia', () => {
-    const c = cuadreAnteriorGastos([0], [13001849.01])
-    expect(c.coincide).toBe(false)
-    expect(advertenciaCuadreAnterior(c)).toBe(
-      'La columna "Total ejercicio anterior" suma 0,00 y los totales del ejercicio anterior por ' +
-        'sección suman 13.001.849,01: hay una diferencia de (13.001.849,01). Revisá los importes ' +
-        'del ejercicio anterior fila por fila o por sección.',
+describe('seccionDeFilaSoloAnterior', () => {
+  it('lee la sección aunque su clave tenga ":"', () => {
+    expect(seccionDeFilaSoloAnterior('sec:grupo:019e8524-6a4b:1700000000000')).toBe(
+      'grupo:019e8524-6a4b',
     )
-  })
-
-  it('no redondea la diferencia en el aviso', () => {
-    const c = cuadreAnteriorGastos([100.555], [100.5])
-    expect(advertenciaCuadreAnterior(c)).toContain('diferencia de 0,055')
+    expect(seccionDeFilaSoloAnterior('sec:legacy:GASTOS_ADM:1')).toBe('legacy:GASTOS_ADM')
+    expect(seccionDeFilaSoloAnterior('huerfano:1700000000000')).toBeNull()
   })
 })
