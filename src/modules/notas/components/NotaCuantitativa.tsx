@@ -158,9 +158,9 @@ export function NotaCuantitativa({
     ejecutar(
       () => crearDetalleAction(nota.id, ejercicioId, sociedadId, orden),
       (detalle) => {
-        const actualizada = { ...nota, detalles: [...nota.detalles, detalle] }
-        sincronizar(actualizada)
-        onChange(actualizada)
+        // Con una función: la fila entra también en el borrador en curso (se agrega en edición).
+        sincronizar((prev) => ({ ...prev, detalles: [...prev.detalles, detalle] }))
+        onChange({ ...nota, detalles: [...nota.detalles, detalle] })
       },
     )
   }
@@ -170,9 +170,8 @@ export function NotaCuantitativa({
     ejecutar(
       () => eliminarDetalleAction(id, ejercicioId, sociedadId),
       () => {
-        const actualizada = { ...nota, detalles: nota.detalles.filter((d) => d.id !== id) }
-        sincronizar(actualizada)
-        onChange(actualizada)
+        sincronizar((prev) => ({ ...prev, detalles: prev.detalles.filter((d) => d.id !== id) }))
+        onChange({ ...nota, detalles: nota.detalles.filter((d) => d.id !== id) })
       },
     )
   }

@@ -90,14 +90,17 @@ export function useComparativoLote(
     })
   }
 
+  // Altas y bajas ya persistidas: con una función entran también en el borrador en curso.
   function agregar(entry: ComparativoEntry) {
-    sincronizar(new Map(valor).set(entry.clave, entry))
+    sincronizar((prev) => new Map(prev).set(entry.clave, entry))
   }
 
   function quitar(clave: string) {
-    const next = new Map(valor)
-    next.delete(clave)
-    sincronizar(next)
+    sincronizar((prev) => {
+      const next = new Map(prev)
+      next.delete(clave)
+      return next
+    })
   }
 
   return {
