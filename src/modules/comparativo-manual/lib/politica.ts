@@ -6,7 +6,8 @@
  *  - VINCULADO    → se usan SOLO los valores derivados del ejercicio anterior. Las filas
  *                   de comparativo_manual (residuos de un modo previo) se IGNORAN.
  *  - MANUAL       → se aplican SOLO las filas manuales. Lo derivado no existe (invariante:
- *                   sin vínculo) y, si existiera, `seleccionarDerivado` lo descarta.
+ *                   sin vínculo) y, si existiera, `seleccionarDerivado` lo descarta. El
+ *                   anterior de un rubro del SSP con nota cargada sale de la nota.
  *  - SIN_ANTERIOR / PENDIENTE → no hay columna comparativa.
  *
  * Puro: no toca la base.
@@ -16,8 +17,10 @@ import type { ModoAnteriorEfectivo } from '@/modules/ejercicios/domain/ejercicio
 import type { EstadosData } from '@/modules/estados/domain/types'
 import type { GastosSecciones } from '@/modules/gastos/repository/gastos-dinamico.repository'
 import type { CostoVentasDTO } from '@/modules/costo-ventas/domain/types'
+import type { NotaDTO } from '@/modules/notas/domain/types'
 import type { ComparativoManualDTO } from '../domain/types'
 import {
+  aplicarAnteriorDesdeNotas,
   applyComparativosToEstados,
   applyComparativosToGastos,
   buildCostoVentasAntFromComparativos,
@@ -65,13 +68,18 @@ export function resolverEstados(
   raw: EstadosData,
   modo: ModoAnteriorEfectivo,
   comparativos: ComparativoManualDTO[],
+  /** Nota de composición de cada rubro (ver notaPorRubro). Solo se usa en MANUAL. */
+  notaDeRubro: Map<string, NotaDTO> = new Map(),
 ): EstadosData {
   switch (fuenteComparativo(modo)) {
     case 'DERIVADO':
       return { ...raw, hayEjercicioAnterior: true }
     case 'MANUAL':
       return {
-        ...applyComparativosToEstados(raw, seleccionarManual(modo, comparativos), 'RUBRO'),
+        ...aplicarAnteriorDesdeNotas(
+          applyComparativosToEstados(raw, seleccionarManual(modo, comparativos), 'RUBRO'),
+          notaDeRubro,
+        ),
         hayEjercicioAnterior: true,
       }
     case 'NINGUNO':

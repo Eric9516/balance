@@ -9,6 +9,8 @@ import type {
   GastoSeccion,
 } from '@/modules/gastos/repository/gastos-dinamico.repository'
 import type { CostoVentasDTO } from '@/modules/costo-ventas/domain/types'
+import { esRubroHuerfano } from '@/modules/estados/lib/rubroHuerfano'
+import { tieneAnteriorCargado, totalesNota, type NotaDTO } from '@/modules/notas/domain/types'
 import { parsSeccionDeClaveHuerfano, type ComparativoManualDTO } from '../domain/types'
 import { restar, sumar, sumarPor } from '@/lib/importe'
 
@@ -96,6 +98,36 @@ export function applyComparativosToEstados(
   }
 
   return { ...data, sspRubros, eerr }
+}
+
+// ─── El anterior de cada rubro del SSP desde su nota ─────────────────────────
+
+/**
+ * Carga manual: el anterior de un rubro del SSP es el total de la columna anterior de su nota de
+ * composición, que se carga cuenta por cuenta. Así se carga una sola vez y el estado coincide con
+ * la nota. Solo cuando la nota tiene esa columna cargada: si está vacía, el rubro conserva el
+ * importe escrito en el estado (los ejercicios cargados antes de esta regla no cambian).
+ */
+export function aplicarAnteriorDesdeNotas(
+  data: EstadosData,
+  notaDeRubro: Map<string, NotaDTO>,
+): EstadosData {
+  const sspRubros = data.sspRubros.map((r) => {
+    const nota = esRubroHuerfano(r.id) ? undefined : notaDeRubro.get(r.id)
+    if (!nota || nota.tipo !== 'CUANTITATIVA' || !tieneAnteriorCargado(nota)) return r
+    return {
+      ...r,
+      displayValueAnt: totalesNota(nota).anterior,
+      anteriorDesdeNota: {
+        notaNumero: nota.numero,
+        notaTitulo: nota.titulo,
+        filas: nota.detalles
+          .filter((d) => !d.esTotal)
+          .map((d) => ({ concepto: d.concepto, importeAnterior: d.importeAnterior })),
+      },
+    }
+  })
+  return { ...data, sspRubros }
 }
 
 // ─── Aplicar comparativos al GastosSecciones ─────────────────────────────────

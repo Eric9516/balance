@@ -15,6 +15,7 @@ import {
 import { findCostoVentas } from '@/modules/costo-ventas/repository/costo-ventas.repository'
 import { findGastosDinamicos } from '@/modules/gastos/repository/gastos-dinamico.repository'
 import { findNotasByEjercicio } from '@/modules/notas/repository/notas.repository'
+import { notaPorRubro } from '@/modules/notas/domain/types'
 import { findMovimientosPN } from '@/modules/patrimonio-neto/repository/patrimonio-neto.repository'
 import { derivarDesdeAnteriorPN } from '@/modules/patrimonio-neto/domain/saldosInicio'
 import { armarEvolucionPN } from '@/modules/patrimonio-neto/domain/evolucion'
@@ -90,7 +91,7 @@ export async function cargarEstadosConPN(
     notas,
     hayEjercicioAnterior: mostrarColumnaAnterior(modo),
   })
-  const estadosData = resolverEstados(raw, modo, comparativos)
+  const estadosData = resolverEstados(raw, modo, comparativos, notaPorRubro(cuentas, notas))
 
   const pnData = armarEvolucionPN({
     ejercicioId,

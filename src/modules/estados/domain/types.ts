@@ -22,6 +22,18 @@ export type RubroFila = {
   displayValueAnt: number // valor del ejercicio anterior (mismo signo)
   notaNumero: number | null // número de nota asociada para mostrar "(Nota X)"
   cuentas: FilaCuenta[]
+  /**
+   * Carga manual: el anterior es el total de la nota de composición del rubro (la columna
+   * anterior se carga ahí, cuenta por cuenta) y no se escribe en el estado.
+   */
+  anteriorDesdeNota?: AnteriorDesdeNota
+}
+
+export type AnteriorDesdeNota = {
+  notaNumero: number | null
+  notaTitulo: string
+  /** Filas de la nota con su importe anterior, para mostrarlas debajo del rubro. */
+  filas: { concepto: string; importeAnterior: number }[]
 }
 
 // ─── Datos completos para los estados ────────────────────────────────────────

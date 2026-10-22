@@ -50,9 +50,10 @@ export function armarBloquesComparativo(params: {
     new Set(comparativos.filter((c) => c.modulo === modulo).map((c) => c.clave))
 
   const sspClaves = claves('SSP')
-  // El patrimonio neto anterior no se carga por rubro en el SSP: sale del E.E.P.N.
+  // El patrimonio neto anterior no se carga por rubro en el SSP: sale del E.E.P.N. Tampoco los
+  // rubros cuya nota ya tiene cargado el anterior: el estado toma el total de la nota.
   const sspRubros = estadosData.sspRubros.filter(
-    (r) => !esRubroHuerfano(r.id) && r.seccionSSP !== 'PATRIMONIO_NETO',
+    (r) => !esRubroHuerfano(r.id) && r.seccionSSP !== 'PATRIMONIO_NETO' && !r.anteriorDesdeNota,
   )
   const eerrClaves = claves('EERR')
   const gastosClaves = claves('GASTOS')
@@ -64,7 +65,8 @@ export function armarBloquesComparativo(params: {
     {
       clave: 'SSP',
       label: 'Estado de Situación Patrimonial',
-      descripcion: 'Un importe por cada rubro del activo, pasivo y patrimonio neto.',
+      descripcion:
+        'Un importe por cada rubro del activo y el pasivo. Si cargás la nota del rubro cuenta por cuenta, el total se completa solo.',
       cargados: sspRubros.filter((r) => sspClaves.has(r.id)).length,
       total: sspRubros.length,
       aplica: sspRubros.length > 0,
@@ -118,7 +120,8 @@ export function armarBloquesComparativo(params: {
     {
       clave: 'NOTAS',
       label: 'Notas de composición',
-      descripcion: 'Importe del ejercicio anterior en cada nota cuantitativa.',
+      descripcion:
+        'Importe del ejercicio anterior en cada nota, cuenta por cuenta. El total de la nota completa el rubro del estado.',
       cargados: cuantitativas.filter((n) => n.detalles.some((d) => d.importeAnterior !== 0)).length,
       total: cuantitativas.length,
       aplica: tieneNotas && cuantitativas.length > 0,

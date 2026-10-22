@@ -1,7 +1,7 @@
 import type { CuentaContableDTO, RubroBaseSimple } from '@/modules/importaciones/domain/types'
 import type { CostoVentasDTO } from '@/modules/costo-ventas/domain/types'
 import type { GastosSecciones } from '@/modules/gastos/repository/gastos-dinamico.repository'
-import type { NotaDTO } from '@/modules/notas/domain/types'
+import { notaPorRubro, type NotaDTO } from '@/modules/notas/domain/types'
 import type { EstadosData, RubroFila, FilaCuenta, EERRData } from '../domain/types'
 import { calcularCostoTotal } from '@/modules/costo-ventas/domain/types'
 import { restar, sumar, sumarPor } from '@/lib/importe'
@@ -138,15 +138,10 @@ export function buildEstadosData(
   const sinClasificar = cuentas.filter((c) => !c.rubroBaseId).length
 
   // ── Mapear nota.numero por rubroId ─────────────────────────────────────────
-  // Para cada nota, encontrar el rubro al que pertenecen sus cuentas y asignar el número
+  // La nota de un rubro es la de sus cuentas (ver notaPorRubro).
   const notaNumeroByRubroId = new Map<string, number | null>()
-  for (const cuenta of cuentas) {
-    if (cuenta.rubroBaseId && cuenta.notaEjercicioId) {
-      const nota = notas.find((n) => n.id === cuenta.notaEjercicioId)
-      if (nota?.numero != null && !notaNumeroByRubroId.has(cuenta.rubroBaseId)) {
-        notaNumeroByRubroId.set(cuenta.rubroBaseId, nota.numero)
-      }
-    }
+  for (const [rubroId, nota] of notaPorRubro(cuentas, notas)) {
+    if (nota.numero != null) notaNumeroByRubroId.set(rubroId, nota.numero)
   }
 
   // ── Construir todas las filas ──────────────────────────────────────────────

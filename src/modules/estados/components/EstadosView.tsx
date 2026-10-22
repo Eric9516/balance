@@ -50,14 +50,17 @@ export function EstadosView({
   const [isPending, startTransition] = useTransition()
 
   // Columna "Ejercicio Anterior" — un solo borrador para SSP + EERR (comparten el toggle).
+  // Los rubros cuyo anterior sale de su nota no entran: no se escriben en el estado.
   const entradasAnterior: ComparativoEntry[] = [
-    ...data.sspRubros.map((r) => ({
-      modulo: 'SSP' as const,
-      clave: r.id,
-      label: r.nombre,
-      valor: r.displayValueAnt,
-      esHuerfano: esRubroHuerfano(r.id),
-    })),
+    ...data.sspRubros
+      .filter((r) => !r.anteriorDesdeNota)
+      .map((r) => ({
+        modulo: 'SSP' as const,
+        clave: r.id,
+        label: r.nombre,
+        valor: r.displayValueAnt,
+        esHuerfano: esRubroHuerfano(r.id),
+      })),
     { modulo: 'EERR' as const, clave: 'INGRESOS', label: 'Ingresos', valor: data.eerr.ingresosAnt },
     {
       modulo: 'EERR' as const,

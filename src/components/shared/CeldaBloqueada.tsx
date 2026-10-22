@@ -5,14 +5,15 @@ import { cn } from '@/lib/utils'
 import { CeldaNumero } from './CeldaNumero'
 
 /**
- * Celda de número BLOQUEADA: el valor viene del ejercicio anterior (modo VINCULADO)
- * y no se edita acá. Muestra candado + valor formateado y explica el origen al pasar
- * el mouse. Única forma de mostrar un importe arrastrado; no inventar otras.
+ * Celda de número BLOQUEADA: el valor viene de otro lado (el ejercicio anterior vinculado, o una
+ * nota en carga manual) y no se edita acá. Muestra candado + valor formateado y explica el origen
+ * al pasar el mouse. Única forma de mostrar un importe arrastrado; no inventar otras.
  * El padre la envuelve en su <td>.
  */
 export function CeldaBloqueada({
   value,
   origen,
+  titulo: tituloPropio,
   dense = false,
   negativo = false,
   decimales = 2,
@@ -21,14 +22,18 @@ export function CeldaBloqueada({
   value: number
   /** Nombre del ejercicio de origen (ej. "Ejercicio al 31/12/2024"). */
   origen?: string | null
+  /** Explicación propia del origen; reemplaza la del ejercicio vinculado. */
+  titulo?: string
   dense?: boolean
   negativo?: boolean
   decimales?: number
   className?: string
 }) {
-  const titulo = origen
-    ? `Tomado de ${origen}. Para cambiarlo, corregí ese ejercicio.`
-    : 'Tomado del ejercicio anterior vinculado. Para cambiarlo, corregí ese ejercicio.'
+  const titulo =
+    tituloPropio ??
+    (origen
+      ? `Tomado de ${origen}. Para cambiarlo, corregí ese ejercicio.`
+      : 'Tomado del ejercicio anterior vinculado. Para cambiarlo, corregí ese ejercicio.')
   return (
     <span
       className={cn('flex items-center justify-end gap-1', className)}

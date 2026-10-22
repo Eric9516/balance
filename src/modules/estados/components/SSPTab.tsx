@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight, AlertTriangle, CheckCircle2, Lock } from 'lu
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatFecha } from '@/lib/utils/dates'
-import type { RubroFila } from '../domain/types'
+import type { AnteriorDesdeNota, RubroFila } from '../domain/types'
 import {
   SECCIONES_PASIVO,
   SSP_STRUCTURE,
@@ -15,6 +15,8 @@ import {
 import { calcularCuadreSP } from '../lib/cuadre'
 import { esRubroHuerfano } from '../lib/rubroHuerfano'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
+import { CeldaBloqueada } from '@/components/shared/CeldaBloqueada'
+import { claveConcepto } from '@/modules/notas/domain/types'
 import { SECCION_SSP_LABELS } from '@/modules/rubros-base/domain/secciones'
 import {
   AgregarFilaAnterior,
@@ -139,6 +141,29 @@ function TotalRow({
   )
 }
 
+function tituloAnteriorDesdeNota(a: AnteriorDesdeNota): string {
+  const nota = a.notaNumero != null ? `la Nota N° ${a.notaNumero}` : `la nota "${a.notaTitulo}"`
+  return `Total de la columna "Ejercicio anterior" de ${nota}. Para cambiarlo, cargá el detalle cuenta por cuenta en la nota.`
+}
+
+/**
+ * Importe anterior de cada cuenta según la nota (mismo criterio que la generación de notas:
+ * concepto = nombre de la cuenta) y las filas de la nota que no son cuentas de este ejercicio.
+ */
+function anteriorPorCuenta(rubro: RubroFila) {
+  const filas = rubro.anteriorDesdeNota?.filas ?? []
+  const porConcepto = new Map<string, number>()
+  for (const f of filas) {
+    const clave = claveConcepto(f.concepto)
+    porConcepto.set(clave, sumar(porConcepto.get(clave), f.importeAnterior))
+  }
+  const nombres = new Set(rubro.cuentas.map((c) => claveConcepto(c.nombre)))
+  const soloAnterior = filas.filter(
+    (f) => f.importeAnterior !== 0 && !nombres.has(claveConcepto(f.concepto)),
+  )
+  return { porConcepto, soloAnterior }
+}
+
 function RubroExpandableRow({
   rubro,
   expanded,
@@ -165,6 +190,10 @@ function RubroExpandableRow({
     : formatCurrency(rubro.displayValue)
   const isNegative = rubro.displayValue < 0
   const huerfano = esRubroHuerfano(rubro.id)
+  const desdeNota = rubro.anteriorDesdeNota
+  const antCuentas = anteriorPorCuenta(rubro)
+  const formatear = (v: number) =>
+    deduccion ? `(${formatCurrency(Math.abs(v))})` : formatCurrency(v)
 
   // ── Fila huérfana (solo período anterior): sin expand, con borrar ───────────
   if (huerfano) {
@@ -236,7 +265,13 @@ function RubroExpandableRow({
         </td>
         {mostrarAnterior && (
           <td className="px-2 py-2 text-right">
-            {editarAnterior && ejercicioId && sociedadId && comparativo ? (
+            {desdeNota ? (
+              <CeldaBloqueada
+                value={rubro.displayValueAnt}
+                titulo={tituloAnteriorDesdeNota(desdeNota)}
+                className="px-2"
+              />
+            ) : editarAnterior && ejercicioId && sociedadId && comparativo ? (
               <div className="ml-auto w-36">
                 <CeldaNumero
                   value={comparativo.entradas.get(rubro.id)?.valor ?? rubro.displayValueAnt}
@@ -268,13 +303,36 @@ function RubroExpandableRow({
                   c.displayValue < 0 ? 'text-red-500' : 'text-slate-500',
                 )}
               >
-                {deduccion
-                  ? `(${formatCurrency(Math.abs(c.displayValue))})`
-                  : formatCurrency(c.displayValue)}
+                {formatear(c.displayValue)}
               </td>
-              {mostrarAnterior && <td />}
+              {mostrarAnterior && (
+                <td className="px-4 py-1.5 text-right font-mono text-[11px] text-slate-500 tabular-nums">
+                  {desdeNota && antCuentas.porConcepto.has(claveConcepto(c.nombre))
+                    ? formatear(antCuentas.porConcepto.get(claveConcepto(c.nombre)) ?? 0)
+                    : null}
+                </td>
+              )}
             </tr>
           ))}
+          {mostrarAnterior &&
+            antCuentas.soloAnterior.map((f, i) => (
+              <tr key={`ant-${i}`} className="border-b border-slate-50 bg-slate-50/40">
+                <td className="py-1.5 pr-4 pl-10">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block rounded border border-amber-200 bg-amber-50 px-1 text-[10px] text-amber-600 uppercase">
+                      solo anterior
+                    </span>
+                    <span className="text-xs text-slate-500">{f.concepto}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-1.5 text-right font-mono text-[11px] text-slate-300 tabular-nums">
+                  —
+                </td>
+                <td className="px-4 py-1.5 text-right font-mono text-[11px] text-slate-500 tabular-nums">
+                  {formatear(f.importeAnterior)}
+                </td>
+              </tr>
+            ))}
         </>
       )}
     </>

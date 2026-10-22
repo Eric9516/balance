@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { EstadosData, RubroFila } from '@/modules/estados/domain/types'
+import type { NotaDTO } from '@/modules/notas/domain/types'
 import type { ComparativoManualDTO } from '../domain/types'
 import {
   editarAnteriorManual,
@@ -184,6 +185,81 @@ describe('resolverEstados: escenario A no se contamina con residuos manuales', (
     const copia = JSON.parse(JSON.stringify(base))
     resolverEstados(base, 'MANUAL', residuos)
     expect(base).toEqual(copia)
+  })
+})
+
+describe('resolverEstados: en MANUAL el anterior del rubro sale de su nota', () => {
+  const detalle = (concepto: string, importeAnterior: number, esTotal = false) => ({
+    id: concepto,
+    notaEjercicioId: 'n',
+    orden: 1,
+    concepto,
+    importeActual: 0,
+    importeAnterior,
+    esTotal,
+  })
+  const nota = (
+    detalles: NotaDTO['detalles'],
+    tipo: NotaDTO['tipo'] = 'CUANTITATIVA',
+  ): NotaDTO => ({
+    id: 'n',
+    ejercicioId: 'e',
+    numero: 2,
+    titulo: 'CAJA Y BANCOS',
+    tipo,
+    orden: 1,
+    criterioMedicion: null,
+    textoApertura: null,
+    detalles,
+  })
+  const caja = (r: EstadosData) => r.sspRubros.find((x) => x.id === 'caja')
+
+  it('usa el total de la nota (sin la fila de total) y pisa lo escrito en el estado', () => {
+    const notas = new Map([
+      [
+        'caja',
+        nota([
+          detalle('Bco Santander', 600.25),
+          detalle('Bco Córdoba', 300.5),
+          detalle('Total a mano', 5000, true),
+        ]),
+      ],
+    ])
+    const r = resolverEstados(estadosBase(), 'MANUAL', residuos, notas)
+    expect(caja(r)?.displayValueAnt).toBe(900.75)
+    expect(caja(r)?.anteriorDesdeNota).toEqual({
+      notaNumero: 2,
+      notaTitulo: 'CAJA Y BANCOS',
+      filas: [
+        { concepto: 'Bco Santander', importeAnterior: 600.25 },
+        { concepto: 'Bco Córdoba', importeAnterior: 300.5 },
+      ],
+    })
+    // Los demás rubros no cambian.
+    expect(r.sspRubros.find((x) => x.id === 'deudas')?.displayValueAnt).toBe(30)
+  })
+
+  it('con la columna anterior de la nota vacía conserva el importe escrito en el estado', () => {
+    const notas = new Map([['caja', nota([detalle('Bco Santander', 0)])]])
+    const r = resolverEstados(estadosBase(), 'MANUAL', residuos, notas)
+    expect(caja(r)?.displayValueAnt).toBe(999)
+    expect(caja(r)?.anteriorDesdeNota).toBeUndefined()
+  })
+
+  it('una nota informativa no completa el rubro', () => {
+    const notas = new Map([['caja', nota([detalle('Texto', 10)], 'INFORMATIVA')]])
+    expect(caja(resolverEstados(estadosBase(), 'MANUAL', residuos, notas))?.displayValueAnt).toBe(
+      999,
+    )
+  })
+
+  it('fuera de MANUAL no usa las notas', () => {
+    const notas = new Map([['caja', nota([detalle('Bco Santander', 600)])]])
+    for (const modo of ['VINCULADO', 'SIN_ANTERIOR', 'PENDIENTE'] as const) {
+      const r = resolverEstados(estadosBase(), modo, residuos, notas)
+      expect(caja(r)?.displayValueAnt).toBe(80)
+      expect(caja(r)?.anteriorDesdeNota).toBeUndefined()
+    }
   })
 })
 
