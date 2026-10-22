@@ -221,6 +221,8 @@ Toda tabla/sección con números editables (anexos, estados, notas, comparativos
 
 - **VINCULADO**: saldos de inicio y columna "Ejercicio anterior" se derivan del anterior y se bloquean. Las filas de `comparativo_manual` se ignoran y las actions las rechazan (`NEG-012`). El servidor sanea lo bloqueado al guardar (E.E.P.N., Anexo I, Anexo II) aunque el cliente mande otra cosa.
 - **MANUAL**: la columna anterior se carga a mano y se **autoriza** (`comparativoAutorizadoEn/Por`). Cualquier escritura sobre esa columna la anula (`marcarComparativoModificado`).
+  - Cada importe del anterior se carga **una sola vez**, en su lugar más detallado. El anterior de un rubro del SSP cuya nota de composición tiene cargada la columna anterior es el **total de la nota** (`aplicarAnteriorDesdeNotas`, vía `resolverEstados`): se muestra con candado y no se escribe en el estado. Con la nota vacía, se usa el importe escrito en el estado.
+  - Las notas se regeneran SOLO vía `planificarRegeneracion` + `aplicarRegeneracion` (`@/modules/notas/domain/regeneracion`): nunca se borra una fila con importe anterior ni se pisa un texto editado sin que el usuario lo elija en el cartel de regenerar.
 - **SIN_ANTERIOR / pendiente**: sin columna comparativa.
 - La **compuerta** `@/modules/ejercicios/services/autorizacion.service` corre antes de confirmar estados, confirmar E.E.P.N. y pasar a Revisión/Cierre. Nunca agregar una confirmación que la saltee.
 - Los estados y el E.E.P.N. se cargan SOLO vía `@/modules/estados/services/estados.service.cargarEstadosConPN`.
