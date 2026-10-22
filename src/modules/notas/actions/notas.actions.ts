@@ -15,10 +15,22 @@ import {
   createDetalle,
   updateDetalle,
   deleteDetalle,
-  generarNotasDesdeRubros,
+  aplicarRegeneracion,
+  findNotasByEjercicio,
   type CambiosDetalle,
   type CambiosNota,
 } from '../repository/notas.repository'
+import {
+  CRITERIO_LABEL,
+  OPCIONES_POR_DEFECTO,
+  planificarRegeneracion,
+  resumirPlan,
+  TEXTO_HECHOS_DEFAULT,
+  TITULO_HECHOS,
+  type OpcionesRegeneracion,
+  type PlanRegeneracion,
+  type ResumenRegeneracion,
+} from '../domain/regeneracion'
 import {
   findCuentasByEjercicio,
   findRubrosBase,
@@ -188,17 +200,6 @@ export async function eliminarDetalleAction(
 
 // ─── Configuración Nota I ─────────────────────────────────────────────────────
 
-const CRITERIO_LABEL: Record<string, string> = {
-  COSTO_ADQUISICION: 'costo de adquisición',
-  ULTIMA_COMPRA: 'costo de la última compra',
-  COSTO_REPOSICION: 'costo de reposición',
-}
-
-const TEXTO_HECHOS_DEFAULT =
-  'No existen acontecimientos u operaciones ocurridos entre la fecha de cierre del ejercicio y la de emisión de los presentes estados contables que puedan modificar significativamente la situación patrimonial y financiera de la entidad a la fecha de cierre ni los resultados del presente ejercicio.'
-
-const TITULO_HECHOS = 'HECHOS POSTERIORES AL CIERRE DEL EJERCICIO'
-
 export async function guardarConfigNotaIAction(
   ejercicioId: string,
   sociedadId: string,
@@ -309,41 +310,91 @@ export async function guardarConfigNotaIAction(
   }
 }
 
-// ─── Auto-generación ──────────────────────────────────────────────────────────
+// ─── Generación y regeneración ────────────────────────────────────────────────
 
-export async function generarNotasAutomaticasAction(
-  ejercicioId: string,
-  sociedadId: string,
-): Promise<ActionResult<void>> {
-  try {
-    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
-    const [cuentas, rubros, ejercicio] = await Promise.all([
-      findCuentasByEjercicio(ejercicioId),
-      findRubrosBase(),
-      db.ejercicioContable.findUnique({
-        where: { id: ejercicioId },
-        select: {
-          criteriosBienesCambio: true,
-          hechosPosterioress: true,
-          hechosPosterioressTexto: true,
-        },
-      }),
-    ])
+const SIN_CUENTAS: AppError = {
+  tipo: 'NEGOCIO',
+  severidad: 'MEDIO',
+  codigo: 'NEG-020',
+  mensaje: 'No hay cuentas clasificadas. Importá y clasificá las cuentas primero.',
+}
 
-    if (cuentas.length === 0) {
-      return actionError({
-        tipo: 'NEGOCIO',
-        severidad: 'MEDIO',
-        codigo: 'NEG-020',
-        mensaje: 'No hay cuentas clasificadas. Importá y clasificá las cuentas primero.',
-      })
-    }
-
-    await generarNotasDesdeRubros(ejercicioId, rubros, cuentas, {
+/** Plan de regeneración del ejercicio (todas las lecturas en un solo viaje). */
+async function planDelEjercicio(ejercicioId: string): Promise<PlanRegeneracion | null> {
+  const [cuentas, rubros, ejercicio, notas] = await Promise.all([
+    findCuentasByEjercicio(ejercicioId),
+    findRubrosBase(),
+    db.ejercicioContable.findUnique({
+      where: { id: ejercicioId },
+      select: {
+        criteriosBienesCambio: true,
+        hechosPosterioress: true,
+        hechosPosterioressTexto: true,
+      },
+    }),
+    findNotasByEjercicio(ejercicioId),
+  ])
+  if (cuentas.length === 0) return null
+  return planificarRegeneracion({
+    notas,
+    rubros,
+    cuentas,
+    config: {
       criteriosBienesCambio: ejercicio?.criteriosBienesCambio ?? null,
       hechosPosterioress: ejercicio?.hechosPosterioress ?? null,
       hechosPosterioressTexto: ejercicio?.hechosPosterioressTexto ?? null,
+    },
+  })
+}
+
+/** Qué cambiaría al regenerar las notas, para que el usuario elija. No modifica nada. */
+export async function previsualizarRegeneracionAction(
+  ejercicioId: string,
+): Promise<ActionResult<ResumenRegeneracion>> {
+  try {
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    const plan = await planDelEjercicio(ejercicioId)
+    if (!plan) return actionError(SIN_CUENTAS)
+    return actionOk(resumirPlan(plan))
+  } catch (error) {
+    return actionError(
+      errorHandler(error, { modulo: 'NOTAS', operacion: 'previsualizar_regeneracion' }),
+    )
+  }
+}
+
+const OpcionesSchema = z.object({
+  notasNuevas: z.boolean().optional(),
+  filasNuevas: z.boolean().optional(),
+  importesActuales: z.boolean().optional(),
+  quitarFilasSinCuenta: z.boolean().optional(),
+  quitarFilasConAnterior: z.boolean().optional(),
+  restaurarTextos: z.boolean().optional(),
+})
+
+/**
+ * Genera las notas o las regenera con lo que elija el usuario. Sin opciones: lo que agrega o
+ * actualiza desde el balance, sí; lo que borra o pisa algo cargado a mano, no. El plan se vuelve a
+ * calcular acá: de la pantalla solo se toman las opciones.
+ */
+export async function generarNotasAutomaticasAction(
+  ejercicioId: string,
+  sociedadId: string,
+  opciones?: Partial<OpcionesRegeneracion>,
+): Promise<ActionResult<void>> {
+  try {
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    const parsed = OpcionesSchema.safeParse(opciones ?? {})
+    if (!parsed.success) return actionError(errorFormulario(parsed.error.issues))
+    const plan = await planDelEjercicio(ejercicioId)
+    if (!plan) return actionError(SIN_CUENTAS)
+
+    const { quitoAnterior } = await aplicarRegeneracion(ejercicioId, plan, {
+      ...OPCIONES_POR_DEFECTO,
+      ...parsed.data,
     })
+    // Quitar una fila con importe anterior cambia la columna comparativa autorizada.
+    if (quitoAnterior) await marcarComparativoModificado(ejercicioId)
     revalPath(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {

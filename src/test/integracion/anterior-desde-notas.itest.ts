@@ -29,8 +29,10 @@ import { findCuentasByEjercicio } from '@/modules/importaciones/repository/cuent
 import { guardarLoteComparativoAction } from '@/modules/comparativo-manual/actions/comparativo.actions'
 import {
   actualizarDetalleAction,
+  actualizarNotaAction,
   crearDetalleAction,
   generarNotasAutomaticasAction,
+  previsualizarRegeneracionAction,
 } from '@/modules/notas/actions/notas.actions'
 import { findNotasByEjercicio } from '@/modules/notas/repository/notas.repository'
 
@@ -183,5 +185,57 @@ describe('Anterior del Estado de Situación Patrimonial desde las notas', () => 
     const deudores = await rubroDelEstado('ACT-CTE-03')
     expect(deudores.displayValueAnt).toBe(42_500.5)
     expect(deudores.anteriorDesdeNota).toBeUndefined()
+  })
+})
+
+describe('Regenerar las notas sin perder lo cargado a mano', () => {
+  async function notaCaja() {
+    const cuentas = await findCuentasByEjercicio(ctx.ejercicioId)
+    const notaId = cuentas.find((c) => c.nombre === 'BCO GALICIA')!.notaEjercicioId!
+    return db.notaEjercicio.findUniqueOrThrow({
+      where: { id: notaId },
+      include: { detalles: { orderBy: { orden: 'asc' } } },
+    })
+  }
+  const args = () => [ctx.ejercicioId, ctx.sociedadId] as const
+
+  it('por defecto conserva la fila agregada a mano y el texto editado', async () => {
+    const antes = await notaCaja()
+    ok(await actualizarNotaAction(antes.id, ...args(), { textoApertura: 'Texto propio' }))
+
+    const resumen = ok(await previsualizarRegeneracionAction(ctx.ejercicioId))
+    expect(resumen.grupos.find((g) => g.clave === 'quitarFilasConAnterior')?.items).toEqual([
+      { nota: 'CAJA Y BANCOS', detalle: 'BCO SANTANDER', importe: 10_000 },
+    ])
+    expect(resumen.grupos.map((g) => g.clave)).toContain('restaurarTextos')
+
+    ok(await generarNotasAutomaticasAction(...args()))
+    const despues = await notaCaja()
+    expect(despues.textoApertura).toBe('Texto propio')
+    expect(despues.detalles.map((d) => [d.concepto, d.importeAnterior.toString()])).toEqual([
+      ['BCO NACION CC', '2000.25'],
+      ['BCO GALICIA', '98000.5'],
+      ['BCO SANTANDER', '10000'],
+    ])
+  })
+
+  it('si se elige, restaura el texto y quita la fila, y anula la autorización', async () => {
+    await db.ejercicioContable.update({
+      where: { id: ctx.ejercicioId },
+      data: { comparativoAutorizadoEn: new Date(), comparativoAutorizadoPor: 'Ana Pérez' },
+    })
+    ok(
+      await generarNotasAutomaticasAction(...args(), {
+        restaurarTextos: true,
+        quitarFilasConAnterior: true,
+      }),
+    )
+    const despues = await notaCaja()
+    expect(despues.textoApertura).toBe('El saldo del rubro a fecha de cierre está compuesto por:')
+    expect(despues.detalles.map((d) => d.concepto)).toEqual(['BCO NACION CC', 'BCO GALICIA'])
+    const ejercicio = await db.ejercicioContable.findUniqueOrThrow({
+      where: { id: ctx.ejercicioId },
+    })
+    expect(ejercicio.comparativoAutorizadoEn).toBeNull()
   })
 })
