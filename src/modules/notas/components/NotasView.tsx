@@ -7,6 +7,7 @@ import { WizardNotaI, type ConfigNotaILocal } from './WizardNotaI'
 import { NotaCuantitativa } from './NotaCuantitativa'
 import { NotaTexto } from './NotaTexto'
 import { EmptyState } from './EmptyState'
+import { RegenerarNotasModal } from './RegenerarNotasModal'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { toastError, toastSuccess } from '@/modules/errores/components/Toast'
@@ -46,6 +47,7 @@ export function NotasView({
   const [config, setConfig] = useState<ConfigNotaILocal>(initialConfig)
   const mounted = useMontado()
   const [pendienteRegenerar, setPendienteRegenerar] = useState(false)
+  const [regenerando, setRegenerando] = useState(false)
 
   function handleChange(updated: NotaDTO) {
     setNotas((prev) => prev.map((n) => (n.id === updated.id ? updated : n)))
@@ -55,6 +57,7 @@ export function NotasView({
     setNotas((prev) => prev.filter((n) => n.id !== id).map((n, i) => ({ ...n, numero: i + 2 })))
   }
 
+  // Primera generación: no hay nada cargado a mano que perder.
   function handleGenerar() {
     startGen(async () => {
       const result = await generarNotasAutomaticasAction(ejercicioId, sociedadId)
@@ -83,6 +86,19 @@ export function NotasView({
           onGuardado={(c) => {
             setConfig(c)
             setPendienteRegenerar(true)
+          }}
+        />
+      )}
+
+      {regenerando && (
+        <RegenerarNotasModal
+          ejercicioId={ejercicioId}
+          sociedadId={sociedadId}
+          onClose={() => setRegenerando(false)}
+          onAplicado={() => {
+            setRegenerando(false)
+            setPendienteRegenerar(false)
+            window.location.reload()
           }}
         />
       )}
@@ -137,9 +153,9 @@ export function NotasView({
               Regenerá las notas para que los nuevos criterios y configuraciones se reflejen
               correctamente.
             </p>
-            <Button onClick={handleGenerar} disabled={isPendingGen}>
-              <RefreshCw className={cn('mr-2 h-4 w-4', isPendingGen && 'animate-spin')} />
-              {isPendingGen ? 'Regenerando...' : 'Regenerar desde rubros'}
+            <Button onClick={() => setRegenerando(true)}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Regenerar desde rubros
             </Button>
           </div>
         </div>
@@ -156,8 +172,8 @@ export function NotasView({
                 : 'Los importes del ejercicio anterior se completan manualmente o desde el balance anterior.'}
             </span>
           </p>
-          <Button variant="secondary" size="sm" onClick={handleGenerar} disabled={isPendingGen}>
-            <RefreshCw className={cn('mr-1.5 h-3.5 w-3.5', isPendingGen && 'animate-spin')} />
+          <Button variant="secondary" size="sm" onClick={() => setRegenerando(true)}>
+            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
             Regenerar desde rubros
           </Button>
         </div>
