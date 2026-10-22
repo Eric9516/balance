@@ -31,7 +31,6 @@ async function guardarNota(
       .map((d) =>
         actualizarDetalleAction(d.id, ejercicioId, sociedadId, {
           concepto: d.concepto,
-          importeActual: d.importeActual,
           importeAnterior: d.importeAnterior,
         }),
       ),
@@ -149,11 +148,7 @@ export function NotaCuantitativa({
   }
 
   // ── Borrador: detalle — se persiste al Guardar
-  function saveDetalle(
-    id: string,
-    field: 'concepto' | 'importeActual' | 'importeAnterior',
-    value: string | number,
-  ) {
+  function saveDetalle(id: string, field: 'concepto' | 'importeAnterior', value: string | number) {
     actualizar((prev) => ({
       ...prev,
       detalles: prev.detalles.map((d) => (d.id === id ? { ...d, [field]: value } : d)),
@@ -296,12 +291,14 @@ export function NotaCuantitativa({
                   <span className="text-sm text-slate-700">{det.concepto}</span>
                 )}
               </td>
-              <td className="w-36 px-3 py-1.5">
-                <CeldaNumero
-                  value={det.importeActual}
-                  editando={editando}
-                  onSave={(v) => saveDetalle(det.id, 'importeActual', v)}
-                />
+              {/* Sale del saldo de la cuenta en el balance: no se edita en la nota. */}
+              <td
+                className="w-36 px-3 py-1.5"
+                title={
+                  editando ? 'Saldo de la cuenta en el balance: no se edita en la nota.' : undefined
+                }
+              >
+                <CeldaNumero value={det.importeActual} editando={false} onSave={() => {}} />
               </td>
               {mostrarAnterior && (
                 <td className="w-36 px-3 py-1.5">

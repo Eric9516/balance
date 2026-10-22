@@ -141,7 +141,8 @@ export async function createDetalle(data: {
   return db.detalleNota.create({ data })
 }
 
-export type CambiosDetalle = { concepto?: string; importeActual?: number; importeAnterior?: number }
+/** Lo que se edita de una fila: el importe actual sale del balance (ver aplicarRegeneracion). */
+export type CambiosDetalle = { concepto?: string; importeAnterior?: number }
 
 /**
  * Modifica un detalle solo si su nota es de este ejercicio y solo con las columnas que se
@@ -157,7 +158,6 @@ export async function updateDetalle(
     where: { id, nota: { ejercicioId } },
     data: {
       concepto: cambios.concepto,
-      importeActual: cambios.importeActual,
       importeAnterior: cambios.importeAnterior,
     },
   })

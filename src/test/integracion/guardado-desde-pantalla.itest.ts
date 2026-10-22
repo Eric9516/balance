@@ -514,7 +514,12 @@ describe('Notas', () => {
 
     const cambiosNota = { textoApertura: 'Nuevo', ejercicioId: ctx.otroEjercicioId, orden: 99 }
     ok(await actualizarNotaAction(propia.id, ...args, cambiosNota as CambiosNota))
-    const cambiosDetalle = { importeActual: 250.75, notaEjercicioId: otra.id, esTotal: true }
+    const cambiosDetalle = {
+      importeAnterior: 250.75,
+      importeActual: 999, // sale del balance: la pantalla no lo cambia
+      notaEjercicioId: otra.id,
+      esTotal: true,
+    }
     ok(
       await actualizarDetalleAction(
         propia.detalles[0]!.id,
@@ -530,7 +535,8 @@ describe('Notas', () => {
     expect(enBase).toMatchObject({ ejercicioId: ctx.ejercicioId, orden: 1, textoApertura: 'Nuevo' })
     expect(enBase.detalles).toHaveLength(1)
     expect(enBase.detalles[0]!.esTotal).toBe(false)
-    expect(enBase.detalles[0]!.importeActual.toString()).toBe('250.75')
+    expect(enBase.detalles[0]!.importeAnterior.toString()).toBe('250.75')
+    expect(enBase.detalles[0]!.importeActual.toString()).toBe('100')
   })
 
   it('no modifica ni borra notas o detalles de otro ejercicio', async () => {

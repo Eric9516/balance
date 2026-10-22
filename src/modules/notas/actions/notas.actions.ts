@@ -53,11 +53,11 @@ const CambiosNotaSchema = z.object({
   criterioMedicion: textoOpcional,
   textoApertura: textoOpcional,
 })
-const importeNota = z.number().finite().optional()
+// El importe del ejercicio actual no se edita: sale del saldo de cada cuenta en el balance (lo
+// pone la generación de notas). zod lo descarta si la pantalla lo manda.
 const CambiosDetalleSchema = z.object({
   concepto: z.string().optional(),
-  importeActual: importeNota,
-  importeAnterior: importeNota,
+  importeAnterior: z.number().finite().optional(),
 })
 const ConfigNotaISchema = z.object({
   adopcionRT54: z.nativeEnum(AdopcionRT54).nullable().optional(),
