@@ -21,7 +21,7 @@ import { cargarBienesDeUso } from '@/modules/bienes-de-uso/services/bienes-de-us
 import { cargarCostoVentas } from '@/modules/costo-ventas/services/costo-ventas.service'
 import { cargarGastos } from '@/modules/gastos/services/gastos.service'
 import { evaluarDocumentos } from '@/modules/documentos/lib/evaluar'
-import { findNotasByEjercicio } from '@/modules/notas/repository/notas.repository'
+import { cargarNotas } from '@/modules/notas/services/notas.service'
 import { findAjustesByEjercicio } from '@/modules/transicion-rt54/repository/ajustes.repository'
 import { previsualizarNotaTransicion } from '@/modules/transicion-rt54/services/nota-transicion.service'
 import { inclusionNotaTransicion } from '@/modules/transicion-rt54/domain/inclusion'
@@ -46,7 +46,7 @@ export async function cargarDocumentoBalance(
       ejercicio.auditorId ? findAuditorById(ejercicio.auditorId) : Promise.resolve(null),
       findCuentasByEjercicio(ejercicioId),
       evaluarDocumentos(ejercicioId),
-      findNotasByEjercicio(ejercicioId),
+      cargarNotas(ejercicio),
       esPrimeraAdopcion ? findAjustesByEjercicio(ejercicioId) : Promise.resolve([]),
       anteriorId ? findEjercicioById(anteriorId) : Promise.resolve(null),
     ])

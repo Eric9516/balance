@@ -26,6 +26,8 @@ interface Props {
   mostrarAnterior: boolean
   /** Solo en modo MANUAL: la columna anterior se carga a mano. */
   editarAnterior?: boolean
+  /** VINCULADO: ejercicio del que sale la columna anterior (bloqueada). */
+  origenAnterior?: string | null
   tieneCuentasClasificadas: boolean
   configNotaI: ConfigNotaILocal
 }
@@ -38,6 +40,7 @@ export function NotasView({
   fechaCierreAnterior,
   mostrarAnterior,
   editarAnterior = false,
+  origenAnterior = null,
   tieneCuentasClasificadas,
   configNotaI: initialConfig,
 }: Props) {
@@ -196,6 +199,8 @@ export function NotasView({
                 fechaCierre={fechaCierre}
                 fechaCierreAnterior={fechaCierreAnterior}
                 mostrarAnterior={mostrarAnterior}
+                editarAnterior={editarAnterior}
+                origenAnterior={origenAnterior}
                 ejercicioId={ejercicioId}
                 sociedadId={sociedadId}
                 onChange={(cambio) => handleChange(nota.id, cambio)}

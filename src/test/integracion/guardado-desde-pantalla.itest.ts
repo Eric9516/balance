@@ -515,7 +515,7 @@ describe('Notas', () => {
     const cambiosNota = { textoApertura: 'Nuevo', ejercicioId: ctx.otroEjercicioId, orden: 99 }
     ok(await actualizarNotaAction(propia.id, ...args, cambiosNota as CambiosNota))
     const cambiosDetalle = {
-      importeAnterior: 250.75,
+      concepto: 'Caja chica',
       importeActual: 999, // sale del balance: la pantalla no lo cambia
       notaEjercicioId: otra.id,
       esTotal: true,
@@ -535,7 +535,7 @@ describe('Notas', () => {
     expect(enBase).toMatchObject({ ejercicioId: ctx.ejercicioId, orden: 1, textoApertura: 'Nuevo' })
     expect(enBase.detalles).toHaveLength(1)
     expect(enBase.detalles[0]!.esTotal).toBe(false)
-    expect(enBase.detalles[0]!.importeAnterior.toString()).toBe('250.75')
+    expect(enBase.detalles[0]!.concepto).toBe('Caja chica')
     expect(enBase.detalles[0]!.importeActual.toString()).toBe('100')
   })
 

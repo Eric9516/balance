@@ -6,10 +6,11 @@ import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatFecha } from '@/lib/utils/dates'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
+import { CeldaBloqueada } from '@/components/shared/CeldaBloqueada'
 import { BotonEditar } from '@/components/shared/BotonEditar'
 import { useEdicionLote } from '@/components/shared/useEdicionLote'
 import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
-import type { ActionResult } from '@/modules/errores/types'
+import { actionOk, type ActionResult } from '@/modules/errores/types'
 import {
   actualizarNotaAction,
   eliminarNotaAction,
@@ -18,29 +19,35 @@ import {
   eliminarDetalleAction,
 } from '../actions/notas.actions'
 import { totalesNota, type NotaDTO } from '../domain/types'
+import { esFilaSoloAnterior } from '../domain/anteriorVinculado'
 
-// Persiste todos los detalles editados de la nota + los campos de la nota, de una vez.
+// Persiste todos los detalles editados de la nota + los campos de la nota, de una vez. La columna
+// anterior se manda solo si se carga a mano (MANUAL); las filas "solo anterior" no están en la base.
 async function guardarNota(
   ejercicioId: string,
   sociedadId: string,
   borrador: NotaDTO,
+  editarAnterior: boolean,
 ): Promise<ActionResult<NotaDTO>> {
   const detalleResultados = await Promise.all(
     borrador.detalles
-      .filter((d) => !d.esTotal)
+      .filter((d) => !d.esTotal && !esFilaSoloAnterior(d))
       .map((d) =>
         actualizarDetalleAction(d.id, ejercicioId, sociedadId, {
           concepto: d.concepto,
-          importeAnterior: d.importeAnterior,
+          ...(editarAnterior ? { importeAnterior: d.importeAnterior } : {}),
         }),
       ),
   )
   const falloDetalle = detalleResultados.find((r) => !r.ok)
   if (falloDetalle && !falloDetalle.ok) return falloDetalle
-  return actualizarNotaAction(borrador.id, ejercicioId, sociedadId, {
+  const resultado = await actualizarNotaAction(borrador.id, ejercicioId, sociedadId, {
     criterioMedicion: borrador.criterioMedicion,
     textoApertura: borrador.textoApertura,
   })
+  if (!resultado.ok || editarAnterior) return resultado
+  // La base no tiene la columna anterior derivada del vinculado: se conservan las filas del borrador.
+  return actionOk({ ...resultado.data, detalles: borrador.detalles })
 }
 
 // ─── Celda editable inline ────────────────────────────────────────────────────
@@ -106,6 +113,8 @@ export function NotaCuantitativa({
   fechaCierre,
   fechaCierreAnterior,
   mostrarAnterior,
+  editarAnterior = false,
+  origenAnterior = null,
   ejercicioId,
   sociedadId,
   onChange,
@@ -115,6 +124,9 @@ export function NotaCuantitativa({
   fechaCierre: Date
   fechaCierreAnterior: Date | null
   mostrarAnterior: boolean
+  /** MANUAL: la columna anterior se carga a mano. Si no, viene del ejercicio vinculado. */
+  editarAnterior?: boolean
+  origenAnterior?: string | null
   ejercicioId: string
   sociedadId: string
   /**
@@ -134,7 +146,7 @@ export function NotaCuantitativa({
     actualizar,
     sincronizar,
   } = useEdicionLote(notaInicial, async (borrador) => {
-    const resultado = await guardarNota(ejercicioId, sociedadId, borrador)
+    const resultado = await guardarNota(ejercicioId, sociedadId, borrador, editarAnterior)
     if (resultado.ok) onChange(() => resultado.data)
     return resultado
   })
@@ -281,7 +293,14 @@ export function NotaCuantitativa({
           {filasData.map((det) => (
             <tr key={det.id} className="group border-b border-slate-50 hover:bg-acento-suave">
               <td className="px-5 py-1.5">
-                {editando ? (
+                {esFilaSoloAnterior(det) ? (
+                  <span className="flex items-center gap-2 text-sm text-slate-700">
+                    <span className="rounded border border-amber-200 bg-amber-50 px-1 text-[10px] text-amber-600 uppercase">
+                      solo anterior
+                    </span>
+                    {det.concepto}
+                  </span>
+                ) : editando ? (
                   <CeldaConcepto
                     value={det.concepto}
                     placeholder="Concepto"
@@ -302,15 +321,19 @@ export function NotaCuantitativa({
               </td>
               {mostrarAnterior && (
                 <td className="w-36 px-3 py-1.5">
-                  <CeldaNumero
-                    value={det.importeAnterior}
-                    editando={editando}
-                    onSave={(v) => saveDetalle(det.id, 'importeAnterior', v)}
-                  />
+                  {editarAnterior ? (
+                    <CeldaNumero
+                      value={det.importeAnterior}
+                      editando={editando}
+                      onSave={(v) => saveDetalle(det.id, 'importeAnterior', v)}
+                    />
+                  ) : (
+                    <CeldaBloqueada value={det.importeAnterior} origen={origenAnterior} />
+                  )}
                 </td>
               )}
               <td className="w-8 px-3 py-1.5 text-center">
-                {editando && (
+                {editando && !esFilaSoloAnterior(det) && (
                   <button
                     type="button"
                     onClick={() => eliminarFila(det.id)}

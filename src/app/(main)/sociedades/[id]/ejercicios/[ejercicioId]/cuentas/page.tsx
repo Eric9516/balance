@@ -39,6 +39,7 @@ import {
 } from '@/modules/importaciones/repository/cuentas.repository'
 import { findBienesDeUso } from '@/modules/bienes-de-uso/repository/bienes-de-uso.repository'
 import { findNotasByEjercicio } from '@/modules/notas/repository/notas.repository'
+import { cargarNotas } from '@/modules/notas/services/notas.service'
 import { findAjustesByEjercicio } from '@/modules/transicion-rt54/repository/ajustes.repository'
 import { evaluarDocumentos } from '@/modules/documentos/lib/evaluar'
 import { cargarEstadosConPN, totalesAnteriorSSP } from '@/modules/estados/services/estados.service'
@@ -313,7 +314,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
     // contador la incluyó en la configuración de anexos; si no, queda una advertencia.
     const inclusion = inclusionNotaTransicion(esPrimeraAdopcion, documentosEval)
     const [notas, ajustes] = await Promise.all([
-      findNotasByEjercicio(ejercicioId),
+      cargarNotas(ejercicio),
       inclusion.incluir ? findAjustesByEjercicio(ejercicioId) : Promise.resolve([]),
     ])
     const notaTransicion = inclusion.incluir
@@ -343,6 +344,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
           fechaCierreAnterior={fechaCierreAnterior}
           mostrarAnterior={mostrarAnterior}
           editarAnterior={editarAnterior}
+          origenAnterior={ejercicioAnterior?.denominacion ?? null}
           tieneCuentasClasificadas={totalCuentas > sinClasificar}
           configNotaI={{
             adopcionRT54: ejercicio.adopcionRT54 ?? null,

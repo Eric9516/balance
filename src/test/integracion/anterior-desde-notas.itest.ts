@@ -39,6 +39,7 @@ import {
   crearBienDeUsoAction,
   guardarLoteBienesAction,
 } from '@/modules/bienes-de-uso/actions/bienes-de-uso.actions'
+import { cargarNotas } from '@/modules/notas/services/notas.service'
 
 const ctx = {} as {
   estudioId: string
@@ -124,9 +125,13 @@ beforeAll(async () => {
   ok(await generarNotasAutomaticasAction(ejercicio.id, sociedad.id))
 })
 
+/** Sociedades que crean las pruebas, además de la principal (se borran al final). */
+const sociedadesExtra: string[] = []
+
 afterAll(async () => {
-  await db.ejercicioContable.deleteMany({ where: { sociedadId: ctx.sociedadId } })
-  await db.sociedad.deleteMany({ where: { id: ctx.sociedadId } })
+  const sociedades = [ctx.sociedadId, ...sociedadesExtra]
+  await db.ejercicioContable.deleteMany({ where: { sociedadId: { in: sociedades } } })
+  await db.sociedad.deleteMany({ where: { id: { in: sociedades } } })
   await db.estudio.deleteMany({ where: { id: ctx.estudioId } })
 })
 
@@ -271,5 +276,96 @@ describe('Regenerar las notas sin perder lo cargado a mano', () => {
       where: { id: ctx.ejercicioId },
     })
     expect(ejercicio.comparativoAutorizadoEn).toBeNull()
+  })
+})
+
+describe('Vinculado: el anterior de las notas sale del ejercicio anterior', () => {
+  const v = {} as { sociedadId: string; ej2025: string }
+
+  beforeAll(async () => {
+    const auditor = await db.auditor.create({
+      data: { estudioId: ctx.estudioId, nombre: 'Luis', apellido: 'Gómez' },
+    })
+    const sociedad = await db.sociedad.create({
+      data: {
+        estudioId: ctx.estudioId,
+        razonSocial: 'Vinculada SA',
+        cuit: `30${Date.now().toString().slice(-8)}8`,
+      },
+    })
+    sociedadesExtra.push(sociedad.id)
+    v.sociedadId = sociedad.id
+    const base = {
+      denominacion: '',
+      numeroEjercicio: '1',
+      auditorId: auditor.id,
+      categoriaEnte: 'PEQUENA' as const,
+      indiceInflacionAnterior: '100',
+    }
+    const ej2024 = ok(
+      await crearEjercicio(sociedad.id, {
+        ...base,
+        fechaInicio: '2024-01-01',
+        fechaCierre: '2024-12-31',
+        fechaInformeAuditor: '2025-03-15',
+        modoAnterior: 'SIN_ANTERIOR',
+        ejercicioAnteriorId: '',
+        indiceInflacionActual: '100',
+      }),
+    )
+    const ej2025 = ok(
+      await crearEjercicio(sociedad.id, {
+        ...base,
+        fechaInicio: '2025-01-01',
+        fechaCierre: '2025-12-31',
+        fechaInformeAuditor: '2026-03-15',
+        modoAnterior: 'VINCULADO',
+        ejercicioAnteriorId: ej2024.id,
+        indiceInflacionActual: '125', // coeficiente 1,25
+      }),
+    )
+    v.ej2025 = ej2025.id
+    const caja = ctx.rubro.get('ACT-CTE-01')!
+    const cuenta = (ejercicioId: string, codigo: string, nombre: string, saldo: number) => ({
+      ejercicioId,
+      codigo,
+      nombre,
+      rubroBaseId: caja,
+      saldoDeudor: saldo,
+      saldoFinal: saldo,
+      clasificadaManual: true,
+    })
+    await db.cuentaContable.createMany({
+      data: [
+        cuenta(ej2024.id, '1109', 'BCO GALICIA', 800),
+        cuenta(ej2024.id, '1120', 'BCO SANTANDER', 400),
+        cuenta(ej2025.id, '1103', 'BCO NACION CC', 50),
+        cuenta(ej2025.id, '1109', 'BCO GALICIA', 1_000),
+      ],
+    })
+    ok(await generarNotasAutomaticasAction(ej2025.id, sociedad.id))
+  })
+
+  async function notaCaja() {
+    const ejercicio = (await findEjercicioById(v.ej2025))!
+    return (await cargarNotas(ejercicio)).find((n) => n.titulo === 'CAJA Y BANCOS')!
+  }
+
+  it('cada cuenta toma el saldo reexpresado del anterior; las que ya no están, como "solo anterior"', async () => {
+    const nota = await notaCaja()
+    expect(nota.detalles.map((d) => [d.concepto, d.importeActual, d.importeAnterior])).toEqual([
+      ['BCO NACION CC', 50, 0],
+      ['BCO GALICIA', 1_000, 1_000],
+      ['BCO SANTANDER', 0, 500],
+    ])
+  })
+
+  it('la columna anterior no se carga a mano', async () => {
+    const nota = await notaCaja()
+    const r = await actualizarDetalleAction(nota.detalles[0]!.id, v.ej2025, v.sociedadId, {
+      importeAnterior: 1,
+    })
+    if (r.ok) throw new Error('Tenía que rechazarlo')
+    expect(r.error.codigo).toBe('NEG-012')
   })
 })

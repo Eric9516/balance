@@ -35,7 +35,10 @@ import {
   findCuentasByEjercicio,
   findRubrosBase,
 } from '@/modules/importaciones/repository/cuentas.repository'
-import { marcarComparativoModificado } from '@/modules/ejercicios/repository/ejercicio.repository'
+import {
+  findConfigAnterior,
+  marcarComparativoModificado,
+} from '@/modules/ejercicios/repository/ejercicio.repository'
 import type { NotaDTO, DetalleNotaDTO } from '../domain/types'
 import { AdopcionRT54, CriteriosBienesCambio } from '@prisma/client'
 import { importe } from '@/lib/importe'
@@ -170,6 +173,20 @@ export async function actualizarDetalleAction(
     await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
     const parsed = CambiosDetalleSchema.safeParse(data)
     if (!parsed.success) return actionError(errorFormulario(parsed.error.issues))
+    // La columna anterior solo se carga a mano en modo MANUAL: en VINCULADO sale del ejercicio
+    // anterior y, sin anterior, no hay columna.
+    if (
+      parsed.data.importeAnterior !== undefined &&
+      (await findConfigAnterior(ejercicioId))?.modoAnterior !== 'MANUAL'
+    ) {
+      return actionError({
+        tipo: 'NEGOCIO',
+        severidad: 'MEDIO',
+        codigo: 'NEG-012',
+        mensaje:
+          'La columna "Ejercicio anterior" de las notas solo se carga a mano cuando el ejercicio está en modo "Carga manual". Si está vinculado, sale del ejercicio anterior.',
+      })
+    }
     if (!(await updateDetalle(ejercicioId, detalleId, parsed.data))) {
       return actionError(DETALLE_NO_ENCONTRADO)
     }
