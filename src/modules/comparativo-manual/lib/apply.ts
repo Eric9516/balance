@@ -103,27 +103,40 @@ export function applyComparativosToEstados(
 // ─── El anterior de cada rubro del SSP desde su nota ─────────────────────────
 
 /**
- * Carga manual: el anterior de un rubro del SSP es el total de la columna anterior de su nota de
- * composición, que se carga cuenta por cuenta. Así se carga una sola vez y el estado coincide con
- * la nota. Solo cuando la nota tiene esa columna cargada: si está vacía, el rubro conserva el
- * importe escrito en el estado (los ejercicios cargados antes de esta regla no cambian).
+ * Carga manual: el anterior de un rubro del SSP que lleva nota con detalle por cuenta se carga en
+ * esa nota, una sola vez, y el estado toma su total; en el estado no se escribe. Si la nota todavía
+ * no tiene el anterior, se muestra el importe que se hubiera escrito en el estado antes de esta
+ * regla (los ejercicios ya cargados no cambian) o, si no hay, cero.
+ *
+ * `anteriorEnNotas`: los rubros que llevan nota con detalle (ver generaNotaCuantitativa) y su nota,
+ * o null si las notas todavía no se generaron. `escritos`: los rubros con un importe escrito en el
+ * estado (filas manuales del SSP).
  */
 export function aplicarAnteriorDesdeNotas(
   data: EstadosData,
-  notaDeRubro: Map<string, NotaDTO>,
+  anteriorEnNotas: Map<string, NotaDTO | null>,
+  escritos: Set<string>,
 ): EstadosData {
-  const sspRubros = data.sspRubros.map((r) => {
-    const nota = esRubroHuerfano(r.id) ? undefined : notaDeRubro.get(r.id)
-    if (!nota || nota.tipo !== 'CUANTITATIVA' || !tieneAnteriorCargado(nota)) return r
+  const sspRubros = data.sspRubros.map((r): RubroFila => {
+    if (esRubroHuerfano(r.id) || !anteriorEnNotas.has(r.id)) return r
+    const nota = anteriorEnNotas.get(r.id) ?? null
+    const cargada = nota !== null && nota.tipo === 'CUANTITATIVA' && tieneAnteriorCargado(nota)
+    // Sin nota cargada se conserva lo que ya tenía el rubro: lo escrito en el estado o, en bienes
+    // de cambio, la existencia final del Anexo II.
+    const estado = cargada ? 'NOTA' : escritos.has(r.id) ? 'ESCRITO_ANTES' : 'PENDIENTE'
     return {
       ...r,
-      displayValueAnt: totalesNota(nota).anterior,
+      displayValueAnt: cargada ? totalesNota(nota).anterior : r.displayValueAnt,
       anteriorDesdeNota: {
-        notaNumero: nota.numero,
-        notaTitulo: nota.titulo,
-        filas: nota.detalles
-          .filter((d) => !d.esTotal)
-          .map((d) => ({ concepto: d.concepto, importeAnterior: d.importeAnterior })),
+        estado,
+        notaId: nota?.id ?? null,
+        notaNumero: nota?.numero ?? null,
+        notaTitulo: nota?.titulo ?? null,
+        filas: cargada
+          ? nota.detalles
+              .filter((d) => !d.esTotal)
+              .map((d) => ({ concepto: d.concepto, importeAnterior: d.importeAnterior }))
+          : [],
       },
     }
   })

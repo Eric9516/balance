@@ -23,15 +23,23 @@ export type RubroFila = {
   notaNumero: number | null // número de nota asociada para mostrar "(Nota X)"
   cuentas: FilaCuenta[]
   /**
-   * Carga manual: el anterior es el total de la nota de composición del rubro (la columna
-   * anterior se carga ahí, cuenta por cuenta) y no se escribe en el estado.
+   * Carga manual: el anterior del rubro se carga en su nota de composición, cuenta por cuenta, y
+   * no se escribe en el estado.
    */
   anteriorDesdeNota?: AnteriorDesdeNota
 }
 
 export type AnteriorDesdeNota = {
+  /**
+   * NOTA: el anterior es el total de la nota. ESCRITO_ANTES: la nota todavía no tiene el anterior y
+   * se muestra el importe que se había escrito en el estado (antes de esta regla). PENDIENTE: ni
+   * una cosa ni la otra (o las notas todavía no se generaron).
+   */
+  estado: 'NOTA' | 'ESCRITO_ANTES' | 'PENDIENTE'
+  /** null si las notas todavía no se generaron. */
+  notaId: string | null
   notaNumero: number | null
-  notaTitulo: string
+  notaTitulo: string | null
   /** Filas de la nota con su importe anterior, para mostrarlas debajo del rubro. */
   filas: { concepto: string; importeAnterior: number }[]
 }

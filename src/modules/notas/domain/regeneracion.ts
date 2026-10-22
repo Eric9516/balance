@@ -66,6 +66,28 @@ function esRubroBienDeCambio(nombre: string): boolean {
   return n.includes('bien') && n.includes('cambio')
 }
 
+type RubroNota = Pick<
+  RubroBaseSimple,
+  'estadoDestino' | 'seccionEERR' | 'rubroGrupoEsGasto' | 'generaNotaInformativa'
+>
+
+/** ¿El rubro, si tiene cuentas, genera nota? (de texto o con detalle por cuenta) */
+function generaNota(r: RubroNota): boolean {
+  return (
+    r.estadoDestino !== 'PN' &&
+    !r.rubroGrupoEsGasto &&
+    !(r.estadoDestino === 'EERR' && r.seccionEERR && EERR_SIN_NOTA.has(r.seccionEERR))
+  )
+}
+
+/**
+ * ¿El rubro, si tiene cuentas, genera una nota con detalle por cuenta? Con esa nota se carga el
+ * ejercicio anterior cuenta por cuenta (ver aplicarAnteriorDesdeNotas).
+ */
+export function generaNotaCuantitativa(r: RubroNota): boolean {
+  return generaNota(r) && !r.generaNotaInformativa
+}
+
 /** Configuración de la Nota I que usa la generación. */
 export type ConfigNotaI = {
   criteriosBienesCambio?: string | null
@@ -101,13 +123,7 @@ function objetivos(
   }
 
   const conNota = rubros
-    .filter(
-      (r) =>
-        porRubro.has(r.id) &&
-        r.estadoDestino !== 'PN' &&
-        !r.rubroGrupoEsGasto &&
-        !(r.estadoDestino === 'EERR' && r.seccionEERR && EERR_SIN_NOTA.has(r.seccionEERR)),
-    )
+    .filter((r) => porRubro.has(r.id) && generaNota(r))
     .sort((a, b) => a.orden - b.orden)
 
   const lista: NotaObjetivo[] = conNota.map((rubro, i) => {
@@ -126,7 +142,7 @@ function objetivos(
           : 'valor nominal'
     return {
       titulo: tituloEERR ?? rubro.nombre.toUpperCase(),
-      tipo: esInformativa ? 'INFORMATIVA' : 'CUANTITATIVA',
+      tipo: generaNotaCuantitativa(rubro) ? 'CUANTITATIVA' : 'INFORMATIVA',
       criterioMedicion,
       textoApertura: esInformativa
         ? (rubro.textoNotaDefault ?? TEXTO_BIENES_USO)

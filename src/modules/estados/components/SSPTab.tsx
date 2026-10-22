@@ -1,5 +1,13 @@
 import React from 'react'
-import { ChevronDown, ChevronRight, AlertTriangle, CheckCircle2, Lock } from 'lucide-react'
+import Link from 'next/link'
+import {
+  ChevronDown,
+  ChevronRight,
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  Lock,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatFecha } from '@/lib/utils/dates'
@@ -141,9 +149,46 @@ function TotalRow({
   )
 }
 
+function nombreNota(a: AnteriorDesdeNota): string {
+  return a.notaNumero != null ? `la Nota N° ${a.notaNumero}` : `la nota "${a.notaTitulo}"`
+}
+
 function tituloAnteriorDesdeNota(a: AnteriorDesdeNota): string {
-  const nota = a.notaNumero != null ? `la Nota N° ${a.notaNumero}` : `la nota "${a.notaTitulo}"`
-  return `Total de la columna "Ejercicio anterior" de ${nota}. Para cambiarlo, cargá el detalle cuenta por cuenta en la nota.`
+  if (a.notaId === null) {
+    const antes = a.estado === 'ESCRITO_ANTES' ? 'Importe escrito a mano en el estado. ' : ''
+    return `${antes}El anterior de este rubro se carga en su nota, cuenta por cuenta: generá las notas y cargalo ahí.`
+  }
+  switch (a.estado) {
+    case 'NOTA':
+      return `Total de la columna "Ejercicio anterior" de ${nombreNota(a)}. Para cambiarlo, editá la nota.`
+    case 'ESCRITO_ANTES':
+      return `Importe escrito a mano en el estado. Ahora el anterior se carga en ${nombreNota(a)}, cuenta por cuenta: apenas lo cargues ahí, reemplaza este importe.`
+    case 'PENDIENTE':
+      return `El anterior de este rubro se carga en ${nombreNota(a)}, cuenta por cuenta.`
+  }
+}
+
+/** Importe anterior de un rubro que se carga en su nota: candado, aviso y acceso a la nota. */
+function AnteriorDeNota({ rubro, a }: { rubro: RubroFila; a: AnteriorDesdeNota }) {
+  const titulo = tituloAnteriorDesdeNota(a)
+  return (
+    <div className="flex items-center justify-end gap-1">
+      {a.estado === 'ESCRITO_ANTES' && (
+        <span className="inline-flex" title={titulo} aria-label={titulo}>
+          <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+        </span>
+      )}
+      <CeldaBloqueada value={rubro.displayValueAnt} titulo={titulo} className="px-1" />
+      <Link
+        href={a.notaId ? `?paso=notas#nota-${a.notaId}` : '?paso=notas'}
+        title={a.notaId ? `Ir a ${nombreNota(a)}` : 'Ir a Notas'}
+        aria-label={a.notaId ? `Ir a ${nombreNota(a)}` : 'Ir a Notas'}
+        className="rounded p-0.5 text-blue-600 transition-colors hover:bg-blue-50"
+      >
+        <ArrowRight className="h-3.5 w-3.5" />
+      </Link>
+    </div>
+  )
 }
 
 /**
@@ -266,11 +311,7 @@ function RubroExpandableRow({
         {mostrarAnterior && (
           <td className="px-2 py-2 text-right">
             {desdeNota ? (
-              <CeldaBloqueada
-                value={rubro.displayValueAnt}
-                titulo={tituloAnteriorDesdeNota(desdeNota)}
-                className="px-2"
-              />
+              <AnteriorDeNota rubro={rubro} a={desdeNota} />
             ) : editarAnterior && ejercicioId && sociedadId && comparativo ? (
               <div className="ml-auto w-36">
                 <CeldaNumero
@@ -419,7 +460,8 @@ export function SSPTab({
 
       {editarAnterior && (
         <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-2.5 text-xs text-blue-700">
-          Cargá los importes del ejercicio anterior en la columna de la derecha. Usá
+          Los rubros con nota se cargan en su nota, cuenta por cuenta: acá se ve el total, con
+          candado (la flecha lleva a la nota). Los demás se cargan en la columna de la derecha. Usá
           <em> “Agregar rubro del período anterior” </em> dentro de cada sección para rubros que el
           ejercicio actual no tiene.
         </div>

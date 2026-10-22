@@ -50,22 +50,22 @@ export function armarBloquesComparativo(params: {
     new Set(comparativos.filter((c) => c.modulo === modulo).map((c) => c.clave))
 
   const sspClaves = claves('SSP')
-  // El patrimonio neto anterior no se carga por rubro en el SSP: sale del E.E.P.N. Tampoco los
-  // rubros cuya nota ya tiene cargado el anterior: el estado toma el total de la nota.
+  // En el SSP solo se escriben los rubros sin nota con detalle (por ejemplo, bienes de uso): los
+  // demás se cargan en su nota y el patrimonio neto sale del E.E.P.N.
   const sspRubros = estadosData.sspRubros.filter(
     (r) => !esRubroHuerfano(r.id) && r.seccionSSP !== 'PATRIMONIO_NETO' && !r.anteriorDesdeNota,
   )
+  const enNotas = estadosData.sspRubros.filter((r) => r.anteriorDesdeNota)
   const eerrClaves = claves('EERR')
   const secciones = estadosData.eerr.seccionesGasto.filter((s) => !esRubroHuerfano(s.key))
   const cvClaves = claves('COSTO_VENTAS')
   const cuantitativas = notas.filter((n) => n.tipo === 'CUANTITATIVA')
 
-  return [
+  const bloques: BloqueComparativo[] = [
     {
       clave: 'SSP',
       label: 'Estado de Situación Patrimonial',
-      descripcion:
-        'Un importe por cada rubro del activo y el pasivo. Si cargás la nota del rubro cuenta por cuenta, el total se completa solo.',
+      descripcion: `Rubros sin nota con detalle, que se escriben en el estado: ${sspRubros.map((r) => r.nombre).join(', ')}.`,
       cargados: sspRubros.filter((r) => sspClaves.has(r.id)).length,
       total: sspRubros.length,
       aplica: sspRubros.length > 0,
@@ -119,15 +119,30 @@ export function armarBloquesComparativo(params: {
       aplica: tieneCostoVentas,
       href: `${base}?paso=anexos&anexo=costo-ventas`,
     },
-    {
-      clave: 'NOTAS',
-      label: 'Notas de composición',
-      descripcion:
-        'Importe del ejercicio anterior en cada nota, cuenta por cuenta. El total de la nota completa el rubro del estado.',
-      cargados: cuantitativas.filter((n) => n.detalles.some((d) => d.importeAnterior !== 0)).length,
-      total: cuantitativas.length,
-      aplica: tieneNotas && cuantitativas.length > 0,
-      href: `${base}?paso=notas`,
-    },
+    tieneNotas
+      ? {
+          clave: 'NOTAS',
+          label: 'Notas de composición',
+          descripcion:
+            'El anterior de cada rubro se carga en su nota, cuenta por cuenta (con filas nuevas para las cuentas que ya no están). El estado toma el total de cada nota.',
+          cargados: cuantitativas.filter((n) => n.detalles.some((d) => d.importeAnterior !== 0))
+            .length,
+          total: cuantitativas.length,
+          aplica: cuantitativas.length > 0,
+          href: `${base}?paso=notas`,
+        }
+      : {
+          clave: 'NOTAS',
+          label: 'Notas de composición',
+          descripcion:
+            'El anterior de cada rubro se carga en su nota, cuenta por cuenta. Primero generá las notas.',
+          cargados: 0,
+          total: enNotas.length,
+          aplica: enNotas.length > 0,
+          href: `${base}?paso=notas`,
+        },
   ]
+  // El estado solo figura si tiene rubros para escribir: si todo sale de las notas, sería
+  // una segunda puerta a lo mismo.
+  return bloques.filter((b) => b.clave !== 'SSP' || b.aplica)
 }

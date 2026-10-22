@@ -217,7 +217,7 @@ describe('resolverEstados: en MANUAL el anterior del rubro sale de su nota', () 
   const caja = (r: EstadosData) => r.sspRubros.find((x) => x.id === 'caja')
 
   it('usa el total de la nota (sin la fila de total) y pisa lo escrito en el estado', () => {
-    const notas = new Map([
+    const notas = new Map<string, NotaDTO | null>([
       [
         'caja',
         nota([
@@ -230,6 +230,8 @@ describe('resolverEstados: en MANUAL el anterior del rubro sale de su nota', () 
     const r = resolverEstados(estadosBase(), 'MANUAL', residuos, notas)
     expect(caja(r)?.displayValueAnt).toBe(900.75)
     expect(caja(r)?.anteriorDesdeNota).toEqual({
+      estado: 'NOTA',
+      notaId: 'n',
       notaNumero: 2,
       notaTitulo: 'CAJA Y BANCOS',
       filas: [
@@ -237,26 +239,36 @@ describe('resolverEstados: en MANUAL el anterior del rubro sale de su nota', () 
         { concepto: 'Bco Córdoba', importeAnterior: 300.5 },
       ],
     })
-    // Los demás rubros no cambian.
-    expect(r.sspRubros.find((x) => x.id === 'deudas')?.displayValueAnt).toBe(30)
+    // Los rubros que no llevan nota no cambian (siguen escribiéndose en el estado).
+    const deudas = r.sspRubros.find((x) => x.id === 'deudas')
+    expect(deudas?.displayValueAnt).toBe(30)
+    expect(deudas?.anteriorDesdeNota).toBeUndefined()
   })
 
-  it('con la columna anterior de la nota vacía conserva el importe escrito en el estado', () => {
-    const notas = new Map([['caja', nota([detalle('Bco Santander', 0)])]])
+  it('con la nota vacía muestra lo escrito antes en el estado, marcado como tal', () => {
+    const notas = new Map<string, NotaDTO | null>([['caja', nota([detalle('Bco Santander', 0)])]])
     const r = resolverEstados(estadosBase(), 'MANUAL', residuos, notas)
     expect(caja(r)?.displayValueAnt).toBe(999)
-    expect(caja(r)?.anteriorDesdeNota).toBeUndefined()
+    expect(caja(r)?.anteriorDesdeNota?.estado).toBe('ESCRITO_ANTES')
+  })
+
+  it('sin notas generadas ni importe escrito queda pendiente de cargar en la nota', () => {
+    const sinCaja = residuos.filter((c) => c.clave !== 'caja')
+    const r = resolverEstados(estadosBase(), 'MANUAL', sinCaja, new Map([['caja', null]]))
+    expect(caja(r)?.anteriorDesdeNota).toMatchObject({ estado: 'PENDIENTE', notaId: null })
   })
 
   it('una nota informativa no completa el rubro', () => {
-    const notas = new Map([['caja', nota([detalle('Texto', 10)], 'INFORMATIVA')]])
+    const notas = new Map<string, NotaDTO | null>([
+      ['caja', nota([detalle('Texto', 10)], 'INFORMATIVA')],
+    ])
     expect(caja(resolverEstados(estadosBase(), 'MANUAL', residuos, notas))?.displayValueAnt).toBe(
       999,
     )
   })
 
   it('fuera de MANUAL no usa las notas', () => {
-    const notas = new Map([['caja', nota([detalle('Bco Santander', 600)])]])
+    const notas = new Map<string, NotaDTO | null>([['caja', nota([detalle('Bco Santander', 600)])]])
     for (const modo of ['VINCULADO', 'SIN_ANTERIOR', 'PENDIENTE'] as const) {
       const r = resolverEstados(estadosBase(), modo, residuos, notas)
       expect(caja(r)?.displayValueAnt).toBe(80)

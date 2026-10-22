@@ -162,6 +162,7 @@ describe('Anterior del Estado de Situación Patrimonial desde las notas', () => 
 
     const caja = await rubroDelEstado('ACT-CTE-01')
     expect(caja.displayValueAnt).toBe(110_000.75)
+    expect(caja.anteriorDesdeNota?.estado).toBe('NOTA')
     expect(caja.anteriorDesdeNota?.filas).toEqual([
       { concepto: 'BCO NACION CC', importeAnterior: 2_000.25 },
       { concepto: 'BCO GALICIA', importeAnterior: 98_000.5 },
@@ -169,7 +170,7 @@ describe('Anterior del Estado de Situación Patrimonial desde las notas', () => 
     ])
   })
 
-  it('si la nota del rubro no tiene cargado el anterior, usa el importe escrito en el estado', async () => {
+  it('si la nota del rubro no tiene cargado el anterior, muestra lo escrito antes en el estado', async () => {
     ok(
       await guardarLoteComparativoAction(ctx.ejercicioId, ctx.sociedadId, [
         {
@@ -184,7 +185,7 @@ describe('Anterior del Estado de Situación Patrimonial desde las notas', () => 
     )
     const deudores = await rubroDelEstado('ACT-CTE-03')
     expect(deudores.displayValueAnt).toBe(42_500.5)
-    expect(deudores.anteriorDesdeNota).toBeUndefined()
+    expect(deudores.anteriorDesdeNota?.estado).toBe('ESCRITO_ANTES')
   })
 })
 

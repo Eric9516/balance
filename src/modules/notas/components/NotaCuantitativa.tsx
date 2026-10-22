@@ -196,8 +196,9 @@ export function NotaCuantitativa({
 
   return (
     <div
+      id={`nota-${nota.id}`}
       className={cn(
-        'overflow-hidden rounded-xl border border-slate-200 bg-white',
+        'scroll-mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white',
         isPendingTotal && 'opacity-70',
       )}
     >

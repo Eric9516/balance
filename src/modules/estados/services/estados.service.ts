@@ -16,6 +16,7 @@ import { findCostoVentas } from '@/modules/costo-ventas/repository/costo-ventas.
 import { findGastosDinamicos } from '@/modules/gastos/repository/gastos-dinamico.repository'
 import { findNotasByEjercicio } from '@/modules/notas/repository/notas.repository'
 import { notaPorRubro } from '@/modules/notas/domain/types'
+import { generaNotaCuantitativa } from '@/modules/notas/domain/regeneracion'
 import { findMovimientosPN } from '@/modules/patrimonio-neto/repository/patrimonio-neto.repository'
 import { derivarDesdeAnteriorPN } from '@/modules/patrimonio-neto/domain/saldosInicio'
 import { armarEvolucionPN } from '@/modules/patrimonio-neto/domain/evolucion'
@@ -94,7 +95,12 @@ export async function cargarEstadosConPN(
     notas,
     hayEjercicioAnterior: mostrarColumnaAnterior(modo),
   })
-  const estadosData = resolverEstados(raw, modo, comparativos, notaPorRubro(cuentas, notas))
+  // Rubros cuyo anterior se carga en su nota con detalle (con su nota, si ya se generó).
+  const notaDeRubro = notaPorRubro(cuentas, notas)
+  const anteriorEnNotas = new Map(
+    rubros.filter(generaNotaCuantitativa).map((r) => [r.id, notaDeRubro.get(r.id) ?? null]),
+  )
+  const estadosData = resolverEstados(raw, modo, comparativos, anteriorEnNotas)
 
   const pnData = armarEvolucionPN({
     ejercicioId,

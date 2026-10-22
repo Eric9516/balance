@@ -7,7 +7,7 @@
  *                   de comparativo_manual (residuos de un modo previo) se IGNORAN.
  *  - MANUAL       → se aplican SOLO las filas manuales. Lo derivado no existe (invariante:
  *                   sin vínculo) y, si existiera, `seleccionarDerivado` lo descarta. El
- *                   anterior de un rubro del SSP con nota cargada sale de la nota.
+ *                   anterior de un rubro del SSP que lleva nota con detalle sale de la nota.
  *  - SIN_ANTERIOR / PENDIENTE → no hay columna comparativa.
  *
  * Puro: no toca la base.
@@ -69,8 +69,11 @@ export function resolverEstados(
   raw: EstadosData,
   modo: ModoAnteriorEfectivo,
   comparativos: ComparativoManualDTO[],
-  /** Nota de composición de cada rubro (ver notaPorRubro). Solo se usa en MANUAL. */
-  notaDeRubro: Map<string, NotaDTO> = new Map(),
+  /**
+   * Rubros cuyo anterior se carga en su nota con detalle, con esa nota (null si las notas todavía
+   * no se generaron). Solo se usa en MANUAL (ver aplicarAnteriorDesdeNotas).
+   */
+  anteriorEnNotas: Map<string, NotaDTO | null> = new Map(),
 ): EstadosData {
   switch (fuenteComparativo(modo)) {
     case 'DERIVADO':
@@ -80,7 +83,7 @@ export function resolverEstados(
         // Los gastos del anterior NO se aplican acá: llegan ya resueltos en el Anexo III
         // (resolverGastos, totales por sección calculados desde las filas) a través de
         // buildEstadosData. Aplicarlos de nuevo los pisaría con importes cargados a mano.
-        // El anterior de los rubros del SSP con nota cargada sale de la nota.
+        // El anterior de los rubros del SSP que llevan nota con detalle sale de la nota.
         ...aplicarAnteriorDesdeNotas(
           applyComparativosToEstados(
             raw,
@@ -89,7 +92,10 @@ export function resolverEstados(
             ),
             'RUBRO',
           ),
-          notaDeRubro,
+          anteriorEnNotas,
+          new Set(
+            comparativos.filter((c) => c.modulo === 'SSP' && c.valor !== 0).map((c) => c.clave),
+          ),
         ),
         hayEjercicioAnterior: true,
       }
