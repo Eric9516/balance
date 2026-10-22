@@ -67,6 +67,7 @@ export function BienesDeUsoView({
     cancelar,
     confirmar,
     actualizar,
+    sincronizar,
   } = useEdicionLote(initialBienes, (borrador) =>
     guardarLoteBienes(borrador, ejercicioId, sociedadId),
   )
@@ -96,7 +97,8 @@ export function BienesDeUsoView({
   function handleDelete(id: string) {
     ejecutar(
       () => eliminarBienDeUsoAction(id, ejercicioId, sociedadId),
-      () => actualizar((prev) => prev.filter((b) => b.id !== id)),
+      // Baja ya persistida: se aplica a lo guardado y al borrador (con actualizar solo se veía editando).
+      () => sincronizar((prev) => prev.filter((b) => b.id !== id)),
     )
   }
 
@@ -105,7 +107,8 @@ export function BienesDeUsoView({
     ejecutar(
       () => crearBienDeUsoAction(ejercicioId, sociedadId, cat.trim()),
       (nuevo) => {
-        actualizar((prev) => [...prev, nuevo])
+        // Alta ya persistida: se aplica a lo guardado y al borrador (con actualizar solo se veía editando).
+        sincronizar((prev) => [...prev, nuevo])
         setNuevaCategoria('')
         setMostrarInput(false)
         toastSuccess(`Categoría "${cat.trim()}" agregada`)

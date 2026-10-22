@@ -54,7 +54,12 @@ export function useEdicionLote<T>(
     )
   }
 
-  /** Sincroniza el valor base cuando cambia desde el servidor sin pasar por este hook (ej. revalidate). */
+  /**
+   * Refleja un alta o baja ya persistida. Siempre con función: `sincronizar((prev) => ...)` la
+   * aplica a lo guardado y al borrador por separado, así se ve al instante (también en edición) y
+   * Cancelar sigue descartando solo lo no guardado. Con un valor solo reemplaza lo guardado, y el
+   * borrador si no se está editando: en las tablas lo prohíbe convencion-edicion.test.ts.
+   */
   function sincronizar(nuevo: T | ((prev: T) => T)) {
     if (typeof nuevo === 'function') {
       // Alta/baja estructural ya persistida: se aplica a la base y al borrador en curso.

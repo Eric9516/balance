@@ -27,6 +27,7 @@ import {
   mostrarColumnaAnterior,
   resolverCostoVentasAnterior,
   resolverEstados,
+  resolverGastos,
 } from '@/modules/comparativo-manual/lib/politica'
 import type { EstadosData } from '../domain/types'
 import { buildEstadosData } from '../lib/aggregate'
@@ -81,13 +82,15 @@ export async function cargarEstadosConPN(
     ejercicioId,
   )
 
-  // Gastos: se pasan CRUDOS; resolverEstados aplica (en MANUAL) las filas manuales de
-  // gastos sobre las líneas del EERR. Aplicarlas dos veces duplicaría secciones huérfanas.
+  // Gastos: el Anexo III ya resuelto según el modo es la única fuente de las líneas de gasto
+  // del EERR. En MANUAL sus totales del anterior por sección se calculan desde las filas
+  // (resolverGastos); resolverEstados no vuelve a aplicar gastos.
+  const gastos = resolverGastos(gastosRaw, modo, comparativos)
   const raw = buildEstadosData(cuentas, rubros, {
     cuentasAnt: ajustarCuentas(cuentasAntRaw, coeficiente),
     costoVentas,
     costoVentasAnt,
-    gastosDinamicos: gastosRaw,
+    gastosDinamicos: gastos,
     notas,
     hayEjercicioAnterior: mostrarColumnaAnterior(modo),
   })

@@ -80,13 +80,6 @@ export function EstadosView({
       label: 'Impuesto a las Ganancias',
       valor: data.eerr.impuestoGananciasAnt,
     },
-    ...data.eerr.seccionesGasto.map((s) => ({
-      modulo: 'GASTOS' as const,
-      clave: s.key,
-      label: s.nombre,
-      valor: s.totalAnt,
-      esHuerfano: esRubroHuerfano(s.key),
-    })),
   ]
   const comparativo = useComparativoLote(entradasAnterior, ejercicioId, sociedadId)
   const editandoAnterior = editarAnterior && comparativo.editando

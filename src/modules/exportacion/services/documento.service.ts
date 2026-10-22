@@ -24,6 +24,7 @@ import { evaluarDocumentos } from '@/modules/documentos/lib/evaluar'
 import { findNotasByEjercicio } from '@/modules/notas/repository/notas.repository'
 import { findAjustesByEjercicio } from '@/modules/transicion-rt54/repository/ajustes.repository'
 import { previsualizarNotaTransicion } from '@/modules/transicion-rt54/services/nota-transicion.service'
+import { inclusionNotaTransicion } from '@/modules/transicion-rt54/domain/inclusion'
 import { mostrarColumnaAnterior } from '@/modules/comparativo-manual/lib/politica'
 import { armarDocumento } from '../domain/documento'
 import type { DocumentoBalance } from '../domain/types'
@@ -63,7 +64,8 @@ export async function cargarDocumentoBalance(
     aceptados.has('ANEXO_BIENES_USO') ? cargarBienesDeUso(ejercicio) : Promise.resolve(null),
     aceptados.has('ANEXO_COSTO_VENTAS') ? cargarCostoVentas(ejercicio) : Promise.resolve(null),
     aceptados.has('ANEXO_GASTOS') ? cargarGastos(ejercicio) : Promise.resolve(null),
-    esPrimeraAdopcion
+    // Misma regla que la pantalla de Notas: va solo si el contador la incluyó.
+    inclusionNotaTransicion(esPrimeraAdopcion, documentos).incluir
       ? previsualizarNotaTransicion(ejercicio, { estados, ajustes })
       : Promise.resolve(null),
   ])

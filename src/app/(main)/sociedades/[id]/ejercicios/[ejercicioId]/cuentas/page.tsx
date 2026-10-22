@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { esUuid } from '@/lib/utils/uuid'
-import { ChevronLeft, Printer, Tags } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, Printer, Tags } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ProgresoEjercicio } from '@/components/layout/ProgresoEjercicio'
@@ -44,6 +44,7 @@ import { evaluarDocumentos } from '@/modules/documentos/lib/evaluar'
 import { cargarEstadosConPN, totalesAnteriorSSP } from '@/modules/estados/services/estados.service'
 import { evaluarAutorizacionSinPersistir } from '@/modules/ejercicios/services/autorizacion.service'
 import { previsualizarNotaTransicion } from '@/modules/transicion-rt54/services/nota-transicion.service'
+import { inclusionNotaTransicion } from '@/modules/transicion-rt54/domain/inclusion'
 import { armarBloquesComparativo } from '@/modules/ejercicios/lib/bloquesComparativo'
 
 // Dominio
@@ -308,16 +309,25 @@ export default async function CuentasPage({ params, searchParams }: Props) {
       </AnexosTabs>
     )
   } else if (paso === 'notas') {
+    // Regla única (también la usa el documento imprimible): como los anexos, aparece solo si el
+    // contador la incluyó en la configuración de anexos; si no, queda una advertencia.
+    const inclusion = inclusionNotaTransicion(esPrimeraAdopcion, documentosEval)
     const [notas, ajustes] = await Promise.all([
       findNotasByEjercicio(ejercicioId),
-      esPrimeraAdopcion ? findAjustesByEjercicio(ejercicioId) : Promise.resolve([]),
+      inclusion.incluir ? findAjustesByEjercicio(ejercicioId) : Promise.resolve([]),
     ])
-    const notaTransicion = esPrimeraAdopcion
+    const notaTransicion = inclusion.incluir
       ? await previsualizarNotaTransicion(ejercicio, { ajustes })
       : null
     content = (
       <div className="max-w-4xl space-y-6">
-        {esPrimeraAdopcion && notaTransicion && (
+        {!inclusion.incluir && inclusion.motivo === 'NO_INCLUIDA' && (
+          <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2 text-xs text-amber-700">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500" />
+            {inclusion.advertencia}
+          </p>
+        )}
+        {notaTransicion && (
           <NotaTransicionCard
             ejercicioId={ejercicioId}
             sociedadId={id}

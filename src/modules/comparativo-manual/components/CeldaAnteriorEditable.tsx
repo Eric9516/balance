@@ -90,7 +90,8 @@ export function useComparativoLote(
     })
   }
 
-  // Altas y bajas ya persistidas: con una función entran también en el borrador en curso.
+  // Alta o baja ya persistida: se aplica a lo guardado y al borrador por separado, así la fila se ve
+  // al instante también en edición y Cancelar sigue descartando solo lo no guardado.
   function agregar(entry: ComparativoEntry) {
     sincronizar((prev) => new Map(prev).set(entry.clave, entry))
   }
@@ -154,6 +155,7 @@ export function AgregarFilaAnterior({
   seccion,
   ordenBase = 0,
   texto = 'Agregar fila del período anterior',
+  opcionesSeccion,
   onAdded,
 }: {
   ejercicioId: string
@@ -162,23 +164,32 @@ export function AgregarFilaAnterior({
   seccion?: string | null
   ordenBase?: number
   texto?: string
+  /**
+   * Si se pasa, el contador elige la sección (clasificación) de la fila de una lista y queda en su
+   * clave. Obligatorio elegir una: sin sección, el importe no sumaría en ningún total.
+   */
+  opcionesSeccion?: { clave: string; label: string }[]
   onAdded?: (dto: ComparativoManualDTO) => void
 }) {
   const [open, setOpen] = useState(false)
   const [label, setLabel] = useState('')
   const [valor, setValor] = useState('')
+  const [seccionElegida, setSeccionElegida] = useState('')
+  const pideSeccion = !!opcionesSeccion
+  const completo = !!label.trim() && (!pideSeccion || !!seccionElegida)
   const { isPending, ejecutar } = useGuardarAccion()
 
   function reset() {
     setLabel('')
     setValor('')
+    setSeccionElegida('')
     setOpen(false)
   }
 
   function handleAdd() {
-    if (!label.trim()) return
+    if (!completo) return
     const v = parseImporte(valor)
-    const clave = buildClaveHuerfano(seccion)
+    const clave = buildClaveHuerfano(pideSeccion ? seccionElegida : seccion)
     ejecutar(
       () =>
         guardarComparativoAction(
@@ -237,10 +248,25 @@ export function AgregarFilaAnterior({
         }}
         className="w-32 rounded border border-blue-200 bg-white px-2 py-1 text-right font-mono text-sm text-slate-900 tabular-nums focus:border-blue-400 focus:outline-none"
       />
+      {pideSeccion && (
+        <select
+          value={seccionElegida}
+          onChange={(e) => setSeccionElegida(e.target.value)}
+          aria-label="Clasificación en el ejercicio anterior"
+          className="w-56 rounded border border-blue-200 bg-white px-2 py-1 text-sm text-slate-900 focus:border-blue-400 focus:outline-none"
+        >
+          <option value="">Clasificación del año anterior…</option>
+          {opcionesSeccion.map((o) => (
+            <option key={o.clave} value={o.clave}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      )}
       <button
         type="button"
         onClick={handleAdd}
-        disabled={isPending || !label.trim()}
+        disabled={isPending || !completo}
         className="p-1 text-emerald-600 transition-colors hover:text-emerald-700 disabled:opacity-40"
         title="Agregar"
       >

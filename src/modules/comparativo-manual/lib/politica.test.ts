@@ -165,7 +165,9 @@ describe('resolverEstados: escenario A no se contamina con residuos manuales', (
     expect(r.sspRubros.find((x) => x.id === 'caja')?.displayValueAnt).toBe(999)
     expect(r.sspRubros.some((x) => x.id.startsWith('sec:ACTIVO_CORRIENTE'))).toBe(true)
     expect(r.eerr.ingresosAnt).toBe(123456)
-    expect(r.eerr.seccionesGasto[0]?.totalAnt).toBe(777)
+    // Los gastos NO se aplican acá: llegan ya resueltos desde el Anexo III (resolverGastos,
+    // total por sección calculado desde las filas). El 777 cargado a mano no pisa nada.
+    expect(r.eerr.seccionesGasto[0]?.totalAnt).toBe(90)
     // utilidad bruta ant = ingresos ant - costo ventas ant (sin override) = 123456 - 350
     expect(r.eerr.utilidadBrutaAnt).toBe(123456 - 350)
     expect(r.hayEjercicioAnterior).toBe(true)
@@ -280,11 +282,54 @@ describe('resolverGastos / resolverCostoVentasAnterior', () => {
     ],
     todasSecciones: [],
   }
-  it('gastos: VINCULADO intacto, MANUAL con override', () => {
+  it('gastos: VINCULADO intacto; en MANUAL los totales cargados por sección ya no cuentan', () => {
     expect(resolverGastos(gastos, 'VINCULADO', residuos).secciones[0]?.totalAnterior).toBe(90)
-    expect(resolverGastos(gastos, 'MANUAL', residuos).secciones[0]?.totalAnterior).toBe(777)
+    // Sin filas cargadas, el total por sección es cero: el 777 escrito a mano se ignora.
+    expect(resolverGastos(gastos, 'MANUAL', residuos).secciones[0]?.totalAnterior).toBe(0)
     expect(resolverGastos(gastos, 'SIN_ANTERIOR', residuos).secciones[0]?.totalAnterior).toBe(90)
   })
+
+  it('gastos: en MANUAL el total por sección se calcula desde las filas', () => {
+    const conCuenta = {
+      ...gastos,
+      secciones: [
+        {
+          ...gastos.secciones[0]!,
+          filas: [{ cuentaId: 'c1', cuentaNombre: 'SUELDOS', importe: 100, importeAnterior: 0 }],
+        },
+      ],
+    }
+    const fila = (clave: string, label: string, valor: number, esHuerfano: boolean) =>
+      ({
+        id: clave,
+        ejercicioId: 'e',
+        modulo: 'GASTOS_FILA',
+        clave,
+        label,
+        valor,
+        esHuerfano,
+        orden: 0,
+      }) satisfies ComparativoManualDTO
+    const conFilas: ComparativoManualDTO[] = [
+      ...residuos,
+      fila('fila:SUELDOS', 'SUELDOS', 600.555, false),
+      // Gasto que solo existió el año pasado, clasificado por el contador en Administración.
+      fila('sec:legacy:GASTOS_ADM:1', 'PUBLICIDAD', 400, true),
+    ]
+    const manual = resolverGastos(conCuenta, 'MANUAL', conFilas)
+    expect(manual.anteriorManualPorFila).toEqual([
+      { clave: 'fila:SUELDOS', nombre: 'SUELDOS', valor: 600.555, soloAnterior: false },
+      { clave: 'sec:legacy:GASTOS_ADM:1', nombre: 'PUBLICIDAD', valor: 400, soloAnterior: true },
+    ])
+    // 600,555 de SUELDOS + 400 de PUBLICIDAD; el 777 cargado a mano por sección no cuenta.
+    expect(manual.secciones.map((x) => x.key)).toEqual(['legacy:GASTOS_ADM'])
+    expect(manual.secciones[0]?.totalAnterior).toBe(1000.555)
+    expect(resolverGastos(conCuenta, 'VINCULADO', conFilas).anteriorManualPorFila).toBeUndefined()
+    expect(
+      resolverGastos(conCuenta, 'SIN_ANTERIOR', conFilas).anteriorManualPorFila,
+    ).toBeUndefined()
+  })
+
   it('costo de ventas anterior según fuente', () => {
     const derivado = {
       id: 'd',

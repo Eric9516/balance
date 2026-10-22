@@ -13,6 +13,7 @@
  * Puro: no toca la base.
  */
 
+import { anteriorPorSeccionDesdeFilas, filasAnexoGastos } from '@/modules/gastos/domain/filasAnexo'
 import type { ModoAnteriorEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import type { EstadosData } from '@/modules/estados/domain/types'
 import type { GastosSecciones } from '@/modules/gastos/repository/gastos-dinamico.repository'
@@ -76,8 +77,18 @@ export function resolverEstados(
       return { ...raw, hayEjercicioAnterior: true }
     case 'MANUAL':
       return {
+        // Los gastos del anterior NO se aplican acá: llegan ya resueltos en el Anexo III
+        // (resolverGastos, totales por sección calculados desde las filas) a través de
+        // buildEstadosData. Aplicarlos de nuevo los pisaría con importes cargados a mano.
+        // El anterior de los rubros del SSP con nota cargada sale de la nota.
         ...aplicarAnteriorDesdeNotas(
-          applyComparativosToEstados(raw, seleccionarManual(modo, comparativos), 'RUBRO'),
+          applyComparativosToEstados(
+            raw,
+            seleccionarManual(modo, comparativos).filter(
+              (c) => c.modulo !== 'GASTOS' && c.modulo !== 'GASTOS_FILA',
+            ),
+            'RUBRO',
+          ),
           notaDeRubro,
         ),
         hayEjercicioAnterior: true,
@@ -94,9 +105,26 @@ export function resolverGastos(
   modo: ModoAnteriorEfectivo,
   comparativos: ComparativoManualDTO[],
 ): GastosSecciones {
-  return fuenteComparativo(modo) === 'MANUAL'
-    ? applyComparativosToGastos(raw, seleccionarManual(modo, comparativos))
-    : raw
+  if (fuenteComparativo(modo) !== 'MANUAL') return raw
+  const manual = seleccionarManual(modo, comparativos)
+  // El ejercicio anterior se carga una sola vez, fila por fila ('GASTOS_FILA').
+  const anteriorManualPorFila = manual
+    .filter((c) => c.modulo === 'GASTOS_FILA')
+    .map((c) => ({ clave: c.clave, nombre: c.label, valor: c.valor, soloAnterior: c.esHuerfano }))
+  // Columnas que solo existieron en el anterior ('GASTOS' huérfanas). Sus importes cargados a
+  // mano ya no cuentan: todo total por sección se calcula desde las filas.
+  const conHuerfanas = applyComparativosToGastos(raw, manual)
+  const porSeccion = anteriorPorSeccionDesdeFilas(
+    filasAnexoGastos(conHuerfanas.secciones, anteriorManualPorFila),
+  )
+  return {
+    ...conHuerfanas,
+    secciones: conHuerfanas.secciones.map((s) => ({
+      ...s,
+      totalAnterior: porSeccion.get(s.key) ?? 0,
+    })),
+    anteriorManualPorFila,
+  }
 }
 
 // ─── Anexo II: costo de ventas (comparativo) ─────────────────────────────────

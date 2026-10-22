@@ -166,11 +166,9 @@ export function NotaTransicionCard({
   function agregar(input: Omit<AjusteTransicionInput, 'orden'>) {
     ejecutar(
       () => crearAjusteTransicionAction(ejercicioId, sociedadId, input),
-      (nuevo) => {
-        const actualizado = [...ajustes, nuevo]
-        sincronizar(actualizado)
-        if (editando) actualizar(actualizado)
-      },
+      // Se aplica a lo guardado y al borrador por separado: las ediciones sin guardar siguen
+      // siendo borrador y Cancelar las descarta.
+      (nuevo) => sincronizar((prev) => [...prev, nuevo]),
     )
   }
 
@@ -178,11 +176,7 @@ export function NotaTransicionCard({
   function eliminar(id: string) {
     ejecutar(
       () => eliminarAjusteTransicionAction(id, ejercicioId, sociedadId),
-      () => {
-        const actualizado = ajustes.filter((a) => a.id !== id)
-        sincronizar(actualizado)
-        if (editando) actualizar(actualizado)
-      },
+      () => sincronizar((prev) => prev.filter((a) => a.id !== id)),
     )
   }
 

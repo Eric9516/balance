@@ -11,6 +11,7 @@ import {
 } from '../actions/gastos-config.actions'
 import type { GastosSecciones } from '../repository/gastos-dinamico.repository'
 import { esSeccionHuerfana } from '../lib/seccionHuerfana'
+import { claveFilaAnteriorEnSeccion, filasAnexoGastos } from '../domain/filasAnexo'
 import {
   ToggleEditarAnterior,
   useComparativoLote,
@@ -56,16 +57,39 @@ export function GastosView({
   // el balance anterior, para que el dato cargado quede siempre reflejado.
   const huerfanasVisibles = puedeEditarAnterior ? seccionesHuerfanas : []
 
-  // Columna "Ejercicio Anterior" — borrador independiente, propio Guardar/Cancelar.
-  const entradasAnterior: ComparativoEntry[] = [...seccionesVisibles, ...huerfanasVisibles].map(
-    (s) => ({
-      modulo: 'GASTOS' as const,
-      clave: s.key,
-      label: s.grupoNombre,
-      valor: s.totalAnterior,
-      esHuerfano: esSeccionHuerfana(s.key),
-    }),
+  // Filas del anexo (regla única, también la usa el documento). En carga manual traen el
+  // importe anterior de cada fila y las filas que solo existieron en el anterior.
+  // Filas del anexo (regla única, también la usan el documento y el Estado de Resultados). En carga
+  // manual traen el importe anterior de cada fila y los gastos que solo existieron el año pasado.
+  const filas = filasAnexoGastos(
+    [...seccionesVisibles, ...huerfanasVisibles],
+    data.anteriorManualPorFila,
   )
+
+  // Columna "Ejercicio Anterior" — borrador independiente, propio Guardar/Cancelar. En carga
+  // manual el anterior se carga una sola vez, fila por fila ('GASTOS_FILA'): una entrada por fila,
+  // o una por sección si este año la fila está en varias. Los totales por sección se calculan.
+  const entradasAnterior: ComparativoEntry[] = puedeEditarAnterior
+    ? filas.flatMap((f): ComparativoEntry[] =>
+        f.soloAnterior || f.secciones.length <= 1
+          ? [
+              {
+                modulo: 'GASTOS_FILA',
+                clave: f.clave,
+                label: f.nombre,
+                valor: f.totalAnterior,
+                esHuerfano: f.soloAnterior,
+              },
+            ]
+          : f.secciones.map((sec) => ({
+              modulo: 'GASTOS_FILA' as const,
+              clave: claveFilaAnteriorEnSeccion(f.nombre, sec),
+              label: f.nombre,
+              valor: f.anteriorPorSeccion[sec] ?? 0,
+              esHuerfano: false,
+            })),
+      )
+    : []
   const comparativo = useComparativoLote(entradasAnterior, ejercicioId, sociedadId)
 
   function handleToggle(key: string, value: boolean) {
@@ -152,6 +176,7 @@ export function GastosView({
           <TablaGastos
             secciones={seccionesVisibles}
             huerfanas={huerfanasVisibles}
+            filas={filas}
             conComparativo={conComparativo}
             editarAnterior={puedeEditarAnterior}
             comparativo={comparativo}
