@@ -11,6 +11,7 @@ import type {
 import type { CostoVentasDTO } from '@/modules/costo-ventas/domain/types'
 import { esRubroHuerfano } from '@/modules/estados/lib/rubroHuerfano'
 import { tieneAnteriorCargado, totalesNota, type NotaDTO } from '@/modules/notas/domain/types'
+import type { BienDeUsoDTO } from '@/modules/bienes-de-uso/domain/types'
 import { parsSeccionDeClaveHuerfano, type ComparativoManualDTO } from '../domain/types'
 import { restar, sumar, sumarPor } from '@/lib/importe'
 
@@ -123,11 +124,12 @@ export function aplicarAnteriorDesdeNotas(
     const cargada = nota !== null && nota.tipo === 'CUANTITATIVA' && tieneAnteriorCargado(nota)
     // Sin nota cargada se conserva lo que ya tenía el rubro: lo escrito en el estado o, en bienes
     // de cambio, la existencia final del Anexo II.
-    const estado = cargada ? 'NOTA' : escritos.has(r.id) ? 'ESCRITO_ANTES' : 'PENDIENTE'
+    const estado = cargada ? 'CARGADO' : escritos.has(r.id) ? 'ESCRITO_ANTES' : 'PENDIENTE'
     return {
       ...r,
       displayValueAnt: cargada ? totalesNota(nota).anterior : r.displayValueAnt,
-      anteriorDesdeNota: {
+      anteriorDesdeDetalle: {
+        fuente: 'NOTA',
         estado,
         notaId: nota?.id ?? null,
         notaNumero: nota?.numero ?? null,
@@ -137,6 +139,39 @@ export function aplicarAnteriorDesdeNotas(
               .filter((d) => !d.esTotal)
               .map((d) => ({ concepto: d.concepto, importeAnterior: d.importeAnterior }))
           : [],
+      },
+    }
+  })
+  return { ...data, sspRubros }
+}
+
+/**
+ * Carga manual: el anterior del rubro de bienes de uso es la suma del neto residual del ejercicio
+ * anterior de las categorías del Anexo I, que se carga ahí; en el estado no se escribe. Solo si el
+ * ejercicio tiene Anexo I. Sin neto anterior cargado, igual que con las notas: se muestra lo escrito
+ * antes en el estado o queda pendiente.
+ */
+export function aplicarAnteriorDesdeAnexoI(
+  data: EstadosData,
+  anexoI: { rubroIds: Set<string>; categorias: BienDeUsoDTO[] } | undefined,
+  escritos: Set<string>,
+): EstadosData {
+  if (!anexoI || anexoI.categorias.length === 0) return data
+  const cargado = anexoI.categorias.some((c) => c.netoResidualAnteriorManual != null)
+  const total = sumarPor(anexoI.categorias, (c) => c.netoResidualAnteriorManual)
+  const sspRubros = data.sspRubros.map((r): RubroFila => {
+    if (!anexoI.rubroIds.has(r.id)) return r
+    const estado = cargado ? 'CARGADO' : escritos.has(r.id) ? 'ESCRITO_ANTES' : 'PENDIENTE'
+    return {
+      ...r,
+      displayValueAnt: cargado ? total : r.displayValueAnt,
+      anteriorDesdeDetalle: {
+        fuente: 'ANEXO_I',
+        estado,
+        notaId: null,
+        notaNumero: null,
+        notaTitulo: null,
+        filas: [],
       },
     }
   })

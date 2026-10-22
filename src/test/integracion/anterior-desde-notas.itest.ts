@@ -35,6 +35,10 @@ import {
   previsualizarRegeneracionAction,
 } from '@/modules/notas/actions/notas.actions'
 import { findNotasByEjercicio } from '@/modules/notas/repository/notas.repository'
+import {
+  crearBienDeUsoAction,
+  guardarLoteBienesAction,
+} from '@/modules/bienes-de-uso/actions/bienes-de-uso.actions'
 
 const ctx = {} as {
   estudioId: string
@@ -162,8 +166,8 @@ describe('Anterior del Estado de Situación Patrimonial desde las notas', () => 
 
     const caja = await rubroDelEstado('ACT-CTE-01')
     expect(caja.displayValueAnt).toBe(110_000.75)
-    expect(caja.anteriorDesdeNota?.estado).toBe('NOTA')
-    expect(caja.anteriorDesdeNota?.filas).toEqual([
+    expect(caja.anteriorDesdeDetalle?.estado).toBe('CARGADO')
+    expect(caja.anteriorDesdeDetalle?.filas).toEqual([
       { concepto: 'BCO NACION CC', importeAnterior: 2_000.25 },
       { concepto: 'BCO GALICIA', importeAnterior: 98_000.5 },
       { concepto: 'BCO SANTANDER', importeAnterior: 10_000 },
@@ -185,7 +189,36 @@ describe('Anterior del Estado de Situación Patrimonial desde las notas', () => 
     )
     const deudores = await rubroDelEstado('ACT-CTE-03')
     expect(deudores.displayValueAnt).toBe(42_500.5)
-    expect(deudores.anteriorDesdeNota?.estado).toBe('ESCRITO_ANTES')
+    expect(deudores.anteriorDesdeDetalle?.estado).toBe('ESCRITO_ANTES')
+  })
+})
+
+describe('Anterior de bienes de uso desde el Anexo I', () => {
+  it('el rubro toma la suma del neto residual anterior de las categorías', async () => {
+    await db.cuentaContable.create({
+      data: {
+        ejercicioId: ctx.ejercicioId,
+        codigo: '1501',
+        nombre: 'Rodados',
+        rubroBaseId: ctx.rubro.get('ACT-NCTE-09')!,
+        saldoDeudor: 500_000,
+        saldoFinal: 500_000,
+        clasificadaManual: true,
+      },
+    })
+    const args = [ctx.ejercicioId, ctx.sociedadId] as const
+    const rodados = ok(await crearBienDeUsoAction(...args, 'Rodados'))
+    const muebles = ok(await crearBienDeUsoAction(...args, 'Muebles y útiles'))
+    ok(
+      await guardarLoteBienesAction(...args, [
+        { ...rodados, netoResidualAnteriorManual: 75_000.5 },
+        { ...muebles, netoResidualAnteriorManual: 4_999.75 },
+      ]),
+    )
+
+    const bdu = await rubroDelEstado('ACT-NCTE-09')
+    expect(bdu.displayValueAnt).toBe(80_000.25)
+    expect(bdu.anteriorDesdeDetalle).toMatchObject({ fuente: 'ANEXO_I', estado: 'CARGADO' })
   })
 })
 

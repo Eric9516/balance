@@ -23,19 +23,21 @@ export type RubroFila = {
   notaNumero: number | null // número de nota asociada para mostrar "(Nota X)"
   cuentas: FilaCuenta[]
   /**
-   * Carga manual: el anterior del rubro se carga en su nota de composición, cuenta por cuenta, y
-   * no se escribe en el estado.
+   * Carga manual: el anterior del rubro se carga en su detalle (la nota de composición, cuenta por
+   * cuenta, o el Anexo I, por categoría) y no se escribe en el estado.
    */
-  anteriorDesdeNota?: AnteriorDesdeNota
+  anteriorDesdeDetalle?: AnteriorDesdeDetalle
 }
 
-export type AnteriorDesdeNota = {
+export type AnteriorDesdeDetalle = {
+  /** Dónde se carga: la nota de composición del rubro o el Anexo I (bienes de uso). */
+  fuente: 'NOTA' | 'ANEXO_I'
   /**
-   * NOTA: el anterior es el total de la nota. ESCRITO_ANTES: la nota todavía no tiene el anterior y
-   * se muestra el importe que se había escrito en el estado (antes de esta regla). PENDIENTE: ni
-   * una cosa ni la otra (o las notas todavía no se generaron).
+   * CARGADO: el anterior es el total del detalle. ESCRITO_ANTES: el detalle todavía no tiene el
+   * anterior y se muestra el importe que se había escrito en el estado (antes de esta regla).
+   * PENDIENTE: ni una cosa ni la otra (o las notas todavía no se generaron).
    */
-  estado: 'NOTA' | 'ESCRITO_ANTES' | 'PENDIENTE'
+  estado: 'CARGADO' | 'ESCRITO_ANTES' | 'PENDIENTE'
   /** null si las notas todavía no se generaron. */
   notaId: string | null
   notaNumero: number | null

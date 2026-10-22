@@ -11,7 +11,7 @@ import {
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatFecha } from '@/lib/utils/dates'
-import type { AnteriorDesdeNota, RubroFila } from '../domain/types'
+import type { AnteriorDesdeDetalle, RubroFila } from '../domain/types'
 import {
   SECCIONES_PASIVO,
   SSP_STRUCTURE,
@@ -149,28 +149,40 @@ function TotalRow({
   )
 }
 
-function nombreNota(a: AnteriorDesdeNota): string {
+function nombreNota(a: AnteriorDesdeDetalle): string {
+  if (a.fuente === 'ANEXO_I') return 'el Anexo I'
   return a.notaNumero != null ? `la Nota N° ${a.notaNumero}` : `la nota "${a.notaTitulo}"`
 }
 
-function tituloAnteriorDesdeNota(a: AnteriorDesdeNota): string {
+function hrefDetalle(a: AnteriorDesdeDetalle): string {
+  if (a.fuente === 'ANEXO_I') return '?paso=anexos&anexo=bienes-de-uso'
+  return a.notaId ? `?paso=notas#nota-${a.notaId}` : '?paso=notas'
+}
+
+function tituloAnterior(a: AnteriorDesdeDetalle): string {
+  const antes = a.estado === 'ESCRITO_ANTES' ? 'Importe escrito a mano en el estado. ' : ''
+  if (a.fuente === 'ANEXO_I') {
+    return a.estado === 'CARGADO'
+      ? 'Suma del neto residual del ejercicio anterior del Anexo I. Para cambiarlo, editá el Anexo I.'
+      : `${antes}El anterior de este rubro se carga en el Anexo I: neto residual del ejercicio anterior por categoría.`
+  }
   if (a.notaId === null) {
-    const antes = a.estado === 'ESCRITO_ANTES' ? 'Importe escrito a mano en el estado. ' : ''
     return `${antes}El anterior de este rubro se carga en su nota, cuenta por cuenta: generá las notas y cargalo ahí.`
   }
   switch (a.estado) {
-    case 'NOTA':
+    case 'CARGADO':
       return `Total de la columna "Ejercicio anterior" de ${nombreNota(a)}. Para cambiarlo, editá la nota.`
     case 'ESCRITO_ANTES':
-      return `Importe escrito a mano en el estado. Ahora el anterior se carga en ${nombreNota(a)}, cuenta por cuenta: apenas lo cargues ahí, reemplaza este importe.`
+      return `${antes}Ahora el anterior se carga en ${nombreNota(a)}, cuenta por cuenta: apenas lo cargues ahí, reemplaza este importe.`
     case 'PENDIENTE':
       return `El anterior de este rubro se carga en ${nombreNota(a)}, cuenta por cuenta.`
   }
 }
 
-/** Importe anterior de un rubro que se carga en su nota: candado, aviso y acceso a la nota. */
-function AnteriorDeNota({ rubro, a }: { rubro: RubroFila; a: AnteriorDesdeNota }) {
-  const titulo = tituloAnteriorDesdeNota(a)
+/** Importe anterior de un rubro que se carga en su detalle: candado, aviso y acceso al detalle. */
+function AnteriorDeDetalle({ rubro, a }: { rubro: RubroFila; a: AnteriorDesdeDetalle }) {
+  const titulo = tituloAnterior(a)
+  const ir = a.fuente === 'NOTA' && a.notaId === null ? 'Ir a Notas' : `Ir a ${nombreNota(a)}`
   return (
     <div className="flex items-center justify-end gap-1">
       {a.estado === 'ESCRITO_ANTES' && (
@@ -180,9 +192,9 @@ function AnteriorDeNota({ rubro, a }: { rubro: RubroFila; a: AnteriorDesdeNota }
       )}
       <CeldaBloqueada value={rubro.displayValueAnt} titulo={titulo} className="px-1" />
       <Link
-        href={a.notaId ? `?paso=notas#nota-${a.notaId}` : '?paso=notas'}
-        title={a.notaId ? `Ir a ${nombreNota(a)}` : 'Ir a Notas'}
-        aria-label={a.notaId ? `Ir a ${nombreNota(a)}` : 'Ir a Notas'}
+        href={hrefDetalle(a)}
+        title={ir}
+        aria-label={ir}
         className="rounded p-0.5 text-blue-600 transition-colors hover:bg-blue-50"
       >
         <ArrowRight className="h-3.5 w-3.5" />
@@ -196,7 +208,7 @@ function AnteriorDeNota({ rubro, a }: { rubro: RubroFila; a: AnteriorDesdeNota }
  * concepto = nombre de la cuenta) y las filas de la nota que no son cuentas de este ejercicio.
  */
 function anteriorPorCuenta(rubro: RubroFila) {
-  const filas = rubro.anteriorDesdeNota?.filas ?? []
+  const filas = rubro.anteriorDesdeDetalle?.filas ?? []
   const porConcepto = new Map<string, number>()
   for (const f of filas) {
     const clave = claveConcepto(f.concepto)
@@ -235,7 +247,7 @@ function RubroExpandableRow({
     : formatCurrency(rubro.displayValue)
   const isNegative = rubro.displayValue < 0
   const huerfano = esRubroHuerfano(rubro.id)
-  const desdeNota = rubro.anteriorDesdeNota
+  const desdeNota = rubro.anteriorDesdeDetalle
   const antCuentas = anteriorPorCuenta(rubro)
   const formatear = (v: number) =>
     deduccion ? `(${formatCurrency(Math.abs(v))})` : formatCurrency(v)
@@ -311,7 +323,7 @@ function RubroExpandableRow({
         {mostrarAnterior && (
           <td className="px-2 py-2 text-right">
             {desdeNota ? (
-              <AnteriorDeNota rubro={rubro} a={desdeNota} />
+              <AnteriorDeDetalle rubro={rubro} a={desdeNota} />
             ) : editarAnterior && ejercicioId && sociedadId && comparativo ? (
               <div className="ml-auto w-36">
                 <CeldaNumero
@@ -460,8 +472,9 @@ export function SSPTab({
 
       {editarAnterior && (
         <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-2.5 text-xs text-blue-700">
-          Los rubros con nota se cargan en su nota, cuenta por cuenta: acá se ve el total, con
-          candado (la flecha lleva a la nota). Los demás se cargan en la columna de la derecha. Usá
+          Los rubros con nota se cargan en su nota, cuenta por cuenta, y bienes de uso en el Anexo
+          I: acá se ve el total, con candado (la flecha lleva a donde se carga). Los demás se cargan
+          en la columna de la derecha. Usá
           <em> “Agregar rubro del período anterior” </em> dentro de cada sección para rubros que el
           ejercicio actual no tiene.
         </div>

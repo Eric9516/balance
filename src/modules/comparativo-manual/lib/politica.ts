@@ -19,8 +19,10 @@ import type { EstadosData } from '@/modules/estados/domain/types'
 import type { GastosSecciones } from '@/modules/gastos/repository/gastos-dinamico.repository'
 import type { CostoVentasDTO } from '@/modules/costo-ventas/domain/types'
 import type { NotaDTO } from '@/modules/notas/domain/types'
+import type { BienDeUsoDTO } from '@/modules/bienes-de-uso/domain/types'
 import type { ComparativoManualDTO } from '../domain/types'
 import {
+  aplicarAnteriorDesdeAnexoI,
   aplicarAnteriorDesdeNotas,
   applyComparativosToEstados,
   applyComparativosToGastos,
@@ -65,40 +67,51 @@ export function seleccionarManual(
 
 // ─── Estados (SSP + EERR) ────────────────────────────────────────────────────
 
+/** Dónde se carga el anterior de los rubros que no se escriben en el estado (carga manual). */
+export type DetalleAnterior = {
+  /** Rubros que llevan nota con detalle, con esa nota (null si las notas no se generaron). */
+  notas?: Map<string, NotaDTO | null>
+  /** Rubros del Anexo I (bienes de uso) y sus categorías. */
+  bienesDeUso?: { rubroIds: Set<string>; categorias: BienDeUsoDTO[] }
+}
+
 export function resolverEstados(
   raw: EstadosData,
   modo: ModoAnteriorEfectivo,
   comparativos: ComparativoManualDTO[],
-  /**
-   * Rubros cuyo anterior se carga en su nota con detalle, con esa nota (null si las notas todavía
-   * no se generaron). Solo se usa en MANUAL (ver aplicarAnteriorDesdeNotas).
-   */
-  anteriorEnNotas: Map<string, NotaDTO | null> = new Map(),
+  /** Solo se usa en MANUAL (ver aplicarAnteriorDesdeNotas y aplicarAnteriorDesdeAnexoI). */
+  detalle: DetalleAnterior = {},
 ): EstadosData {
   switch (fuenteComparativo(modo)) {
     case 'DERIVADO':
       return { ...raw, hayEjercicioAnterior: true }
-    case 'MANUAL':
+    case 'MANUAL': {
+      const escritos = new Set(
+        comparativos.filter((c) => c.modulo === 'SSP' && c.valor !== 0).map((c) => c.clave),
+      )
       return {
         // Los gastos del anterior NO se aplican acá: llegan ya resueltos en el Anexo III
         // (resolverGastos, totales por sección calculados desde las filas) a través de
         // buildEstadosData. Aplicarlos de nuevo los pisaría con importes cargados a mano.
-        // El anterior de los rubros del SSP que llevan nota con detalle sale de la nota.
-        ...aplicarAnteriorDesdeNotas(
-          applyComparativosToEstados(
-            raw,
-            seleccionarManual(modo, comparativos).filter(
-              (c) => c.modulo !== 'GASTOS' && c.modulo !== 'GASTOS_FILA',
+        // El anterior de los rubros del SSP con detalle (nota o Anexo I) sale de ese detalle.
+        ...aplicarAnteriorDesdeAnexoI(
+          aplicarAnteriorDesdeNotas(
+            applyComparativosToEstados(
+              raw,
+              seleccionarManual(modo, comparativos).filter(
+                (c) => c.modulo !== 'GASTOS' && c.modulo !== 'GASTOS_FILA',
+              ),
+              'RUBRO',
             ),
-            'RUBRO',
+            detalle.notas ?? new Map(),
+            escritos,
           ),
-          anteriorEnNotas,
-          new Set(
-            comparativos.filter((c) => c.modulo === 'SSP' && c.valor !== 0).map((c) => c.clave),
-          ),
+          detalle.bienesDeUso,
+          escritos,
         ),
         hayEjercicioAnterior: true,
       }
+    }
     case 'NINGUNO':
       return { ...raw, hayEjercicioAnterior: false }
   }

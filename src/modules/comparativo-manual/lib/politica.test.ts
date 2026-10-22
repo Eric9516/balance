@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { EstadosData, RubroFila } from '@/modules/estados/domain/types'
 import type { NotaDTO } from '@/modules/notas/domain/types'
+import type { BienDeUsoDTO } from '@/modules/bienes-de-uso/domain/types'
 import type { ComparativoManualDTO } from '../domain/types'
 import {
   editarAnteriorManual,
@@ -227,10 +228,11 @@ describe('resolverEstados: en MANUAL el anterior del rubro sale de su nota', () 
         ]),
       ],
     ])
-    const r = resolverEstados(estadosBase(), 'MANUAL', residuos, notas)
+    const r = resolverEstados(estadosBase(), 'MANUAL', residuos, { notas })
     expect(caja(r)?.displayValueAnt).toBe(900.75)
-    expect(caja(r)?.anteriorDesdeNota).toEqual({
-      estado: 'NOTA',
+    expect(caja(r)?.anteriorDesdeDetalle).toEqual({
+      estado: 'CARGADO',
+      fuente: 'NOTA',
       notaId: 'n',
       notaNumero: 2,
       notaTitulo: 'CAJA Y BANCOS',
@@ -242,38 +244,68 @@ describe('resolverEstados: en MANUAL el anterior del rubro sale de su nota', () 
     // Los rubros que no llevan nota no cambian (siguen escribiéndose en el estado).
     const deudas = r.sspRubros.find((x) => x.id === 'deudas')
     expect(deudas?.displayValueAnt).toBe(30)
-    expect(deudas?.anteriorDesdeNota).toBeUndefined()
+    expect(deudas?.anteriorDesdeDetalle).toBeUndefined()
   })
 
   it('con la nota vacía muestra lo escrito antes en el estado, marcado como tal', () => {
     const notas = new Map<string, NotaDTO | null>([['caja', nota([detalle('Bco Santander', 0)])]])
-    const r = resolverEstados(estadosBase(), 'MANUAL', residuos, notas)
+    const r = resolverEstados(estadosBase(), 'MANUAL', residuos, { notas })
     expect(caja(r)?.displayValueAnt).toBe(999)
-    expect(caja(r)?.anteriorDesdeNota?.estado).toBe('ESCRITO_ANTES')
+    expect(caja(r)?.anteriorDesdeDetalle?.estado).toBe('ESCRITO_ANTES')
   })
 
   it('sin notas generadas ni importe escrito queda pendiente de cargar en la nota', () => {
     const sinCaja = residuos.filter((c) => c.clave !== 'caja')
-    const r = resolverEstados(estadosBase(), 'MANUAL', sinCaja, new Map([['caja', null]]))
-    expect(caja(r)?.anteriorDesdeNota).toMatchObject({ estado: 'PENDIENTE', notaId: null })
+    const r = resolverEstados(estadosBase(), 'MANUAL', sinCaja, {
+      notas: new Map([['caja', null]]),
+    })
+    expect(caja(r)?.anteriorDesdeDetalle).toMatchObject({ estado: 'PENDIENTE', notaId: null })
   })
 
   it('una nota informativa no completa el rubro', () => {
     const notas = new Map<string, NotaDTO | null>([
       ['caja', nota([detalle('Texto', 10)], 'INFORMATIVA')],
     ])
-    expect(caja(resolverEstados(estadosBase(), 'MANUAL', residuos, notas))?.displayValueAnt).toBe(
-      999,
-    )
+    expect(
+      caja(resolverEstados(estadosBase(), 'MANUAL', residuos, { notas }))?.displayValueAnt,
+    ).toBe(999)
   })
 
   it('fuera de MANUAL no usa las notas', () => {
     const notas = new Map<string, NotaDTO | null>([['caja', nota([detalle('Bco Santander', 600)])]])
     for (const modo of ['VINCULADO', 'SIN_ANTERIOR', 'PENDIENTE'] as const) {
-      const r = resolverEstados(estadosBase(), modo, residuos, notas)
+      const r = resolverEstados(estadosBase(), modo, residuos, { notas })
       expect(caja(r)?.displayValueAnt).toBe(80)
-      expect(caja(r)?.anteriorDesdeNota).toBeUndefined()
+      expect(caja(r)?.anteriorDesdeDetalle).toBeUndefined()
     }
+  })
+})
+
+describe('resolverEstados: en MANUAL el anterior de bienes de uso sale del Anexo I', () => {
+  const categoria = (netoResidualAnteriorManual: number | null) =>
+    ({ netoResidualAnteriorManual }) as BienDeUsoDTO
+  const rubro = (r: EstadosData) => r.sspRubros.find((x) => x.id === 'caja')
+  const conAnexo = (categorias: BienDeUsoDTO[]) =>
+    resolverEstados(estadosBase(), 'MANUAL', residuos, {
+      bienesDeUso: { rubroIds: new Set(['caja']), categorias },
+    })
+
+  it('suma el neto residual anterior de las categorías y no se escribe en el estado', () => {
+    const r = conAnexo([categoria(1_000.5), categoria(null), categoria(200.25)])
+    expect(rubro(r)?.displayValueAnt).toBe(1_200.75)
+    expect(rubro(r)?.anteriorDesdeDetalle).toMatchObject({ fuente: 'ANEXO_I', estado: 'CARGADO' })
+  })
+
+  it('sin neto anterior cargado muestra lo escrito antes en el estado', () => {
+    const r = conAnexo([categoria(null)])
+    expect(rubro(r)?.displayValueAnt).toBe(999)
+    expect(rubro(r)?.anteriorDesdeDetalle?.estado).toBe('ESCRITO_ANTES')
+  })
+
+  it('sin Anexo I el rubro se sigue escribiendo en el estado', () => {
+    const r = conAnexo([])
+    expect(rubro(r)?.displayValueAnt).toBe(999)
+    expect(rubro(r)?.anteriorDesdeDetalle).toBeUndefined()
   })
 })
 

@@ -50,12 +50,12 @@ export function armarBloquesComparativo(params: {
     new Set(comparativos.filter((c) => c.modulo === modulo).map((c) => c.clave))
 
   const sspClaves = claves('SSP')
-  // En el SSP solo se escriben los rubros sin nota con detalle (por ejemplo, bienes de uso): los
-  // demás se cargan en su nota y el patrimonio neto sale del E.E.P.N.
+  // En el SSP solo se escriben los rubros sin detalle: los demás se cargan en su nota o en el
+  // Anexo I, y el patrimonio neto sale del E.E.P.N.
   const sspRubros = estadosData.sspRubros.filter(
-    (r) => !esRubroHuerfano(r.id) && r.seccionSSP !== 'PATRIMONIO_NETO' && !r.anteriorDesdeNota,
+    (r) => !esRubroHuerfano(r.id) && r.seccionSSP !== 'PATRIMONIO_NETO' && !r.anteriorDesdeDetalle,
   )
-  const enNotas = estadosData.sspRubros.filter((r) => r.anteriorDesdeNota)
+  const enNotas = estadosData.sspRubros.filter((r) => r.anteriorDesdeDetalle?.fuente === 'NOTA')
   const eerrClaves = claves('EERR')
   const secciones = estadosData.eerr.seccionesGasto.filter((s) => !esRubroHuerfano(s.key))
   const cvClaves = claves('COSTO_VENTAS')
@@ -65,7 +65,7 @@ export function armarBloquesComparativo(params: {
     {
       clave: 'SSP',
       label: 'Estado de Situación Patrimonial',
-      descripcion: `Rubros sin nota con detalle, que se escriben en el estado: ${sspRubros.map((r) => r.nombre).join(', ')}.`,
+      descripcion: `Rubros sin nota ni anexo, que se escriben en el estado: ${sspRubros.map((r) => r.nombre).join(', ')}.`,
       cargados: sspRubros.filter((r) => sspClaves.has(r.id)).length,
       total: sspRubros.length,
       aplica: sspRubros.length > 0,
@@ -104,7 +104,8 @@ export function armarBloquesComparativo(params: {
     {
       clave: 'BDU',
       label: 'Bienes de Uso (Anexo I)',
-      descripcion: 'Neto residual del ejercicio anterior por categoría.',
+      descripcion:
+        'Neto residual del ejercicio anterior por categoría. El estado toma la suma para el rubro Bienes de uso.',
       cargados: bienes.filter((b) => b.netoResidualAnteriorManual != null).length,
       total: bienes.length,
       aplica: tieneBDU && bienes.length > 0,

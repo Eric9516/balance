@@ -17,6 +17,9 @@ import { findGastosDinamicos } from '@/modules/gastos/repository/gastos-dinamico
 import { findNotasByEjercicio } from '@/modules/notas/repository/notas.repository'
 import { notaPorRubro } from '@/modules/notas/domain/types'
 import { generaNotaCuantitativa } from '@/modules/notas/domain/regeneracion'
+import { findBienesDeUso } from '@/modules/bienes-de-uso/repository/bienes-de-uso.repository'
+import type { BienDeUsoDTO } from '@/modules/bienes-de-uso/domain/types'
+import { REGLA_POR_CLAVE } from '@/modules/documentos/domain/reglas'
 import { findMovimientosPN } from '@/modules/patrimonio-neto/repository/patrimonio-neto.repository'
 import { derivarDesdeAnteriorPN } from '@/modules/patrimonio-neto/domain/saldosInicio'
 import { armarEvolucionPN } from '@/modules/patrimonio-neto/domain/evolucion'
@@ -62,6 +65,7 @@ export async function cargarEstadosConPN(
     comparativos,
     movsAnterior,
     movsActual,
+    bienesDeUso,
   ] = await Promise.all([
     findRubrosBase(),
     anteriorId ? findCuentasByEjercicio(anteriorId) : Promise.resolve([] as CuentaContableDTO[]),
@@ -74,6 +78,10 @@ export async function cargarEstadosConPN(
       : Promise.resolve([] as ComparativoManualDTO[]),
     anteriorId ? findMovimientosPN(anteriorId) : Promise.resolve([]),
     findMovimientosPN(ejercicioId),
+    // Carga manual: el anterior de bienes de uso sale del Anexo I.
+    editarAnteriorManual(modo)
+      ? findBienesDeUso(ejercicioId)
+      : Promise.resolve([] as BienDeUsoDTO[]),
   ])
 
   const costoVentasAnt = resolverCostoVentasAnterior(
@@ -95,12 +103,19 @@ export async function cargarEstadosConPN(
     notas,
     hayEjercicioAnterior: mostrarColumnaAnterior(modo),
   })
-  // Rubros cuyo anterior se carga en su nota con detalle (con su nota, si ya se generó).
+  // Dónde se carga el anterior de cada rubro con detalle: su nota (con la nota, si ya se generó)
+  // o, bienes de uso, el Anexo I (los rubros que sugieren ese anexo).
   const notaDeRubro = notaPorRubro(cuentas, notas)
-  const anteriorEnNotas = new Map(
-    rubros.filter(generaNotaCuantitativa).map((r) => [r.id, notaDeRubro.get(r.id) ?? null]),
-  )
-  const estadosData = resolverEstados(raw, modo, comparativos, anteriorEnNotas)
+  const rubrosAnexoI = new Set(REGLA_POR_CLAVE.get('ANEXO_BIENES_USO')?.rubros ?? [])
+  const estadosData = resolverEstados(raw, modo, comparativos, {
+    notas: new Map(
+      rubros.filter(generaNotaCuantitativa).map((r) => [r.id, notaDeRubro.get(r.id) ?? null]),
+    ),
+    bienesDeUso: {
+      rubroIds: new Set(rubros.filter((r) => rubrosAnexoI.has(r.codigo)).map((r) => r.id)),
+      categorias: bienesDeUso,
+    },
+  })
 
   const pnData = armarEvolucionPN({
     ejercicioId,

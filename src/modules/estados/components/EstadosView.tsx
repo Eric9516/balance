@@ -53,7 +53,7 @@ export function EstadosView({
   // Los rubros cuyo anterior sale de su nota no entran: no se escriben en el estado.
   const entradasAnterior: ComparativoEntry[] = [
     ...data.sspRubros
-      .filter((r) => !r.anteriorDesdeNota)
+      .filter((r) => !r.anteriorDesdeDetalle)
       .map((r) => ({
         modulo: 'SSP' as const,
         clave: r.id,
