@@ -1,8 +1,9 @@
 /**
  * Auditoría completa de la app (`pnpm auditoria`): un contador simulado hace tres balances de
  * referencia de punta a punta (primer balance, anterior cargado a mano y anterior vinculado),
- * controla cada pantalla contra resultados conocidos y entre sí, y deja un informe en
- * `auditoria/informes/`. Corre contra el PostgreSQL embebido de las pruebas: nunca toca producción.
+ * controla cada pantalla contra resultados conocidos y entre sí, recorre las pantallas en un
+ * navegador real y deja un informe en `auditoria/informes/`. `pnpm auditoria:rapida` hace solo la
+ * parte de lógica (segundos). Corre contra el PostgreSQL embebido de las pruebas: nunca toca producción.
  * Falla si hay algún hallazgo de gravedad "error".
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
@@ -24,6 +25,7 @@ import { ESCENARIOS } from './referencia'
 import { Registro } from './registro'
 import { simular, type Contexto } from './motor'
 import { controlar } from './controles'
+import { recorrerPantallas } from './pantallas'
 
 const ctx = { reg: new Registro(), hechos: new Map() } as unknown as Contexto
 let estudioId = ''
@@ -71,7 +73,7 @@ afterAll(async () => {
 
 describe('Auditoría de BalanceRT', () => {
   for (const esc of ESCENARIOS) {
-    it(`Escenario ${esc.id}: ${esc.titulo}`, async () => {
+    it(`Lógica — escenario ${esc.id}: ${esc.titulo}`, async () => {
       try {
         const ej = await simular(ctx, esc)
         if (ej) await controlar(ctx, esc, ej)
@@ -86,7 +88,12 @@ describe('Auditoría de BalanceRT', () => {
     })
   }
 
-  it('sin errores', () => {
+  // Se saltea con `pnpm auditoria:rapida`.
+  it('Pantallas — cada paso de cada ejercicio y el documento imprimible', async () => {
+    await recorrerPantallas(ctx, ESCENARIOS)
+  })
+
+  it('Resultado — sin errores', () => {
     const errores = ctx.reg.hallazgos.filter((h) => h.gravedad === 'error')
     expect(errores.map((h) => `[${h.escenario}] ${h.area}: ${h.mensaje}`)).toEqual([])
   })
