@@ -23,7 +23,8 @@ import { restar } from '@/lib/importe'
  *  - el resultado del ejercicio siempre viene del EERR;
  *  - en modo VINCULADO con fuente, "Saldos al inicio" y la columna "Ejercicio anterior"
  *    se recalculan desde el anterior (el cliente no puede pisarlos);
- *  - en modo MANUAL, cambiar la columna "Ejercicio anterior" invalida la autorización.
+ *  - en modo MANUAL, cambiar la columna "Ejercicio anterior" invalida la autorización. El
+ *    resultado del año anterior no cuenta: no se carga, sale del estado de resultados anterior.
  */
 export async function guardarEvolucionPNAction(
   ejercicioId: string,
@@ -66,7 +67,8 @@ export async function guardarEvolucionPNAction(
     if (modo === 'MANUAL') {
       const previo = new Map(guardadosPrevios.map((m) => [m.tipo, m.totalAnterior]))
       const cambioAnterior = saneado.movimientos.some(
-        (m) => restar(previo.get(m.tipo), m.totalAnterior) !== 0,
+        (m) =>
+          m.tipo !== 'RESULTADO_EJERCICIO' && restar(previo.get(m.tipo), m.totalAnterior) !== 0,
       )
       if (cambioAnterior) await marcarComparativoModificado(ejercicioId)
     }

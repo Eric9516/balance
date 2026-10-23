@@ -62,10 +62,30 @@ export function armarEvolucionPN(params: {
   resultadoEjercicio: number
   modo: ModoAnteriorEfectivo
   derivado?: DerivadoPN
+  /**
+   * Carga manual: el resultado del año anterior del estado de resultados anterior. Es la columna
+   * "Ejercicio anterior" de la fila del resultado: no se carga a mano (la compuerta exige que
+   * coincidan, AUT-012). Null en los demás modos.
+   */
+  resultadoAnterior?: number | null
 }): EvolucionPNData {
-  const { ejercicioId, guardados, resultadoEjercicio, modo, derivado = SIN_DERIVADO_PN } = params
+  const {
+    ejercicioId,
+    guardados,
+    resultadoEjercicio,
+    modo,
+    derivado = SIN_DERIVADO_PN,
+    resultadoAnterior = null,
+  } = params
   const base = conResultado(completarMovimientos(ejercicioId, guardados), resultadoEjercicio)
-  const { movimientos, bloqueo, advertencias } = aplicarArrastrePN(base, derivado, modo)
+  const arrastre = aplicarArrastrePN(base, derivado, modo)
+  const { bloqueo, advertencias } = arrastre
+  const movimientos =
+    resultadoAnterior === null
+      ? arrastre.movimientos
+      : arrastre.movimientos.map((mov) =>
+          mov.tipo === 'RESULTADO_EJERCICIO' ? { ...mov, totalAnterior: resultadoAnterior } : mov,
+        )
   return {
     movimientos,
     resultadoEjercicio,

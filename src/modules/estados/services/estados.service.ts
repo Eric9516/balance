@@ -128,6 +128,7 @@ export async function cargarEstadosConPN(
     resultadoEjercicio: estadosData.eerr.utilidadEjercicio,
     modo,
     derivado: derivarDesdeAnteriorPN(movsAnterior, coeficiente),
+    resultadoAnterior: editarAnteriorManual(modo) ? estadosData.eerr.utilidadEjercicioAnt : null,
   })
 
   return { estadosData, pnData, comparativos, coeficiente, anteriorId }
