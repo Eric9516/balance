@@ -280,6 +280,14 @@ export async function resetEstadosConfirmado(ejercicioId: string): Promise<void>
   })
 }
 
+/** El E.E.P.N. cambió: se vuelve a confirmar, y también los estados que lo usan. */
+export async function desconfirmarPN(ejercicioId: string): Promise<void> {
+  await db.ejercicioContable.update({
+    where: { id: ejercicioId },
+    data: { pnConfirmado: false, estadosConfirmado: false },
+  })
+}
+
 /** Autorización explícita de los saldos del ejercicio anterior cargados a mano. */
 export async function autorizarComparativo(ejercicioId: string, por: string): Promise<void> {
   await db.ejercicioContable.update({

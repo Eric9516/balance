@@ -18,6 +18,7 @@ import {
   previsualizarNotaTransicion,
   TITULO_NOTA_TRANSICION,
 } from '../services/nota-transicion.service'
+import { sincronizarModificacionInicio } from '../services/modificacion-inicio.service'
 import type { NotaTransicionGenerada } from '../lib/generarNota'
 import type { AjusteTransicionDTO, AjusteTransicionInput } from '../domain/types'
 
@@ -34,6 +35,7 @@ export async function crearAjusteTransicionAction(
     await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
     const existentes = await findAjustesByEjercicio(ejercicioId)
     const row = await createAjuste(ejercicioId, { ...input, orden: existentes.length + 1 })
+    await sincronizarModificacionInicio(ejercicioId, existentes)
     revalidar(sociedadId, ejercicioId)
     return actionOk(row)
   } catch (error) {
@@ -50,7 +52,9 @@ export async function guardarLoteAjustesTransicionAction(
 ): Promise<ActionResult<AjusteTransicionDTO[]>> {
   try {
     await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    const antes = await findAjustesByEjercicio(ejercicioId)
     const rows = await reemplazarAjustes(ejercicioId, ajustes)
+    await sincronizarModificacionInicio(ejercicioId, antes)
     revalidar(sociedadId, ejercicioId)
     return actionOk(rows)
   } catch (error) {
@@ -67,6 +71,7 @@ export async function eliminarAjusteTransicionAction(
 ): Promise<ActionResult<void>> {
   try {
     await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    const antes = await findAjustesByEjercicio(ejercicioId)
     if (!(await deleteAjuste(ejercicioId, id))) {
       return actionError({
         tipo: 'TECNICO',
@@ -76,6 +81,7 @@ export async function eliminarAjusteTransicionAction(
           'No se encontró esa partida de transición en este ejercicio. Recargá la página y volvé a intentar.',
       })
     }
+    await sincronizarModificacionInicio(ejercicioId, antes)
     revalidar(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {
