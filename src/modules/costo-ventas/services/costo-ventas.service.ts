@@ -37,15 +37,12 @@ export async function cargarCostoVentas(
       ? findComparativoByEjercicio(ejercicio.id, 'COSTO_VENTAS')
       : Promise.resolve([] as ComparativoManualDTO[]),
   ])
-  const arrastre = aplicarArrastreCostoVentas(datos, anteriorRaw, modo)
+  // El anterior en moneda de cierre: la existencia inicial es su existencia final reexpresada.
+  const anterior = ajustarCostoVentas(anteriorRaw, coeficiente)
+  const arrastre = aplicarArrastreCostoVentas(datos, anterior, modo)
   return {
     ...arrastre,
-    datosAnteriores: resolverCostoVentasAnterior(
-      ajustarCostoVentas(anteriorRaw, coeficiente),
-      modo,
-      comparativos,
-      ejercicio.id,
-    ),
+    datosAnteriores: resolverCostoVentasAnterior(anterior, modo, comparativos, ejercicio.id),
     conceptosExtra: comparativos.filter((c) => c.esHuerfano),
   }
 }

@@ -422,7 +422,7 @@ describe('Escenario A — ejercicio anterior vinculado', () => {
     expect(inst.costoInicioReexpresado).toBe(40_000)
   })
 
-  it('costo de ventas: existencia inicial = existencia final del anterior', async () => {
+  it('costo de ventas: existencia inicial = existencia final del anterior reexpresada', async () => {
     const cv = ok(
       await guardarTodoCostoVentasAction(ej2025, ctx.sociedadA, {
         existenciaInicial: 1,
@@ -431,8 +431,9 @@ describe('Escenario A — ejercicio anterior vinculado', () => {
         existenciaFinal: 220_000,
       }),
     )
-    expect(cv.existenciaInicial).toBe(180_000)
-    expect((await findCostoVentas(ej2025))?.existenciaInicial).toBe(180_000)
+    // 180.000 × 1,25 (índices 100 → 125): en moneda de cierre, igual que la columna del anterior.
+    expect(cv.existenciaInicial).toBe(225_000)
+    expect((await findCostoVentas(ej2025))?.existenciaInicial).toBe(225_000)
   })
 
   it('compuerta: confirma solo si el anterior está confirmado', async () => {

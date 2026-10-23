@@ -3,7 +3,10 @@
  *
  *  - Valor al comienzo del ejercicio      = valor al cierre del anterior (misma categoría)
  *  - Amortización acumulada al comienzo   = amortización acumulada al cierre del anterior
- *  - Neto residual "ejercicio anterior"   = neto residual al cierre del anterior
+ *  - Neto residual "ejercicio anterior"   = neto residual al cierre del anterior, reexpresado con
+ *    el coeficiente (es la columna comparativa: tiene que coincidir con el rubro del SSP anterior).
+ *    El valor y la amortización al comienzo quedan como cerraron: su reexpresión va en las
+ *    columnas "Ajuste por inflación".
  *
  * Las categorías se emparejan por nombre normalizado (sin mayúsculas, acentos ni
  * espacios dobles). Bloqueo duro por fila cuando hay fuente; las categorías sin
@@ -13,6 +16,7 @@
  */
 
 import type { ModoAnteriorEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
+import { multiplicar } from '@/lib/importe'
 import { calcularCierre, type BienDeUsoDTO } from './types'
 
 export function normalizarCategoria(s: string): string {
@@ -28,6 +32,7 @@ export type ArrastreBDU = {
 /** Mapa categoría normalizada → valores de cierre del anterior. */
 export function derivarArrastreBienesDeUso(
   bienesAnterior: BienDeUsoDTO[],
+  coeficiente = 1,
 ): Map<string, ArrastreBDU> {
   const map = new Map<string, ArrastreBDU>()
   for (const b of bienesAnterior) {
@@ -35,7 +40,7 @@ export function derivarArrastreBienesDeUso(
     map.set(normalizarCategoria(b.categoria), {
       costoInicioReexpresado: costoFinReexpresado,
       depAcumInicio: depAcumFin,
-      netoResidualAnterior: netoResidual,
+      netoResidualAnterior: multiplicar(netoResidual, coeficiente),
     })
   }
   return map

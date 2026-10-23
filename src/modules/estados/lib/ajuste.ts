@@ -1,6 +1,7 @@
 import type { CuentaContableDTO } from '@/modules/importaciones/domain/types'
 import type { CostoVentasDTO } from '@/modules/costo-ventas/domain/types'
-import { dividir, multiplicar } from '@/lib/importe'
+import type { GastosSecciones } from '@/modules/gastos/repository/gastos-dinamico.repository'
+import { dividir, multiplicar, sumarPor } from '@/lib/importe'
 
 export function getCoeficienteComparativo(ejercicio: {
   indiceInflacionAnterior: number | null
@@ -36,5 +37,20 @@ export function ajustarCostoVentas(
     compras: multiplicar(dto.compras, coeficiente),
     gastosFabricacion: multiplicar(dto.gastosFabricacion, coeficiente),
     existenciaFinal: multiplicar(dto.existenciaFinal, coeficiente),
+  }
+}
+
+/** Columna "Ejercicio anterior" del Anexo III (y de los gastos del EERR) en moneda de cierre. */
+export function ajustarGastos(gastos: GastosSecciones, coeficiente: number): GastosSecciones {
+  if (coeficiente === 1) return gastos
+  return {
+    ...gastos,
+    secciones: gastos.secciones.map((s) => {
+      const filas = s.filas.map((f) => ({
+        ...f,
+        importeAnterior: multiplicar(f.importeAnterior, coeficiente),
+      }))
+      return { ...s, filas, totalAnterior: sumarPor(filas, (f) => f.importeAnterior) }
+    }),
   }
 }

@@ -35,7 +35,12 @@ import {
 } from '@/modules/comparativo-manual/lib/politica'
 import type { EstadosData } from '../domain/types'
 import { buildEstadosData } from '../lib/aggregate'
-import { ajustarCostoVentas, ajustarCuentas, getCoeficienteComparativo } from '../lib/ajuste'
+import {
+  ajustarCostoVentas,
+  ajustarCuentas,
+  ajustarGastos,
+  getCoeficienteComparativo,
+} from '../lib/ajuste'
 import { sumar, sumarPor } from '@/lib/importe'
 
 export type EstadosConPN = {
@@ -94,7 +99,7 @@ export async function cargarEstadosConPN(
   // Gastos: el Anexo III ya resuelto según el modo es la única fuente de las líneas de gasto
   // del EERR. En MANUAL sus totales del anterior por sección se calculan desde las filas
   // (resolverGastos); resolverEstados no vuelve a aplicar gastos.
-  const gastos = resolverGastos(gastosRaw, modo, comparativos)
+  const gastos = resolverGastos(ajustarGastos(gastosRaw, coeficiente), modo, comparativos)
   const raw = buildEstadosData(cuentas, rubros, {
     cuentasAnt: ajustarCuentas(cuentasAntRaw, coeficiente),
     costoVentas,

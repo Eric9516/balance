@@ -17,6 +17,7 @@ import {
   findBienesDeUso,
 } from '../repository/bienes-de-uso.repository'
 import { aplicarArrastreBienesDeUso, derivarArrastreBienesDeUso } from '../domain/saldosInicio'
+import { getCoeficienteComparativo } from '@/modules/estados/lib/ajuste'
 import type { BienDeUsoDTO } from '../domain/types'
 
 function revalPath(sociedadId: string, ejercicioId: string) {
@@ -57,7 +58,9 @@ export async function guardarLoteBienesAction(
 
     const arrastre = aplicarArrastreBienesDeUso(
       recibidos,
-      anteriorId ? derivarArrastreBienesDeUso(bienesAnterior) : null,
+      anteriorId
+        ? derivarArrastreBienesDeUso(bienesAnterior, getCoeficienteComparativo(ejercicio))
+        : null,
       modo,
     )
     const rows = await updateBienesLote(arrastre.bienes)

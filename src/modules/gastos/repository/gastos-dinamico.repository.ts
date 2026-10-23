@@ -148,15 +148,36 @@ async function _findGastosDinamicos(
     anteriorMap.set(key, sumar(anteriorMap.get(key), Math.abs(importe(c.saldoFinal))))
   }
 
+  /**
+   * Cuentas de la sección que solo existieron en el ejercicio anterior: van al final, sin importe
+   * actual y con su anterior. Sin ellas el anexo y el estado de resultados del anterior quedaban
+   * cortos (vinculado: las filas salen de las cuentas de este año).
+   */
+  const filasSoloAnterior = (seccionKey: string, actuales: { nombre: string }[]): GastoFila[] => {
+    const prefijo = `${seccionKey}:`
+    const nombres = new Set(actuales.map((c) => c.nombre))
+    return [...anteriorMap]
+      .filter(([k]) => k.startsWith(prefijo) && !nombres.has(k.slice(prefijo.length)))
+      .map(([k, valor]) => ({
+        cuentaId: `anterior:${k}`,
+        cuentaNombre: k.slice(prefijo.length),
+        importe: 0,
+        importeAnterior: valor,
+      }))
+  }
+
   // ── 6. Construir secciones de grupo personalizado ───────────────────────────
   const seccionesGrupo: GastoSeccion[] = gruposAll.map((g) => {
     const cuentas = cuentasGrupoActual.filter((c) => c.rubroBase?.rubroGrupoId === g.id)
-    const filas: GastoFila[] = cuentas.map((c) => ({
-      cuentaId: c.id,
-      cuentaNombre: c.nombre,
-      importe: Math.abs(importe(c.saldoFinal)),
-      importeAnterior: anteriorMap.get(`grupo:${g.id}:${c.nombre}`) ?? 0,
-    }))
+    const filas: GastoFila[] = [
+      ...cuentas.map((c) => ({
+        cuentaId: c.id,
+        cuentaNombre: c.nombre,
+        importe: Math.abs(importe(c.saldoFinal)),
+        importeAnterior: anteriorMap.get(`grupo:${g.id}:${c.nombre}`) ?? 0,
+      })),
+      ...filasSoloAnterior(`grupo:${g.id}`, cuentas),
+    ]
     return {
       key: `grupo:${g.id}`,
       grupoId: g.id,
@@ -180,14 +201,17 @@ async function _findGastosDinamicos(
   for (const [seccionEERR, label] of Object.entries(EERR_GASTOS_LABELS)) {
     const key = `legacy:${seccionEERR}`
     const cuentas = cuentasLegacyActual.filter((c) => c.rubroBase?.seccionEERR === seccionEERR)
-    if (cuentas.length === 0) continue
+    const filas: GastoFila[] = [
+      ...cuentas.map((c) => ({
+        cuentaId: c.id,
+        cuentaNombre: c.nombre,
+        importe: Math.abs(importe(c.saldoFinal)),
+        importeAnterior: anteriorMap.get(`${key}:${c.nombre}`) ?? 0,
+      })),
+      ...filasSoloAnterior(key, cuentas),
+    ]
+    if (filas.length === 0) continue
     const cfg = legacyConfigMap.get(key)
-    const filas: GastoFila[] = cuentas.map((c) => ({
-      cuentaId: c.id,
-      cuentaNombre: c.nombre,
-      importe: Math.abs(importe(c.saldoFinal)),
-      importeAnterior: anteriorMap.get(`${key}:${c.nombre}`) ?? 0,
-    }))
     seccionesLegacy.push({
       key,
       grupoId: null,

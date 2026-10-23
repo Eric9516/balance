@@ -12,6 +12,7 @@ import {
 } from '@/modules/ejercicios/repository/ejercicio.repository'
 import { idAnteriorDerivable, modoEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import { aplicarArrastreCostoVentas } from '../domain/saldosInicio'
+import { ajustarCostoVentas, getCoeficienteComparativo } from '@/modules/estados/lib/ajuste'
 import type { CostoVentasDTO } from '../domain/types'
 
 /**
@@ -40,7 +41,11 @@ export async function guardarTodoCostoVentasAction(
       })
     }
     const anteriorId = idAnteriorDerivable(ejercicio)
-    const anterior = anteriorId ? await findCostoVentas(anteriorId) : null
+    // Mismo arrastre que la pantalla: existencia final del anterior reexpresada.
+    const anterior = ajustarCostoVentas(
+      anteriorId ? await findCostoVentas(anteriorId) : null,
+      getCoeficienteComparativo(ejercicio),
+    )
     const arrastre = aplicarArrastreCostoVentas(
       { id: '', ejercicioId, ...data },
       anterior,
