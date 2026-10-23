@@ -26,7 +26,7 @@ export function calcularCuadreSP(
   )
 
   const diferencia = restar(totalActivo, totalPasivoPN)
-  const cuadrado = Math.abs(diferencia) < 0.01
+  const cuadrado = diferencia === 0
 
   return { totalActivo, totalPasivoPN, diferencia, cuadrado }
 }

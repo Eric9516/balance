@@ -66,7 +66,7 @@ export async function guardarEvolucionPNAction(
     if (modo === 'MANUAL') {
       const previo = new Map(guardadosPrevios.map((m) => [m.tipo, m.totalAnterior]))
       const cambioAnterior = saneado.movimientos.some(
-        (m) => Math.abs(restar(previo.get(m.tipo), m.totalAnterior)) > 0.005,
+        (m) => restar(previo.get(m.tipo), m.totalAnterior) !== 0,
       )
       if (cambioAnterior) await marcarComparativoModificado(ejercicioId)
     }

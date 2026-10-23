@@ -152,8 +152,11 @@ describe('camino rápido (centavos enteros) = cálculo decimal puro', () => {
 
 describe('comparaImportes', () => {
   it('iguala con tolerancia de un centavo', () => {
-    expect(comparaImportes(100, 100.01)).toBe(true)
-    expect(comparaImportes(100, 100.02)).toBe(false)
-    expect(comparaImportes(0.1 + 0.2, 0.3)).toBe(true)
+    expect(comparaImportes(100, 100)).toBe(true)
+    expect(comparaImportes('100.50', 100.5)).toBe(true)
+    expect(comparaImportes(sumar(0.1, 0.2), 0.3)).toBe(true)
+    // Sin tolerancia: ni un centavo ni una milésima.
+    expect(comparaImportes(100, 100.01)).toBe(false)
+    expect(comparaImportes(100, 100.001)).toBe(false)
   })
 })

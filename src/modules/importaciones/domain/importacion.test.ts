@@ -47,9 +47,10 @@ describe('validarCuadre', () => {
     expect(r).toEqual({ totalDeudor: 0.3, totalAcreedor: 0.3, diferencia: 0, cuadrado: true })
   })
 
-  it('tolera diferencias de hasta un centavo y no más', () => {
-    expect(validarCuadre([{ saldoDeudor: 100.01, saldoAcreedor: 100 }]).cuadrado).toBe(true)
-    expect(validarCuadre([{ saldoDeudor: 100.02, saldoAcreedor: 100 }]).cuadrado).toBe(false)
+  it('no tolera ninguna diferencia (jamás se redondea)', () => {
+    expect(validarCuadre([{ saldoDeudor: 100.5, saldoAcreedor: 100.5 }]).cuadrado).toBe(true)
+    expect(validarCuadre([{ saldoDeudor: 100.01, saldoAcreedor: 100 }]).cuadrado).toBe(false)
+    expect(validarCuadre([{ saldoDeudor: 100.001, saldoAcreedor: 100 }]).cuadrado).toBe(false)
   })
 
   it('informa la diferencia con signo (positiva = sobra debe)', () => {

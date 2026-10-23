@@ -54,8 +54,6 @@ export type ContextoNotaTransicion = {
   modificacionInicioEEPN: number | null
 }
 
-const TOLERANCIA = 0.005
-
 export function generarNotaTransicionRT54(ctx: ContextoNotaTransicion): NotaTransicionGenerada {
   const fechaTransicion = ctx.fechaCierreAnterior ?? ctx.fechaInicio
   const ajustesMedicion = ctx.ajustes.filter((a) => a.tipo === 'AJUSTE_MEDICION')
@@ -89,7 +87,7 @@ export function generarNotaTransicionRT54(ctx: ContextoNotaTransicion): NotaTran
       esBase: true,
     },
     ...ajustesMedicion
-      .filter((a) => Math.abs(a.importeResultadoAnterior) > TOLERANCIA)
+      .filter((a) => a.importeResultadoAnterior !== 0)
       .map((a) => ({ concepto: a.concepto, importe: a.importeResultadoAnterior })),
   ]
   const totalResultado = sumarPor(conciliacionResultado, (f) => f.importe)
@@ -143,7 +141,7 @@ export function generarNotaTransicionRT54(ctx: ContextoNotaTransicion): NotaTran
   ]
   if (ctx.modificacionInicioEEPN != null) {
     const suma = sumarPor(ajustesMedicion, (a) => a.importePN)
-    if (Math.abs(restar(suma, ctx.modificacionInicioEEPN)) > TOLERANCIA) {
+    if (restar(suma, ctx.modificacionInicioEEPN) !== 0) {
       advertencias.push(
         `La suma de los ajustes de medición (${formatCurrency(suma, { decimales: 'todos' })}) no coincide con la fila "Modificación de saldos al inicio" del E.E.P.N. (${formatCurrency(ctx.modificacionInicioEEPN, { decimales: 'todos' })}).`,
       )

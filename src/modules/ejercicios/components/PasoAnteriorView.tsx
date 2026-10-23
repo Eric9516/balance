@@ -486,7 +486,7 @@ export function PasoAnteriorView({
               <div
                 className={cn(
                   'rounded-lg border px-4 py-3',
-                  Math.abs(cuadre.diferencia) < 0.01
+                  cuadre.diferencia === 0
                     ? 'border-emerald-200 bg-emerald-50'
                     : 'border-red-200 bg-red-50',
                 )}
@@ -504,7 +504,7 @@ export function PasoAnteriorView({
               <span>
                 según E.E.P.N.: <Importe value={resultadoAnterior.eepn} />
               </span>
-              {Math.abs(restar(resultadoAnterior.eerr, resultadoAnterior.eepn)) < 0.01 ? (
+              {restar(resultadoAnterior.eerr, resultadoAnterior.eepn) === 0 ? (
                 <span className="inline-flex items-center gap-1 text-emerald-700">
                   <CheckCircle2 className="h-3.5 w-3.5" /> coinciden
                 </span>

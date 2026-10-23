@@ -114,13 +114,15 @@ describe('compuerta: escenario B (MANUAL)', () => {
     expect(codigos(r.bloqueantes)).toEqual(['AUT-011'])
     expect(r.bloqueantes[0]?.mensaje).toContain('no cuadra')
   })
-  it('tolera diferencias de redondeo', () => {
+  it('no tolera ninguna diferencia, ni de milésimas (jamás se redondea)', () => {
     const r = validarAutorizacionFinal({
       ...base,
       comparativoAutorizadoEn: d('2025-06-01'),
       cuadreAnterior: { activo: 1000.004, pasivo: 400, patrimonioNeto: 600 },
     })
-    expect(r.puedeAutorizar).toBe(true)
+    expect(codigos(r.bloqueantes)).toEqual(['AUT-011'])
+    // El mensaje muestra la diferencia completa, no redondeada a 0,00.
+    expect(r.bloqueantes[0]!.mensaje).toContain('0,004')
   })
   it('resultado anterior distinto entre EERR y EEPN bloquea', () => {
     const r = validarAutorizacionFinal({

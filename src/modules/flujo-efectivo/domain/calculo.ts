@@ -24,8 +24,6 @@ import {
 } from './types'
 import { multiplicar, restar, sumar, sumarPor } from '@/lib/importe'
 
-const TOLERANCIA = 0.005
-
 export function normalizarConcepto(s: string): string {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
 }
@@ -145,7 +143,7 @@ function totales(
     porSeccion,
     sumaActividades,
     diferencia,
-    cuadra: Math.abs(diferencia) < TOLERANCIA,
+    cuadra: diferencia === 0,
   }
 }
 
@@ -274,7 +272,7 @@ export function totalesFlujo(
 
 /** ¿Cambió algo de la columna anterior? (en MANUAL anula la autorización del comparativo) */
 export function cambioColumnaAnterior(antes: FlujoGuardadoDTO, despues: FlujoGuardadoDTO): boolean {
-  const dif = (a: number, b: number) => Math.abs(restar(a, b)) > TOLERANCIA
+  const dif = (a: number, b: number) => restar(a, b) !== 0
   if (dif(antes.saldoInicialAnterior, despues.saldoInicialAnterior)) return true
   if (dif(antes.modificacionesEjAntAnt, despues.modificacionesEjAntAnt)) return true
   const previo = new Map(antes.items.map((i) => [i.id, i.importeAnterior]))

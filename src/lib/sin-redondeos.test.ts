@@ -18,6 +18,12 @@ const SRC = join(RAIZ, 'src')
 const REDONDEO =
   /\.toFixed\s*\(|\bMath\.(round|floor|ceil|trunc)\s*\(|\.(toDecimalPlaces|toDP|toPrecision|toSignificantDigits|toSD|toNearest|round)\s*\(|\.toLocaleString\s*\(|Intl\.NumberFormat|maximumFractionDigits/
 
+/**
+ * Comparar con tolerancia es redondear: dos importes que difieren en medio centavo no son iguales.
+ * Se compara exacto (`comparaImportes`, `restar(a, b) !== 0`).
+ */
+const TOLERANCIA = /\bTOLERANCIA\w*\b|\)\s*[<>]=?\s*0\.0\d*/
+
 type Permitido = { archivo: string; linea: string; motivo: string; pendiente?: true }
 
 const PERMITIDOS: Permitido[] = [
@@ -89,7 +95,7 @@ function redondeosEnElCodigo() {
       .split(/\r?\n/)
       .forEach((texto, i) => {
         const linea = texto.trim()
-        if (!esComentario(linea) && REDONDEO.test(linea)) {
+        if (!esComentario(linea) && (REDONDEO.test(linea) || TOLERANCIA.test(linea))) {
           encontrados.push({ archivo, numero: i + 1, linea })
         }
       })
@@ -140,6 +146,18 @@ describe('Regla primordial: jamás se redondea nada', () => {
       expect(REDONDEO.test(ejemplo), ejemplo).toBe(true)
     }
     expect(REDONDEO.test('sumar(a, b)')).toBe(false)
+  })
+
+  it('el detector reconoce las comparaciones con tolerancia', () => {
+    for (const ejemplo of [
+      'const TOLERANCIA = 0.005',
+      'if (Math.abs(diferencia) > TOLERANCIA_CENTAVOS) {',
+      'cuadra: Math.abs(diferencia) < 0.01,',
+      'Math.abs(restar(a, b)) <= 0.005',
+    ]) {
+      expect(TOLERANCIA.test(ejemplo), ejemplo).toBe(true)
+    }
+    expect(TOLERANCIA.test('if (restar(a, b) !== 0) {')).toBe(false)
   })
 })
 

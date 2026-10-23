@@ -26,9 +26,6 @@ export type ValorImporte = number | string | Decimal | { toString(): string } | 
  */
 export const MAX_IMPORTE_EXACTO = 70_368_744_177_663.99
 
-/** Diferencia máxima para considerar iguales dos importes (un centavo). */
-export const TOLERANCIA_CENTAVOS = 0.01
-
 const formato = (d: Decimal) => formatCurrency(d, { decimales: 'todos' })
 
 function error(codigo: 'NEG-060' | 'NEG-061', mensaje: string): AppError {
@@ -205,7 +202,7 @@ export function dividir(dividendo: ValorImporte, divisor: ValorImporte): number 
   return aNumero(aExacto(dividendo).div(d))
 }
 
-/** Iguales con tolerancia de un centavo. */
+/** Iguales exactos: jamás se redondea, así que tampoco se tolera ninguna diferencia. */
 export function comparaImportes(a: ValorImporte, b: ValorImporte): boolean {
-  return aExacto(a).minus(aExacto(b)).abs().lte(TOLERANCIA_CENTAVOS)
+  return aExacto(a).eq(aExacto(b))
 }

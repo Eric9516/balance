@@ -10,7 +10,7 @@ import type { CategoriaEnteRT54, EstadoEjercicio, TipoValidacion } from '@prisma
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatFecha } from '@/lib/utils/dates'
 import type { ModoAnteriorEfectivo } from './ejercicioAnterior'
-import { restar } from '@/lib/importe'
+import { restar, sumar } from '@/lib/importe'
 
 export type SeveridadItem = 'ERROR' | 'ADVERTENCIA'
 
@@ -62,7 +62,8 @@ export type ResultadoAutorizacion = {
   puedeAutorizar: boolean
 }
 
-const TOLERANCIA = 0.005
+/** Importe completo en los mensajes: la diferencia puede estar en el tercer decimal. */
+const pesos = (n: number) => formatCurrency(n, { decimales: 'todos' })
 
 function item(
   codigo: string,
@@ -114,26 +115,26 @@ export function validarAutorizacionFinal(ctx: ContextoAutorizacion): ResultadoAu
     if (ctx.cuadreAnterior) {
       const { activo, pasivo, patrimonioNeto } = ctx.cuadreAnterior
       const diferencia = restar(activo, pasivo, patrimonioNeto)
-      if (Math.abs(diferencia) > TOLERANCIA) {
+      if (diferencia !== 0) {
         bloqueantes.push(
           item(
             'AUT-011',
             'CUADRE_BALANCE',
             'ERROR',
-            `El ejercicio anterior no cuadra: Activo ${formatCurrency(activo)} contra Pasivo + Patrimonio Neto ${formatCurrency(pasivo + patrimonioNeto)} (diferencia ${formatCurrency(diferencia)}). Corregí la columna "Ejercicio anterior" del Estado de Situación Patrimonial o del E.E.P.N.`,
+            `El ejercicio anterior no cuadra: Activo ${pesos(activo)} contra Pasivo + Patrimonio Neto ${pesos(sumar(pasivo, patrimonioNeto))} (diferencia ${pesos(diferencia)}). Corregí la columna "Ejercicio anterior" del Estado de Situación Patrimonial o del E.E.P.N.`,
           ),
         )
       }
     }
     if (ctx.resultadoAnterior) {
       const { eerr, eepn } = ctx.resultadoAnterior
-      if (Math.abs(restar(eerr, eepn)) > TOLERANCIA) {
+      if (restar(eerr, eepn) !== 0) {
         bloqueantes.push(
           item(
             'AUT-012',
             'PATRIMONIO_NETO',
             'ERROR',
-            `El resultado del ejercicio anterior difiere entre el Estado de Resultados (${formatCurrency(eerr)}) y la columna "Ejercicio anterior" del E.E.P.N. (${formatCurrency(eepn)}). Tienen que coincidir.`,
+            `El resultado del ejercicio anterior difiere entre el Estado de Resultados (${pesos(eerr)}) y la columna "Ejercicio anterior" del E.E.P.N. (${pesos(eepn)}). Tienen que coincidir.`,
           ),
         )
       }
@@ -209,13 +210,13 @@ export function validarAutorizacionFinal(ctx: ContextoAutorizacion): ResultadoAu
   // ── Primera aplicación RT 54 ──────────────────────────────────────────────
   if (ctx.transicion?.esPrimeraAdopcion) {
     const { sumaAjustesMedicion, modificacionInicioEEPN } = ctx.transicion
-    if (Math.abs(restar(sumaAjustesMedicion, modificacionInicioEEPN)) > TOLERANCIA) {
+    if (restar(sumaAjustesMedicion, modificacionInicioEEPN) !== 0) {
       advertencias.push(
         item(
           'AUT-040',
           'PATRIMONIO_NETO',
           'ADVERTENCIA',
-          `La suma de los ajustes de medición de la Nota de transición (${formatCurrency(sumaAjustesMedicion)}) no coincide con la fila "Modificación de saldos al inicio" del E.E.P.N. (${formatCurrency(modificacionInicioEEPN)}). Si la diferencia no es transición RT 54 (por ejemplo, corrección de errores), documentala en la nota.`,
+          `La suma de los ajustes de medición de la Nota de transición (${pesos(sumaAjustesMedicion)}) no coincide con la fila "Modificación de saldos al inicio" del E.E.P.N. (${pesos(modificacionInicioEEPN)}). Si la diferencia no es transición RT 54 (por ejemplo, corrección de errores), documentala en la nota.`,
         ),
       )
     }
@@ -240,7 +241,7 @@ export function validarAutorizacionFinal(ctx: ContextoAutorizacion): ResultadoAu
             'AUT-050',
             'CUADRE_BALANCE',
             'ERROR',
-            `El Estado de Flujo de Efectivo no cuadra: según el balance el efectivo varió ${formatCurrency(actual.variacionNeta)}, pero las actividades suman ${formatCurrency(actual.sumaActividades)} (diferencia ${formatCurrency(actual.variacionNeta - actual.sumaActividades)}). Revisá las líneas en Estados → Flujo de efectivo.`,
+            `El Estado de Flujo de Efectivo no cuadra: según el balance el efectivo varió ${pesos(actual.variacionNeta)}, pero las actividades suman ${pesos(actual.sumaActividades)} (diferencia ${pesos(restar(actual.variacionNeta, actual.sumaActividades))}). Revisá las líneas en Estados → Flujo de efectivo.`,
           ),
         )
       }
@@ -250,7 +251,7 @@ export function validarAutorizacionFinal(ctx: ContextoAutorizacion): ResultadoAu
             'AUT-051',
             'CUADRE_BALANCE',
             'ADVERTENCIA',
-            `La columna "Ejercicio anterior" del Estado de Flujo de Efectivo no cuadra: el efectivo varió ${formatCurrency(anterior.variacionNeta)} y las actividades suman ${formatCurrency(anterior.sumaActividades)}.`,
+            `La columna "Ejercicio anterior" del Estado de Flujo de Efectivo no cuadra: el efectivo varió ${pesos(anterior.variacionNeta)} y las actividades suman ${pesos(anterior.sumaActividades)}.`,
           ),
         )
       }
