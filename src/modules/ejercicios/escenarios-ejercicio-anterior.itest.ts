@@ -446,8 +446,19 @@ describe('Escenario A — ejercicio anterior vinculado', () => {
     })
     expect(validaciones.some((v) => v.tipo === 'CONSISTENCIA_EJERCICIO')).toBe(true)
     await db.ejercicioContable.update({ where: { id: ej2024 }, data: { pnConfirmado: true } })
-    // Pasar a revisión también pasa por la compuerta
     ok(await avanzarEstadoEjercicio(ej2025, ctx.sociedadA, 'BORRADOR', 'EN_PROCESO'))
+    // Sin sus propios estados y E.E.P.N. confirmados no pasa a revisión: cerrado así, dejaría
+    // trabado al ejercicio siguiente (exige su anterior confirmado y el cerrado no se modifica).
+    const sinConfirmar = await avanzarEstadoEjercicio(
+      ej2025,
+      ctx.sociedadA,
+      'EN_PROCESO',
+      'REVISION',
+    )
+    expect(fail(sinConfirmar, 'NEG-004')).toMatch(/los estados contables/)
+    ok(await confirmarEstadosAction(ej2025, ctx.sociedadA))
+    ok(await confirmarPNAction(ej2025, ctx.sociedadA, true))
+    // Pasar a revisión también pasa por la compuerta
     ok(await avanzarEstadoEjercicio(ej2025, ctx.sociedadA, 'EN_PROCESO', 'REVISION'))
   })
 

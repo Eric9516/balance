@@ -23,6 +23,7 @@ import {
   autorizarComparativo,
 } from '../repository/ejercicio.repository'
 import { efectosCambioModo } from '../domain/ejercicioAnterior'
+import { faltaConfirmarParaAvanzar } from '../domain/avance'
 import { validarConfiguracionAnterior } from '../services/ejercicio-anterior.service'
 import {
   compuertaAutorizacion,
@@ -197,6 +198,15 @@ export async function avanzarEstadoEjercicio(
       })
     }
     if (ESTADOS_CON_COMPUERTA.includes(nuevoEstado)) {
+      const faltan = faltaConfirmarParaAvanzar(existing)
+      if (faltan.length > 0) {
+        return actionError({
+          tipo: 'NEGOCIO',
+          severidad: 'MEDIO',
+          codigo: 'NEG-004',
+          mensaje: `No se puede pasar el ejercicio a ${ESTADO_LABELS[nuevoEstado]}: falta confirmar ${faltan.join(' y ')}. Confirmalos en sus pasos y volvé a intentar.`,
+        })
+      }
       const bloqueo = await compuertaAutorizacion(id)
       if (bloqueo) return actionError(bloqueo)
     }
