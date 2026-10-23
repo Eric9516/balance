@@ -3,7 +3,7 @@
  * que usan las pantallas. Tipea solo lo que la app todavía no sabe (como haría un contador) y anota
  * cada dato tipeado; así el informe muestra qué se pidió dos veces y qué se podría autocompletar.
  */
-import { restar, sumarPor } from '@/lib/importe'
+import { sumarPor } from '@/lib/importe'
 import { iguales } from './registro'
 import { crearSociedad } from '@/modules/sociedades/actions/sociedad.actions'
 import {
@@ -223,15 +223,17 @@ export async function simular(ctx: Contexto, esc: Escenario): Promise<string | n
     tipear('Transición RT 54', esc.transicion.concepto, esc.transicion.importePN, DATO_AJUSTE_RT54)
   }
 
-  // 7. Anexo I, Anexo II y, en carga manual, el anterior.
-  if (esc.documentos.aceptar.includes('ANEXO_BIENES_USO')) await anexoBienesDeUso(ctx, esc, soc, ej)
-  if (esc.documentos.aceptar.includes('ANEXO_COSTO_VENTAS'))
-    await anexoCostoVentas(ctx, esc, soc, ej)
+  // 7. Carga manual: el anterior de los gastos y del estado de situación patrimonial (en las
+  //    notas), como el paso "Ejercicio anterior". Después los anexos, que toman de ahí lo que
+  //    pueden, y al final lo que quede del estado de resultados anterior.
   if (esc.anteriorManual) {
     await gastosAnterior(ctx, esc, soc, ej)
     await sspAnterior(ctx, esc, soc, ej)
-    await eerrAnterior(ctx, esc, soc, ej)
   }
+  if (esc.documentos.aceptar.includes('ANEXO_BIENES_USO')) await anexoBienesDeUso(ctx, esc, soc, ej)
+  if (esc.documentos.aceptar.includes('ANEXO_COSTO_VENTAS'))
+    await anexoCostoVentas(ctx, esc, soc, ej)
+  if (esc.anteriorManual) await eerrAnterior(ctx, esc, soc, ej)
 
   // 8. Evolución del patrimonio neto.
   await patrimonioNeto(ctx, esc, soc, ej)
@@ -406,10 +408,10 @@ async function anexoBienesDeUso(ctx: Contexto, esc: Escenario, soc: string, ej: 
   const { reg } = ctx
   const id = esc.id
   const vinculado = esc.ejercicio.modo === 'VINCULADO'
-  const antes = await cargarBienesDeUso((await findEjercicioById(ej))!)
+  const ejercicio = async () => (await findEjercicioById(ej))!
+  const antes = await cargarBienesDeUso(await ejercicio())
   const bienes = [...antes.bienes]
   const nuevas: string[] = []
-  const netoDeducible: string[] = []
   for (const cat of esc.bienesDeUso) {
     if (bienes.some((b) => b.categoria === cat.categoria)) continue
     const creado = await accion(ctx, id, `Anexo I: crear la categoría ${cat.categoria}`, () =>
@@ -426,6 +428,7 @@ async function anexoBienesDeUso(ctx: Contexto, esc: Escenario, soc: string, ej: 
       `Las categorías del año anterior no vienen solas: hubo que crear ${nuevas.join(', ')}.`,
     )
   }
+  // El neto del año anterior no se tipea: se ve después si la app lo calculó bien.
   const lote = bienes.map((b) => {
     const cat = esc.bienesDeUso.find((c) => c.categoria === b.categoria)
     if (!cat) return b
@@ -439,7 +442,6 @@ async function anexoBienesDeUso(ctx: Contexto, esc: Escenario, soc: string, ej: 
       depAcumInicio: cat.depInicio,
       depEjercicio: cat.depEjercicio,
       depBajas: cat.depBajas,
-      netoResidualAnteriorManual: cat.netoAnterior ?? b.netoResidualAnteriorManual,
     }
   })
   for (const cat of esc.bienesDeUso) {
@@ -454,24 +456,6 @@ async function anexoBienesDeUso(ctx: Contexto, esc: Escenario, soc: string, ej: 
     reg.entrada(id, p, 'amortización de las bajas', cat.depBajas)
     reg.entrada(id, p, 'ajuste por inflación del valor de origen', cat.ajusteCosto ?? 0)
     reg.entrada(id, p, 'ajuste por inflación de la amortización', cat.ajusteDep ?? 0)
-    if (cat.netoAnterior !== undefined) {
-      reg.entrada(id, p, 'neto del año anterior', cat.netoAnterior)
-      // El comienzo de este año es el cierre del anterior: neto anterior = valor − amortización.
-      if (
-        !antes.bloqueadas.has(cat.categoria) &&
-        iguales(cat.netoAnterior, restar(cat.costoInicio, cat.depInicio))
-      ) {
-        netoDeducible.push(cat.categoria)
-      }
-    }
-  }
-  if (netoDeducible.length > 0) {
-    reg.hallazgo(
-      'mejora',
-      id,
-      'Anexo I',
-      `El "neto del año anterior" se tipea aparte y es el valor al comienzo menos la amortización acumulada al comienzo, que ya se cargaron (${netoDeducible.join(', ')}). Se podría calcular solo.`,
-    )
   }
   if (esc.bienesDeUso.some((c) => c.ajusteCosto || c.ajusteDep)) {
     reg.hallazgo(
@@ -481,7 +465,39 @@ async function anexoBienesDeUso(ctx: Contexto, esc: Escenario, soc: string, ej: 
       'El ajuste por inflación del valor de origen y de la amortización al comienzo se tipea a mano; la app ya tiene el coeficiente y los valores al comienzo para proponerlo.',
     )
   }
-  await accion(ctx, id, 'Anexo I: guardar', () => guardarLoteBienesAction(ej, soc, lote))
+  const guardados = await accion(ctx, id, 'Anexo I: guardar', () =>
+    guardarLoteBienesAction(ej, soc, lote),
+  )
+  if (!guardados || !esc.anteriorManual) return
+
+  // Carga manual: el neto del año anterior se tipea solo si la app no lo calcula bien.
+  const { netoAnteriorMap } = await cargarBienesDeUso(await ejercicio())
+  const aTipear = esc.bienesDeUso.filter(
+    (c) =>
+      c.netoAnterior !== undefined &&
+      !iguales(netoAnteriorMap.get(c.categoria) ?? 0, c.netoAnterior),
+  )
+  if (aTipear.length === 0) return
+  for (const c of aTipear)
+    reg.entrada(id, `Anexo I ${c.categoria}`, 'neto del año anterior', c.netoAnterior!)
+  reg.hallazgo(
+    'mejora',
+    id,
+    'Anexo I',
+    `Hubo que tipear el neto del año anterior de ${aTipear.map((c) => c.categoria).join(', ')}: la app no lo calculó desde los valores al comienzo.`,
+  )
+  await accion(ctx, id, 'Anexo I: cargar el neto del año anterior', () =>
+    guardarLoteBienesAction(
+      ej,
+      soc,
+      guardados.map((b) => ({
+        ...b,
+        netoResidualAnteriorManual:
+          aTipear.find((c) => c.categoria === b.categoria)?.netoAnterior ??
+          b.netoResidualAnteriorManual,
+      })),
+    ),
+  )
 }
 
 // ─── Anexo II ─────────────────────────────────────────────────────────────────
@@ -490,8 +506,48 @@ async function anexoCostoVentas(ctx: Contexto, esc: Escenario, soc: string, ej: 
   const { reg } = ctx
   const id = esc.id
   const cv = esc.costoVentas!
-  const antes = await cargarCostoVentas((await findEjercicioById(ej))!)
-  if (!antes.existenciaInicialBloqueada) {
+  const ejercicio = async () => (await findEjercicioById(ej))!
+  const guardarAnterior = (valores: [clave: string, valor: number][]) =>
+    guardarLoteComparativoAction(
+      ej,
+      soc,
+      valores.map(([clave, valor], orden) => ({
+        modulo: 'COSTO_VENTAS' as const,
+        clave,
+        label: clave,
+        valor,
+        esHuerfano: false,
+        orden,
+      })),
+    )
+
+  // Carga manual: primero la columna del año anterior. La existencia final se tipea solo si la
+  // app no la propone bien (desde la nota de bienes de cambio).
+  const ant = esc.anteriorManual?.costoVentas
+  if (ant) {
+    const claves = ['existenciaInicial', 'compras', 'gastosFabricacion'] as const
+    for (const k of claves) reg.entrada(id, 'Anexo II anterior', k, ant[k])
+    await accion(ctx, id, 'Anexo II: cargar el año anterior', () =>
+      guardarAnterior(claves.map((k) => [k, ant[k]])),
+    )
+    const propuesta = (await cargarCostoVentas(await ejercicio())).datosAnteriores?.existenciaFinal
+    if (!iguales(propuesta ?? 0, ant.existenciaFinal)) {
+      reg.entrada(
+        id,
+        'Anexo II anterior',
+        'existenciaFinal',
+        ant.existenciaFinal,
+        DATO_EXISTENCIA_ANTERIOR,
+      )
+      await accion(ctx, id, 'Anexo II: cargar la existencia final del año anterior', () =>
+        guardarAnterior([['existenciaFinal', ant.existenciaFinal]]),
+      )
+    }
+  }
+
+  const antes = await cargarCostoVentas(await ejercicio())
+  const derivada = antes.existenciaInicialBloqueada ? antes.existenciaInicialDerivada : null
+  if (derivada === null || !iguales(derivada, cv.existenciaInicial)) {
     reg.entrada(
       id,
       'Anexo II',
@@ -503,33 +559,6 @@ async function anexoCostoVentas(ctx: Contexto, esc: Escenario, soc: string, ej: 
   reg.entrada(id, 'Anexo II', 'compras', cv.compras)
   reg.entrada(id, 'Anexo II', 'existencia final', cv.existenciaFinal)
   await accion(ctx, id, 'Anexo II: guardar', () => guardarTodoCostoVentasAction(ej, soc, cv))
-
-  const ant = esc.anteriorManual?.costoVentas
-  if (!ant) return
-  const claves = ['existenciaInicial', 'compras', 'gastosFabricacion', 'existenciaFinal'] as const
-  for (const k of claves) {
-    reg.entrada(
-      id,
-      'Anexo II anterior',
-      k,
-      ant[k],
-      k === 'existenciaFinal' ? DATO_EXISTENCIA_ANTERIOR : undefined,
-    )
-  }
-  await accion(ctx, id, 'Anexo II: cargar el año anterior', () =>
-    guardarLoteComparativoAction(
-      ej,
-      soc,
-      claves.map((k, orden) => ({
-        modulo: 'COSTO_VENTAS' as const,
-        clave: k,
-        label: k,
-        valor: ant[k],
-        esHuerfano: false,
-        orden,
-      })),
-    ),
-  )
 }
 
 // ─── Anterior cargado a mano ──────────────────────────────────────────────────
