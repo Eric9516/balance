@@ -274,6 +274,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
           existenciaInicialBloqueada={costo.existenciaInicialBloqueada}
           existenciaInicialDerivada={costo.existenciaInicialDerivada}
           advertencias={costo.advertencias}
+          existenciaFinalAnteriorPropuesta={costo.existenciaFinalAnteriorPropuesta}
           mostrarAnterior={mostrarAnterior}
           editarAnterior={editarAnterior}
           conceptosExtra={costo.conceptosExtra}

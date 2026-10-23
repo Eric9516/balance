@@ -38,8 +38,10 @@ describe('aplicarArrastreCostoVentas', () => {
     expect(r.existenciaInicialBloqueada).toBe(false)
     expect(r.advertencias[0]).toMatch(/Costo de Ventas/)
   })
-  it('otros modos: nunca pisa', () => {
-    for (const modo of ['MANUAL', 'SIN_ANTERIOR', 'PENDIENTE'] as const) {
+  // MANUAL: la existencia inicial sale de la existencia final cargada en la columna del anterior
+  // (ver existencias-manual.test.ts).
+  it('sin anterior: nunca pisa', () => {
+    for (const modo of ['SIN_ANTERIOR', 'PENDIENTE'] as const) {
       const r = aplicarArrastreCostoVentas(actual, anterior, modo)
       expect(r.datos).toBe(actual)
       expect(r.existenciaInicialBloqueada).toBe(false)

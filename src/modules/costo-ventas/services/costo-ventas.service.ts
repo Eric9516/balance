@@ -13,7 +13,16 @@ import {
   resolverCostoVentasAnterior,
 } from '@/modules/comparativo-manual/lib/politica'
 import { ajustarCostoVentas, getCoeficienteComparativo } from '@/modules/estados/lib/ajuste'
-import { aplicarArrastreCostoVentas, type ResultadoArrastreCV } from '../domain/saldosInicio'
+import {
+  aplicarArrastreCostoVentas,
+  existenciaFinalAnteriorDesdeNotas,
+  type ResultadoArrastreCV,
+} from '../domain/saldosInicio'
+import {
+  findCuentasByEjercicio,
+  findRubrosBase,
+} from '@/modules/importaciones/repository/cuentas.repository'
+import { findNotasByEjercicio } from '@/modules/notas/repository/notas.repository'
 import type { CostoVentasDTO } from '../domain/types'
 import { findCostoVentas } from '../repository/costo-ventas.repository'
 
@@ -22,27 +31,56 @@ export type CostoVentasCargado = ResultadoArrastreCV & {
   datosAnteriores: CostoVentasDTO | null
   /** Conceptos que solo existieron en el ejercicio anterior (carga manual). */
   conceptosExtra: ComparativoManualDTO[]
+  /** Carga manual: existencia final del año anterior propuesta desde la nota de bienes de cambio. */
+  existenciaFinalAnteriorPropuesta: number | null
+}
+
+/**
+ * El Anexo II del año anterior resuelto según el modo: vinculado, el del anterior reexpresado;
+ * manual, lo cargado en la columna "Ejercicio anterior" con la existencia final propuesta desde la
+ * nota de bienes de cambio. Lo usan la pantalla, el documento y el guardado (mismo arrastre).
+ */
+export async function cargarAnteriorCostoVentas(ejercicio: EjercicioContableDTO): Promise<{
+  anterior: CostoVentasDTO | null
+  comparativos: ComparativoManualDTO[]
+  propuesta: number | null
+}> {
+  const modo = modoEfectivo(ejercicio)
+  const anteriorId = idAnteriorDerivable(ejercicio)
+  const manual = editarAnteriorManual(modo)
+  // Una sola oleada: lo del anterior y, en carga manual, lo que hace falta para la propuesta.
+  const [anteriorRaw, comparativos, rubros, cuentas, notas] = await Promise.all([
+    anteriorId ? findCostoVentas(anteriorId) : Promise.resolve(null),
+    manual
+      ? findComparativoByEjercicio(ejercicio.id, 'COSTO_VENTAS')
+      : Promise.resolve([] as ComparativoManualDTO[]),
+    manual ? findRubrosBase() : Promise.resolve([]),
+    manual ? findCuentasByEjercicio(ejercicio.id) : Promise.resolve([]),
+    manual ? findNotasByEjercicio(ejercicio.id) : Promise.resolve([]),
+  ])
+  const propuesta = manual ? existenciaFinalAnteriorDesdeNotas({ rubros, cuentas, notas }) : null
+  const anterior = resolverCostoVentasAnterior(
+    ajustarCostoVentas(anteriorRaw, getCoeficienteComparativo(ejercicio)),
+    modo,
+    comparativos,
+    ejercicio.id,
+    propuesta,
+  )
+  return { anterior, comparativos, propuesta }
 }
 
 export async function cargarCostoVentas(
   ejercicio: EjercicioContableDTO,
 ): Promise<CostoVentasCargado> {
-  const modo = modoEfectivo(ejercicio)
-  const anteriorId = idAnteriorDerivable(ejercicio)
-  const coeficiente = getCoeficienteComparativo(ejercicio)
-  const [datos, anteriorRaw, comparativos] = await Promise.all([
+  const [datos, { anterior, comparativos, propuesta }] = await Promise.all([
     findCostoVentas(ejercicio.id),
-    anteriorId ? findCostoVentas(anteriorId) : Promise.resolve(null),
-    editarAnteriorManual(modo)
-      ? findComparativoByEjercicio(ejercicio.id, 'COSTO_VENTAS')
-      : Promise.resolve([] as ComparativoManualDTO[]),
+    cargarAnteriorCostoVentas(ejercicio),
   ])
-  // El anterior en moneda de cierre: la existencia inicial es su existencia final reexpresada.
-  const anterior = ajustarCostoVentas(anteriorRaw, coeficiente)
-  const arrastre = aplicarArrastreCostoVentas(datos, anterior, modo)
   return {
-    ...arrastre,
-    datosAnteriores: resolverCostoVentasAnterior(anterior, modo, comparativos, ejercicio.id),
+    // La existencia inicial es la existencia final del anterior (vinculado o cargado a mano).
+    ...aplicarArrastreCostoVentas(datos, anterior, modoEfectivo(ejercicio)),
+    datosAnteriores: anterior,
     conceptosExtra: comparativos.filter((c) => c.esHuerfano),
+    existenciaFinalAnteriorPropuesta: propuesta,
   }
 }

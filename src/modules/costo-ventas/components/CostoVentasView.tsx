@@ -128,6 +128,8 @@ interface Props {
   existenciaInicialDerivada: number | null
   /** Fuentes faltantes en el ejercicio anterior (filas que quedan editables). */
   advertencias: string[]
+  /** Carga manual: existencia final del año anterior propuesta desde la nota de bienes de cambio. */
+  existenciaFinalAnteriorPropuesta: number | null
   /** Si se muestra la columna "Ejercicio anterior" (modos VINCULADO y MANUAL). */
   mostrarAnterior: boolean
   /** Si la columna "Ejercicio anterior" se carga a mano (solo MANUAL). */
@@ -147,6 +149,7 @@ export function CostoVentasView({
   existenciaInicialBloqueada,
   existenciaInicialDerivada,
   advertencias,
+  existenciaFinalAnteriorPropuesta,
   mostrarAnterior,
   editarAnterior,
   conceptosExtra,
@@ -192,7 +195,11 @@ export function CostoVentasView({
       modulo: 'COSTO_VENTAS' as const,
       clave,
       label,
-      valor: datosAnteriores?.[clave] ?? 0,
+      // La existencia final sin cargar arranca con la propuesta desde la nota de bienes de cambio.
+      valor:
+        clave === 'existenciaFinal'
+          ? datosAnteriores?.existenciaFinal || existenciaFinalAnteriorPropuesta || 0
+          : (datosAnteriores?.[clave] ?? 0),
       orden: i,
     })),
     ...conceptosExtra.map((c) => ({

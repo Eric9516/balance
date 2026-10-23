@@ -153,12 +153,18 @@ export function resolverCostoVentasAnterior(
   modo: ModoAnteriorEfectivo,
   comparativos: ComparativoManualDTO[],
   ejercicioId: string,
+  /** Carga manual: existencia final propuesta desde la nota de bienes de cambio. */
+  existenciaFinalPropuesta: number | null = null,
 ): CostoVentasDTO | null {
   switch (fuenteComparativo(modo)) {
     case 'DERIVADO':
       return derivado
     case 'MANUAL':
-      return buildCostoVentasAntFromComparativos(ejercicioId, seleccionarManual(modo, comparativos))
+      return buildCostoVentasAntFromComparativos(
+        ejercicioId,
+        seleccionarManual(modo, comparativos),
+        existenciaFinalPropuesta,
+      )
     case 'NINGUNO':
       return null
   }

@@ -5,14 +5,14 @@ import { assertEjercicioBelongsToCurrentEstudio } from '@/lib/authz'
 import { actionOk, actionError } from '@/modules/errores/types'
 import { errorHandler } from '@/modules/errores/handler'
 import type { ActionResult } from '@/modules/errores/types'
-import { findCostoVentas, upsertCostoVentas } from '../repository/costo-ventas.repository'
+import { upsertCostoVentas } from '../repository/costo-ventas.repository'
 import {
   findEjercicioById,
   resetEstadosConfirmado,
 } from '@/modules/ejercicios/repository/ejercicio.repository'
-import { idAnteriorDerivable, modoEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
+import { modoEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import { aplicarArrastreCostoVentas } from '../domain/saldosInicio'
-import { ajustarCostoVentas, getCoeficienteComparativo } from '@/modules/estados/lib/ajuste'
+import { cargarAnteriorCostoVentas } from '../services/costo-ventas.service'
 import type { CostoVentasDTO } from '../domain/types'
 
 /**
@@ -40,12 +40,9 @@ export async function guardarTodoCostoVentasAction(
         mensaje: 'Ejercicio no encontrado',
       })
     }
-    const anteriorId = idAnteriorDerivable(ejercicio)
-    // Mismo arrastre que la pantalla: existencia final del anterior reexpresada.
-    const anterior = ajustarCostoVentas(
-      anteriorId ? await findCostoVentas(anteriorId) : null,
-      getCoeficienteComparativo(ejercicio),
-    )
+    // Mismo arrastre que la pantalla: la existencia final del anterior (reexpresada si es
+    // vinculado; cargada o propuesta desde la nota de bienes de cambio si es manual).
+    const { anterior } = await cargarAnteriorCostoVentas(ejercicio)
     const arrastre = aplicarArrastreCostoVentas(
       { id: '', ejercicioId, ...data },
       anterior,

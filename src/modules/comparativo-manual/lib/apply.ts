@@ -220,6 +220,7 @@ export function applyComparativosToGastos(
 export function buildCostoVentasAntFromComparativos(
   ejercicioId: string,
   comparativos: ComparativoManualDTO[],
+  existenciaFinalPropuesta: number | null = null,
 ): CostoVentasDTO | null {
   const items = comparativos.filter((c) => c.modulo === 'COSTO_VENTAS')
   if (items.length === 0) return null
@@ -230,6 +231,7 @@ export function buildCostoVentasAntFromComparativos(
     existenciaInicial: map.get('existenciaInicial') ?? 0,
     compras: map.get('compras') ?? 0,
     gastosFabricacion: map.get('gastosFabricacion') ?? 0,
-    existenciaFinal: map.get('existenciaFinal') ?? 0,
+    // Sin escribir (o en cero), la propuesta desde la nota de bienes de cambio.
+    existenciaFinal: map.get('existenciaFinal') || existenciaFinalPropuesta || 0,
   }
 }

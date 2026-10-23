@@ -13,6 +13,7 @@ import {
   findRubrosBase,
 } from '@/modules/importaciones/repository/cuentas.repository'
 import { findCostoVentas } from '@/modules/costo-ventas/repository/costo-ventas.repository'
+import { existenciaFinalAnteriorDesdeNotas } from '@/modules/costo-ventas/domain/saldosInicio'
 import { findGastosDinamicos } from '@/modules/gastos/repository/gastos-dinamico.repository'
 import { findNotasByEjercicio } from '@/modules/notas/repository/notas.repository'
 import { notaPorRubro } from '@/modules/notas/domain/types'
@@ -94,6 +95,9 @@ export async function cargarEstadosConPN(
     modo,
     comparativos,
     ejercicioId,
+    editarAnteriorManual(modo)
+      ? existenciaFinalAnteriorDesdeNotas({ rubros, cuentas, notas })
+      : null,
   )
 
   // Gastos: el Anexo III ya resuelto según el modo es la única fuente de las líneas de gasto
