@@ -51,3 +51,6 @@ next-env.d.ts
 
 # copias locales de datos reales (nunca a git)
 /.respaldos/
+
+# informes de la auditoría (pnpm auditoria)
+/auditoria/informes/

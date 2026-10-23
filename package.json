@@ -16,6 +16,7 @@
     "test": "vitest run",
     "test:int": "vitest run --config vitest.integration.config.mts",
     "rendimiento": "vitest run --config vitest.rendimiento.config.mts",
+    "auditoria": "vitest run --config vitest.auditoria.config.mts",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "knip": "knip",
