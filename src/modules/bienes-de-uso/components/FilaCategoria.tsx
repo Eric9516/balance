@@ -1,6 +1,6 @@
 import { Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { calcularCierre, type BienDeUsoDTO } from '../domain/types'
+import { calcularCierre, netoAnteriorManualBDU, type BienDeUsoDTO } from '../domain/types'
 import { totalColumnaBDU, type ColumnaBDU } from '../domain/columnas'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
 import { CeldaBloqueada } from '@/components/shared/CeldaBloqueada'
@@ -105,7 +105,7 @@ export function FilaCategoria({
         (editarAnterior ? (
           <td className={TD}>
             <CeldaNumero
-              value={bien.netoResidualAnteriorManual ?? 0}
+              value={netoAnteriorManualBDU(bien) ?? 0}
               editando={editando}
               onSave={onGuardarNetoAnterior}
               dense
@@ -157,10 +157,10 @@ export function FilaTotal({
 
   // MANUAL: suma lo cargado en el borrador. VINCULADO: suma lo derivado del anterior.
   const hayNetoAnterior = editarAnterior
-    ? bienes.some((b) => b.netoResidualAnteriorManual != null)
+    ? bienes.some((b) => netoAnteriorManualBDU(b) != null)
     : netoAnteriorMap.size > 0
   const totNetoAnterior = editarAnterior
-    ? sumarPor(bienes, (b) => b.netoResidualAnteriorManual)
+    ? sumarPor(bienes, (b) => netoAnteriorManualBDU(b))
     : sumar(...netoAnteriorMap.values())
 
   const td = 'celda border-t-2 border-t-slate-800 bg-slate-50 text-right'

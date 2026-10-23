@@ -16,8 +16,14 @@
  */
 
 import type { ModoAnteriorEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
-import { multiplicar } from '@/lib/importe'
-import { calcularCierre, type BienDeUsoDTO } from './types'
+import { multiplicar, restar } from '@/lib/importe'
+import { formatCurrency } from '@/lib/utils/currency'
+import {
+  calcularCierre,
+  netoAlComienzoBDU,
+  netoAnteriorManualBDU,
+  type BienDeUsoDTO,
+} from './types'
 
 export function normalizarCategoria(s: string): string {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
@@ -69,13 +75,24 @@ export function aplicarArrastreBienesDeUso(
   const netoAnteriorMap = new Map<string, number>()
 
   if (modo !== 'VINCULADO') {
+    const advertencias: string[] = []
     if (modo === 'MANUAL') {
       for (const b of bienes) {
-        if (b.netoResidualAnteriorManual != null)
-          netoAnteriorMap.set(b.categoria, b.netoResidualAnteriorManual)
+        const neto = netoAnteriorManualBDU(b)
+        if (neto != null) netoAnteriorMap.set(b.categoria, neto)
+        const comienzo = netoAlComienzoBDU(b)
+        if (
+          b.netoResidualAnteriorManual != null &&
+          comienzo != null &&
+          restar(b.netoResidualAnteriorManual, comienzo) !== 0
+        ) {
+          advertencias.push(
+            `${b.categoria}: el neto del año anterior escrito a mano (${formatCurrency(b.netoResidualAnteriorManual, { decimales: 'todos' })}) no es el valor al comienzo menos la amortización al comienzo (${formatCurrency(comienzo, { decimales: 'todos' })}). Borralo para que se calcule solo o corregí los valores al comienzo.`,
+          )
+        }
       }
     }
-    return { bienes, bloqueadas: new Set(), sinDato: [], netoAnteriorMap, advertencias: [] }
+    return { bienes, bloqueadas: new Set(), sinDato: [], netoAnteriorMap, advertencias }
   }
 
   if (!arrastre || arrastre.size === 0) {

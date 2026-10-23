@@ -45,6 +45,39 @@ export function toBienDeUsoDTO(b: BienDeUsoCategoria): BienDeUsoDTO {
   }
 }
 
+/**
+ * Carga manual: neto residual del año anterior de una categoría. El comienzo de este año es el
+ * cierre del anterior, así que sale del valor y la amortización al comienzo (con su ajuste por
+ * inflación), que ya se cargaron: no se tipea dos veces. Un importe escrito a mano se respeta
+ * (los ejercicios ya cargados no cambian). Null si la categoría no tiene comienzo (es del año).
+ */
+export function netoAnteriorManualBDU(
+  b: Pick<
+    BienDeUsoDTO,
+    | 'costoInicioReexpresado'
+    | 'costoAjusteInflacion'
+    | 'depAcumInicio'
+    | 'depAjusteInflacion'
+    | 'netoResidualAnteriorManual'
+  >,
+): number | null {
+  if (b.netoResidualAnteriorManual != null) return b.netoResidualAnteriorManual
+  return netoAlComienzoBDU(b)
+}
+
+/** Valor al comienzo menos amortización al comienzo, con sus ajustes. Null si no hay comienzo. */
+export function netoAlComienzoBDU(
+  b: Pick<
+    BienDeUsoDTO,
+    'costoInicioReexpresado' | 'costoAjusteInflacion' | 'depAcumInicio' | 'depAjusteInflacion'
+  >,
+): number | null {
+  const costo = sumar(b.costoInicioReexpresado, b.costoAjusteInflacion)
+  const amortizacion = sumar(b.depAcumInicio, b.depAjusteInflacion)
+  if (costo === 0 && amortizacion === 0) return null
+  return restar(costo, amortizacion)
+}
+
 // Calcula los campos derivados según la fórmula del PDF
 export function calcularCierre(
   b: Omit<

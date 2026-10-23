@@ -11,7 +11,7 @@ import type {
 import type { CostoVentasDTO } from '@/modules/costo-ventas/domain/types'
 import { esRubroHuerfano } from '@/modules/estados/lib/rubroHuerfano'
 import { tieneAnteriorCargado, totalesNota, type NotaDTO } from '@/modules/notas/domain/types'
-import type { BienDeUsoDTO } from '@/modules/bienes-de-uso/domain/types'
+import { netoAnteriorManualBDU, type BienDeUsoDTO } from '@/modules/bienes-de-uso/domain/types'
 import { parsSeccionDeClaveHuerfano, type ComparativoManualDTO } from '../domain/types'
 import { restar, sumar, sumarPor } from '@/lib/importe'
 
@@ -157,8 +157,9 @@ export function aplicarAnteriorDesdeAnexoI(
   escritos: Set<string>,
 ): EstadosData {
   if (!anexoI || anexoI.categorias.length === 0) return data
-  const cargado = anexoI.categorias.some((c) => c.netoResidualAnteriorManual != null)
-  const total = sumarPor(anexoI.categorias, (c) => c.netoResidualAnteriorManual)
+  const netos = anexoI.categorias.map(netoAnteriorManualBDU)
+  const cargado = netos.some((n) => n != null)
+  const total = sumarPor(netos, (n) => n)
   const sspRubros = data.sspRubros.map((r): RubroFila => {
     if (!anexoI.rubroIds.has(r.id)) return r
     const estado = cargado ? 'CARGADO' : escritos.has(r.id) ? 'ESCRITO_ANTES' : 'PENDIENTE'

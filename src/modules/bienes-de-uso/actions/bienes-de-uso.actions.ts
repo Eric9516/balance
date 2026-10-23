@@ -18,7 +18,7 @@ import {
 } from '../repository/bienes-de-uso.repository'
 import { aplicarArrastreBienesDeUso, derivarArrastreBienesDeUso } from '../domain/saldosInicio'
 import { getCoeficienteComparativo } from '@/modules/estados/lib/ajuste'
-import type { BienDeUsoDTO } from '../domain/types'
+import { netoAnteriorManualBDU, type BienDeUsoDTO } from '../domain/types'
 
 function revalPath(sociedadId: string, ejercicioId: string) {
   revalidatePath(`/sociedades/${sociedadId}/ejercicios/${ejercicioId}/cuentas`)
@@ -66,9 +66,10 @@ export async function guardarLoteBienesAction(
     const rows = await updateBienesLote(arrastre.bienes)
 
     if (modo === 'MANUAL') {
-      const previo = new Map(actuales.map((b) => [b.id, b.netoResidualAnteriorManual]))
+      // El neto anterior sale del comienzo: cambiar el comienzo también cambia el anterior.
+      const previo = new Map(actuales.map((b) => [b.id, netoAnteriorManualBDU(b)]))
       const cambioAnterior = rows.some(
-        (b) => (previo.get(b.id) ?? null) !== b.netoResidualAnteriorManual,
+        (b) => (previo.get(b.id) ?? null) !== netoAnteriorManualBDU(b),
       )
       if (cambioAnterior) await marcarComparativoModificado(ejercicioId)
     }

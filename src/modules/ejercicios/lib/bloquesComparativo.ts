@@ -7,7 +7,7 @@ import type { EstadosData } from '@/modules/estados/domain/types'
 import { esRubroHuerfano } from '@/modules/estados/lib/rubroHuerfano'
 import type { EvolucionPNData } from '@/modules/patrimonio-neto/domain/types'
 import type { ComparativoManualDTO } from '@/modules/comparativo-manual/domain/types'
-import type { BienDeUsoDTO } from '@/modules/bienes-de-uso/domain/types'
+import { netoAnteriorManualBDU, type BienDeUsoDTO } from '@/modules/bienes-de-uso/domain/types'
 import type { NotaDTO } from '@/modules/notas/domain/types'
 
 export type BloqueComparativo = {
@@ -106,7 +106,7 @@ export function armarBloquesComparativo(params: {
       label: 'Bienes de Uso (Anexo I)',
       descripcion:
         'Neto residual del ejercicio anterior por categoría. El estado toma la suma para el rubro Bienes de uso.',
-      cargados: bienes.filter((b) => b.netoResidualAnteriorManual != null).length,
+      cargados: bienes.filter((b) => netoAnteriorManualBDU(b) != null).length,
       total: bienes.length,
       aplica: tieneBDU && bienes.length > 0,
       href: `${base}?paso=anexos&anexo=bienes-de-uso`,
