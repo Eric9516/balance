@@ -83,8 +83,8 @@ export async function registrarImportacion(params: {
           tipo: 'NEGOCIO',
           severidad: 'ALTO',
           codigo: 'NEG-011',
-          mensaje: `El balance no cuadra: ${exceso} por ${formatCurrency(Math.abs(cuadre.diferencia))}. Revisá los importes antes de confirmar.`,
-          detalle: `Debe ${formatCurrency(cuadre.totalDeudor)} · Haber ${formatCurrency(cuadre.totalAcreedor)}`,
+          mensaje: `El balance no cuadra: ${exceso} por ${formatCurrency(Math.abs(cuadre.diferencia), { decimales: 'todos' })}. Revisá los importes antes de confirmar.`,
+          detalle: `Debe ${formatCurrency(cuadre.totalDeudor, { decimales: 'todos' })} · Haber ${formatCurrency(cuadre.totalAcreedor, { decimales: 'todos' })}`,
         },
       )
     }

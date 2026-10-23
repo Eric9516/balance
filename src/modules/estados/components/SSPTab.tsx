@@ -466,7 +466,7 @@ export function SSPTab({
         <span className={cuadrado ? 'text-emerald-700' : 'text-amber-700'}>
           {cuadrado
             ? 'Balance cuadrado - Activo = Pasivo + Patrimonio Neto'
-            : `Descuadre de ${formatCurrency(Math.abs(diferenciaCuadre))} — revisá las clasificaciones`}
+            : `Descuadre de ${formatCurrency(Math.abs(diferenciaCuadre), { decimales: 'todos' })} — revisá las clasificaciones`}
         </span>
       </div>
 

@@ -83,7 +83,7 @@ export function CuentasTable({ cuentas, sociedadId, ejercicioId }: CuentasTableP
           <p
             className={`mt-0.5 font-mono text-sm font-semibold ${cuadra ? 'text-emerald-800' : 'text-red-800'}`}
           >
-            {cuadra ? formatCurrency(0) : formatCurrency(diferencia, { decimales: 2 })}
+            {cuadra ? formatCurrency(0) : formatCurrency(diferencia, { decimales: 'todos' })}
           </p>
         </div>
       </div>
@@ -182,7 +182,7 @@ export function CuentasTable({ cuentas, sociedadId, ejercicioId }: CuentasTableP
                 </td>
                 <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold">
                   <span className={cuadra ? 'text-emerald-700' : 'text-red-600'}>
-                    {formatCurrency(diferencia, { decimales: 2 })}
+                    {formatCurrency(diferencia, { decimales: 'todos' })}
                   </span>
                 </td>
                 <td />

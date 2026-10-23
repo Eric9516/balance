@@ -578,7 +578,7 @@ function ControlCuadre({
             <strong className="font-semibold">{label}:</strong>{' '}
             {t.cuadra
               ? 'las actividades explican toda la variación del efectivo.'
-              : `diferencia de ${formatCurrency(t.diferencia)} — el efectivo varió ${formatCurrency(t.variacionNeta)} y las actividades suman ${formatCurrency(t.sumaActividades)}.`}
+              : `diferencia de ${formatCurrency(t.diferencia, { decimales: 'todos' })} — el efectivo varió ${formatCurrency(t.variacionNeta, { decimales: 'todos' })} y las actividades suman ${formatCurrency(t.sumaActividades, { decimales: 'todos' })}.`}
           </span>
         </p>
       ))}
