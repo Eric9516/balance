@@ -240,6 +240,12 @@ export async function recorrerPantallas(ctx: Contexto, escenarios: Escenario[]) 
         }
       }
     }
+    await recorrerAyuda(
+      ctx,
+      page,
+      () => errores,
+      (v) => (errores = v),
+    )
   } finally {
     await browser.close()
     detener(servidor)
@@ -247,4 +253,75 @@ export async function recorrerPantallas(ctx: Contexto, escenarios: Escenario[]) 
       writeFileSync(agents, agentsAntes)
     }
   }
+}
+
+/**
+ * La ayuda: carga sin errores, el buscador encuentra un código de error y una pregunta, y un enlace
+ * como el del botón (i) de un paso abre su artículo. Deja una captura del buscador en el informe.
+ */
+async function recorrerAyuda(
+  ctx: Contexto,
+  page: import('playwright-core').Page,
+  errores: () => string[],
+  limpiar: (v: string[]) => void,
+) {
+  const { reg } = ctx
+  const area = 'Pantalla Ayuda'
+  limpiar([])
+  const respuesta = await page.goto(`${URL_BASE}/ayuda`, {
+    waitUntil: 'networkidle',
+    timeout: 180_000,
+  })
+  const estado = respuesta?.status() ?? 0
+  reg.paso(GENERAL, 'Abrir la ayuda', estado > 0 && estado < 400, `respondió ${estado}`)
+  if (estado >= 400) return
+  const buscar = async (consulta: string, esperado: RegExp, concepto: string) => {
+    await page.fill('#buscador-ayuda', consulta)
+    const primero = page.locator('section[aria-live] ul li a span').first()
+    reg.controles++
+    // La lista anterior sigue en pantalla un instante: se espera a que muestre la búsqueda nueva.
+    let titulo = ''
+    for (const limite = Date.now() + 5_000; Date.now() < limite;) {
+      titulo = (await primero.innerText({ timeout: 1_000 }).catch(() => '')).trim()
+      if (esperado.test(titulo)) return
+      await page.waitForTimeout(100)
+    }
+    reg.hallazgo(
+      'error',
+      GENERAL,
+      area,
+      titulo
+        ? `Buscar ${concepto} ("${consulta}") da primero "${titulo}".`
+        : `Buscar ${concepto} ("${consulta}") no muestra resultados.`,
+    )
+  }
+  await buscar('aut 12', /AUT-012/, 'un código de error')
+  await buscar('¿cómo cargo el ejercicio anterior a mano?', /cargado a mano/, 'una pregunta')
+  await page.screenshot({
+    path: join(process.cwd(), 'auditoria', 'informes', 'ayuda-buscador.png'),
+  })
+
+  await page.goto(`${URL_BASE}/ayuda#paso-patrimonio-neto`, { waitUntil: 'networkidle' })
+  await page
+    .locator('#titulo-paso-patrimonio-neto')
+    .waitFor({ timeout: 5_000 })
+    .catch(() => undefined)
+  const texto = (await page.locator('body').innerText()).replace(/\s+/g, ' ')
+  reg.controles++
+  // innerText aplica el estilo (mayúsculas): se compara sin distinguirlas.
+  const visible = texto.toLowerCase()
+  if (!visible.includes('de dónde salen los datos') || !visible.includes('confirmar e.e.p.n.')) {
+    reg.hallazgo(
+      'error',
+      GENERAL,
+      area,
+      'El enlace a un paso (#paso-patrimonio-neto) no abre su artículo con el resumen del paso.',
+    )
+  }
+  await page.screenshot({
+    path: join(process.cwd(), 'auditoria', 'informes', 'ayuda-articulo.png'),
+    fullPage: true,
+  })
+  for (const e of new Set(errores()))
+    reg.hallazgo('error', GENERAL, area, `Error en la consola: ${e}`)
 }
