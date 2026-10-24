@@ -37,6 +37,8 @@ import {
 } from '@/modules/importaciones/repository/cuentas.repository'
 import {
   findConfigAnterior,
+  findEjercicioById,
+  guardarNotaUno,
   marcarComparativoModificado,
 } from '@/modules/ejercicios/repository/ejercicio.repository'
 import type { NotaDTO, DetalleNotaDTO } from '../domain/types'
@@ -416,5 +418,55 @@ export async function generarNotasAutomaticasAction(
     return actionOk(undefined)
   } catch (error) {
     return actionError(errorHandler(error, { modulo: 'NOTAS', operacion: 'generar_automaticas' }))
+  }
+}
+
+// ─── Nota 1 ───────────────────────────────────────────────────────────────────
+
+/** Largo máximo de la Nota 1 escrita por el contador (la base lo controla igual). */
+const MAX_NOTA_UNO = 50_000
+
+/**
+ * Guarda la Nota 1 escrita por el contador. `null` o un texto vacío vuelve al texto que genera la
+ * app con los datos del ejercicio (que se mantiene al día solo).
+ */
+export async function guardarNotaUnoAction(
+  ejercicioId: string,
+  sociedadId: string,
+  texto: string | null,
+): Promise<ActionResult<{ texto: string | null }>> {
+  try {
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    const ejercicio = await findEjercicioById(ejercicioId)
+    if (!ejercicio) {
+      return actionError({
+        tipo: 'TECNICO',
+        severidad: 'ALTO',
+        codigo: 'TECH-002',
+        mensaje: 'Ejercicio no encontrado',
+      })
+    }
+    if (ejercicio.estado === 'CERRADO') {
+      return actionError({
+        tipo: 'NEGOCIO',
+        severidad: 'MEDIO',
+        codigo: 'NEG-005',
+        mensaje: 'El ejercicio está cerrado: la Nota 1 ya no se modifica.',
+      })
+    }
+    const limpio = texto?.trim() ? texto.trim() : null
+    if (limpio !== null && limpio.length > MAX_NOTA_UNO) {
+      return actionError({
+        tipo: 'NEGOCIO',
+        severidad: 'MEDIO',
+        codigo: 'NEG-006',
+        mensaje: `La Nota 1 tiene ${limpio.length} caracteres y el máximo es 50.000. Acortala.`,
+      })
+    }
+    await guardarNotaUno(ejercicioId, limpio)
+    revalidatePath(`/sociedades/${sociedadId}/ejercicios/${ejercicioId}/cuentas`)
+    return actionOk({ texto: limpio })
+  } catch (error) {
+    return actionError(errorHandler(error, { modulo: 'NOTAS', operacion: 'guardar_nota_uno' }))
   }
 }

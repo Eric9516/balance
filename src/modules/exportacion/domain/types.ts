@@ -65,8 +65,12 @@ export type SeccionDocumento =
       tipo: 'notas'
       titulo: string
       subtitulo: string
-      notaUno: { titulo: string; detalle: string }
-      transicion: { titulo: string; nota: NotaTransicionGenerada } | null
+      /** Nota 1: el texto del contador o el generado, con la transición dentro si corresponde. */
+      notaUno: {
+        titulo: string
+        texto: string
+        transicion: { apartado: string; nota: NotaTransicionGenerada } | null
+      }
       notas: NotaDTO[]
     }
   | { tipo: 'pendiente'; clave: 'INFORME_AUDITOR' | 'MEMORIA'; titulo: string; detalle: string }

@@ -69,7 +69,13 @@ async function esperarServidor(proceso: ChildProcess, salida: string[]): Promise
   return 'el servidor no respondió en 3 minutos'
 }
 
-type Pagina = { nombre: string; ruta: string; importes: [concepto: string, valor: number][] }
+type Pagina = {
+  nombre: string
+  ruta: string
+  importes: [concepto: string, valor: number][]
+  /** Textos que tienen que verse (por ejemplo, la Nota 1 armada). */
+  textos?: string[]
+}
 
 function paginas(esc: Escenario, soc: string, ej: string): Pagina[] {
   const x = esc.esperado
@@ -81,7 +87,12 @@ function paginas(esc: Escenario, soc: string, ej: string): Pagina[] {
     { nombre: 'Carátula', ruta: `${base}?paso=caratula`, importes: [] },
     { nombre: 'Clasificar cuentas', ruta: `${base}?paso=clasificar`, importes: [] },
     { nombre: 'Anexos y notas', ruta: `${base}?paso=documentos`, importes: [] },
-    { nombre: 'Notas', ruta: `${base}?paso=notas`, importes: [] },
+    {
+      nombre: 'Notas',
+      ruta: `${base}?paso=notas`,
+      importes: [],
+      textos: ['Nota N° 1:', '1.1. Bases de preparación'],
+    },
     {
       nombre: 'Evolución del patrimonio neto',
       ruta: `${base}?paso=patrimonio-neto`,
@@ -99,6 +110,7 @@ function paginas(esc: Escenario, soc: string, ej: string): Pagina[] {
     {
       nombre: 'Documento imprimible',
       ruta: `/sociedades/${soc}/ejercicios/${ej}/imprimir`,
+      textos: ['1.1. Bases de preparación', 'Empresa en marcha'],
       importes: [
         ['Total del activo', x.activo],
         ['Total del pasivo', x.pasivo],
@@ -232,6 +244,15 @@ export async function recorrerPantallas(ctx: Contexto, escenarios: Escenario[]) 
         for (const e of new Set(errores))
           reg.hallazgo('error', esc.id, area, `Error en la consola: ${e}`)
         const texto = (await page.locator('body').innerText()).replace(/\s+/g, ' ')
+        if (esc.id === 'B' && p.nombre === 'Notas') {
+          await page.screenshot({
+            path: join(process.cwd(), 'auditoria', 'informes', 'nota-uno.png'),
+          })
+        }
+        for (const t of p.textos ?? []) {
+          reg.controles++
+          if (!texto.includes(t)) reg.hallazgo('error', esc.id, area, `No muestra "${t}".`)
+        }
         for (const [concepto, valor] of p.importes) {
           reg.controles++
           if (!texto.includes(formatCurrency(valor))) {

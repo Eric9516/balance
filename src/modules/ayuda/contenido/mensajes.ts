@@ -206,6 +206,22 @@ const MENSAJES: Mensaje[] = [
     relacionados: ['estados-ejercicio', 'paso-estados', 'paso-patrimonio-neto'],
   },
   {
+    codigo: 'NEG-005',
+    titulo: 'La Nota 1 de un ejercicio cerrado no se modifica',
+    significa: 'El ejercicio está cerrado: su Nota 1 quedó como se emitió.',
+    solucion: [
+      'Si hay que corregirla, tiene que ser antes de cerrar: desde Revisión se puede volver a En proceso.',
+    ],
+    relacionados: ['nota-uno', 'estados-ejercicio'],
+  },
+  {
+    codigo: 'NEG-006',
+    titulo: 'La Nota 1 es demasiado larga',
+    significa: 'El texto de la Nota 1 supera los 50.000 caracteres.',
+    solucion: ['Acortá el texto y volvé a guardar.'],
+    relacionados: ['nota-uno'],
+  },
+  {
     codigo: 'NEG-010',
     titulo: 'No hay datos para continuar',
     significa:

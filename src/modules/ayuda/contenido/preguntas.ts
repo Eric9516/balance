@@ -244,7 +244,6 @@ export const PREGUNTAS: ArticuloAyuda[] = [
     ],
     bloques: [
       lista(
-        'El texto completo de la Nota 1 (bases de preparación): hoy figura como pendiente en el documento.',
         'El informe del auditor independiente.',
         'La Memoria.',
         'La exportación a Word editable (hoy el documento se guarda en PDF desde el navegador).',

@@ -216,7 +216,7 @@ export const PASO_INFO: Record<InfoPasoKey, InfoPaso> = {
     notes: [
       'El importe del ejercicio actual sale del balance: no se edita en la nota.',
       'Regenerar nunca borra una fila con importe anterior ni pisa un texto editado sin que lo elijas.',
-      'En primera aplicación de la RT 54 acá se arma la Nota de transición con su conciliación.',
+      'La Nota 1 (bases de preparación) se arma sola con los datos del ejercicio y se puede editar; en la primera aplicación de la RT 54 incluye la transición con sus conciliaciones.',
     ],
   },
   'patrimonio-neto': {

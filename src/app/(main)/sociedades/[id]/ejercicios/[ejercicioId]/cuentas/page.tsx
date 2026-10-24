@@ -44,6 +44,9 @@ import { findAjustesByEjercicio } from '@/modules/transicion-rt54/repository/aju
 import { evaluarDocumentos } from '@/modules/documentos/lib/evaluar'
 import { cargarEstadosConPN, totalesAnteriorSSP } from '@/modules/estados/services/estados.service'
 import { evaluarAutorizacionSinPersistir } from '@/modules/ejercicios/services/autorizacion.service'
+import { armarNotaUno } from '@/modules/notas/domain/notaUno'
+import { formatFecha } from '@/lib/utils/dates'
+import { NotaUnoCard } from '@/modules/notas/components/NotaUnoCard'
 import { previsualizarNotaTransicion } from '@/modules/transicion-rt54/services/nota-transicion.service'
 import { inclusionNotaTransicion } from '@/modules/transicion-rt54/domain/inclusion'
 import { armarBloquesComparativo } from '@/modules/ejercicios/lib/bloquesComparativo'
@@ -321,8 +324,28 @@ export default async function CuentasPage({ params, searchParams }: Props) {
     const notaTransicion = inclusion.incluir
       ? await previsualizarNotaTransicion(ejercicio, { ajustes })
       : null
+    // Nota 1: la arma la app con los datos del ejercicio; el contador puede escribir la suya.
+    const notaUno = armarNotaUno({
+      sociedad,
+      ejercicio,
+      conComparativo: mostrarAnterior,
+      transicion: notaTransicion,
+    })
     content = (
       <div className="max-w-4xl space-y-6">
+        <NotaUnoCard
+          nota={{
+            titulo: notaUno.titulo,
+            textoPropio: ejercicio.notaUnoTexto,
+            textoGenerado: notaUno.textoGenerado,
+            editadaEn: notaUno.editadaEn ? formatFecha(notaUno.editadaEn) : null,
+            transicion: notaUno.transicion,
+            advertencias: notaUno.advertencias,
+          }}
+          ejercicioId={ejercicioId}
+          sociedadId={id}
+          editable={ejercicio.estado !== 'CERRADO'}
+        />
         {!inclusion.incluir && inclusion.motivo === 'NO_INCLUIDA' && (
           <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2 text-xs text-amber-700">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500" />

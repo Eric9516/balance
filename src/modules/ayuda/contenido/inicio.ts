@@ -27,7 +27,7 @@ export const INICIO: ArticuloAyuda[] = [
         'Resolvé el ejercicio anterior: vinculalo a uno cargado, cargalo a mano y autorizalo, o declaralo primer ejercicio.',
         'En "Anexos y notas", aceptá o descartá lo que la app sugiere según los saldos.',
         'Completá los anexos aceptados: Bienes de uso, Costo de ventas y Gastos.',
-        'Generá las notas y respondé "Configurar Nota I". Si es la primera aplicación de la RT 54, armá la nota de transición.',
+        'Generá las notas y respondé "Configurar Nota I": la Nota 1 se arma sola y la podés editar. Si es la primera aplicación de la RT 54, cargá los ajustes de transición.',
         'Completá la Evolución del patrimonio neto y confirmala.',
         'Revisá los estados (Situación patrimonial, Resultados y Flujo de efectivo) y confirmalos.',
         'Pasá el ejercicio a Revisión, revisá el documento imprimible y cerralo.',

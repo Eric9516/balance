@@ -350,7 +350,7 @@ export const PASOS: ArticuloAyuda[] = [
     ],
     bloques: [
       pasos(
-        'Respondé "Configurar Nota I": adopción de la RT 54 (primera adopción o aplicación continuada), criterio de medición de bienes de cambio y hechos posteriores al cierre.',
+        'Respondé "Configurar Nota I": adopción de la RT 54 (primera adopción o aplicación continuada), criterio de medición de bienes de cambio y hechos posteriores al cierre. Con eso y los datos del ejercicio, la app arma la Nota 1 (ver "Nota 1: bases de preparación").',
         'Hacé clic en "Generar las notas": se arma una nota por cada rubro que la lleva, con sus cuentas.',
         'Editá el texto de apertura o el criterio de cada nota si hace falta.',
       ),
@@ -372,7 +372,67 @@ export const PASOS: ArticuloAyuda[] = [
         'Si borrás una nota, las demás se renumeran.',
       ),
     ],
-    relacionados: ['nota-transicion', 'anterior-manual', 'paso-documentos'],
+    relacionados: ['nota-uno', 'nota-transicion', 'anterior-manual', 'paso-documentos'],
+  },
+  {
+    id: 'nota-uno',
+    titulo: 'Nota 1: bases de preparación (se arma sola y se puede editar)',
+    categoria: 'pasos',
+    resumen:
+      'La app escribe la Nota 1 con los datos del ejercicio. El contador puede reemplazarla por su propio texto y volver al generado cuando quiera.',
+    claves: [
+      'nota 1',
+      'nota i',
+      'bases de preparacion',
+      'bases de presentacion',
+      'unidad de medida',
+      'empresa en marcha',
+      'clasificacion de la entidad',
+      'adopcion de la rt 54',
+      'editar nota 1',
+      'texto de la nota 1',
+    ],
+    bloques: [
+      p(
+        'Aparece primera en el paso Notas y en el documento. Sus apartados se numeran solos según lo que corresponda:',
+      ),
+      defs(
+        [
+          'Bases de preparación',
+          'RT 54 de la FACPCE y, para sociedades de Córdoba, su aprobación por el Consejo de Córdoba (Resolución N° 35/24).',
+        ],
+        [
+          'Adopción de la RT 54',
+          'Primera aplicación o aplicación continuada, según "Configurar Nota I". En la primera aplicación incluye lo que dice la nota de transición.',
+        ],
+        [
+          'Unidad de medida',
+          'Moneda homogénea de cierre, reexpresión con la serie de la FACPCE y la variación del índice del ejercicio (sale de los índices cargados).',
+        ],
+        [
+          'Clasificación de la Entidad',
+          'Pequeña, mediana o restante, según la categoría del ente del ejercicio.',
+        ],
+        ['Empresa en marcha', 'Texto estándar.'],
+        [
+          'Transición a la RT 54',
+          'Solo en la primera aplicación, si la nota de transición está aceptada y tiene ajustes o reclasificaciones: las conciliaciones salen de los ajustes cargados.',
+        ],
+      ),
+      pasos(
+        'Para cambiar el texto: "Editar" en la Nota 1, escribí y "Guardar".',
+        'Para descartar tu texto: "Volver al texto generado".',
+      ),
+      lista(
+        'Mientras no la edites, se actualiza sola si cambian los datos (índices, categoría, adopción, ajustes).',
+        'Si la editás, queda tu texto aunque cambien los datos: revisala si cambiás algo después.',
+        'Separá los párrafos con una línea en blanco. Los títulos de apartado empiezan con su número (1.1., 1.2.…).',
+        'Las conciliaciones de la transición no se escriben: siempre salen de los ajustes cargados.',
+        'Si falta un dato (adopción, categoría o índices), la nota lo avisa arriba.',
+        'Con el ejercicio cerrado ya no se modifica (NEG-005).',
+      ),
+    ],
+    relacionados: ['paso-notas', 'nota-transicion', 'coeficiente', 'neg-005'],
   },
   {
     id: 'nota-transicion',
@@ -406,15 +466,15 @@ export const PASOS: ArticuloAyuda[] = [
       ),
       lista(
         'Hay plantillas con las partidas más habituales; elegís cuáles corresponden y con qué importes.',
-        'La nota arma la conciliación del patrimonio neto al inicio y la del resultado del año anterior.',
+        'Va dentro de la Nota 1: su texto en el apartado de adopción de la RT 54 y sus conciliaciones (patrimonio neto al inicio y resultado del año anterior) en un apartado propio.',
         'La fila "Modificación de saldos al inicio" del E.E.P.N. acompaña sola a los ajustes de medición. Si la cambiaste a mano (por ejemplo, para incluir la corrección de un error), no se toca y la compuerta avisa la diferencia (AUT-040).',
-        'Para que salga en el balance, aceptala en "Anexos y notas". Si no la aceptás, no sale ni en Notas ni en el documento.',
+        'Para que salga en el balance, aceptala en "Anexos y notas". Si no la aceptás, la Nota 1 no la incluye.',
       ),
       aviso(
         'La nota es un borrador armado con los ajustes: revisala y completala antes de emitir.',
       ),
     ],
-    relacionados: ['paso-notas', 'paso-patrimonio-neto', 'aut-040', 'neg-040'],
+    relacionados: ['nota-uno', 'paso-notas', 'paso-patrimonio-neto', 'aut-040', 'neg-040'],
   },
   {
     id: 'paso-patrimonio-neto',
@@ -542,7 +602,8 @@ export const PASOS: ArticuloAyuda[] = [
         'Incluye carátula, Situación patrimonial, Resultados, E.E.P.N., Flujo de efectivo, los anexos aceptados y las notas aceptadas.',
         'Mientras falte algo sale marcado como BORRADOR y te dice qué falta.',
         'Lo que no aceptaste en "Anexos y notas" no sale.',
-        'El texto completo de la Nota 1, el informe del auditor y la Memoria todavía figuran como pendientes: están en desarrollo.',
+        'La Nota 1 sale como en el paso Notas: la generada o la que escribió el contador.',
+        'El informe del auditor y la Memoria todavía figuran como pendientes: están en desarrollo.',
       ),
     ],
     relacionados: ['paso-documentos', 'en-desarrollo'],

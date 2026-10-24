@@ -24,9 +24,10 @@ describe('armarDocumento', () => {
     ])
     expect(doc.encabezado.linea).toBe('Estados contables al 31/12/2025 · Ejercicio económico N° 5')
     expect(doc.borrador).toEqual({ es: false, motivos: [] })
-    expect(doc.pendientes).toContain(
-      'Pendiente: el texto de la Nota 1 se genera y edita en un paso posterior.',
-    )
+    // La Nota 1 ya no está pendiente: sale armada con los datos del ejercicio.
+    expect(doc.pendientes.some((p) => p.includes('Nota 1 se genera'))).toBe(false)
+    const notas = doc.secciones.find((s) => s.tipo === 'notas')
+    expect(notas?.tipo === 'notas' && notas.notaUno.texto).toContain('1.1. Bases de preparación')
   })
 
   it('sin ejercicio anterior no hay columna comparativa', () => {
@@ -206,9 +207,8 @@ describe('armarDocumento', () => {
     )
     const notas = doc.secciones.find((s) => s.tipo === 'notas')
     expect(notas?.tipo === 'notas' && notas.notas.map((n) => n.numero)).toEqual([2, 3])
-    expect(notas?.tipo === 'notas' && notas.transicion?.titulo).toBe(
-      'Nota de primera aplicación de la Resolución Técnica N° 54',
-    )
+    // Sin ajustes ni reclasificaciones, la transición no agrega un apartado a la Nota 1.
+    expect(notas?.tipo === 'notas' && notas.notaUno.transicion).toBeNull()
   })
 })
 

@@ -4,6 +4,7 @@
  * en borrador. No recalcula importes.
  */
 
+import { armarNotaUno } from '@/modules/notas/domain/notaUno'
 import { formatFecha } from '@/lib/utils/dates'
 import { modoEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import {
@@ -191,15 +192,22 @@ export function armarDocumento(insumos: InsumosDocumento): DocumentoBalance {
   }
 
   // ── Notas ──────────────────────────────────────────────────────────────────
-  pendientes.push(T.pendientes.notaUnoDetalle)
+  // Nota 1: la misma que muestra el paso Notas (generada o escrita por el contador). La
+  // transición a la RT 54 va dentro, solo si el contador la incluyó en "Anexos y notas".
+  const notaUno = armarNotaUno({
+    sociedad,
+    ejercicio,
+    conComparativo: mostrarAnterior,
+    transicion: insumos.notaTransicion,
+  })
+  if (!notaUno.editada) {
+    for (const a of notaUno.advertencias) pendientes.push(`Nota 1: ${a}`)
+  }
   secciones.push({
     tipo: 'notas',
     titulo: T.titulos.notas,
     subtitulo: porElEjercicio,
-    notaUno: { titulo: T.pendientes.notaUno, detalle: T.pendientes.notaUnoDetalle },
-    transicion: insumos.notaTransicion
-      ? { titulo: T.pendientes.transicion, nota: insumos.notaTransicion }
-      : null,
+    notaUno: { titulo: notaUno.titulo, texto: notaUno.texto, transicion: notaUno.transicion },
     notas: [...insumos.notas].sort((a, b) => a.orden - b.orden),
   })
 

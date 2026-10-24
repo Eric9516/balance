@@ -56,9 +56,6 @@ export const TEXTOS_DOCUMENTO = {
       'La compuerta de autorización tiene condiciones pendientes. El documento sale con marca de agua hasta resolverlas:',
   },
   pendientes: {
-    notaUno: 'Nota 1 — Bases de preparación de los estados contables',
-    notaUnoDetalle: 'Pendiente: el texto de la Nota 1 se genera y edita en un paso posterior.',
-    transicion: 'Nota de primera aplicación de la Resolución Técnica N° 54',
     informeDetalle: 'Pendiente: el informe del auditor se redacta en un paso posterior.',
     memoriaDetalle: 'Pendiente: la Memoria se redacta en un paso posterior.',
     anexoSinVista: (titulo: string) =>

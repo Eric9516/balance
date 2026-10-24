@@ -486,8 +486,17 @@ export async function controlar(ctx: Contexto, esc: Escenario, ej: string) {
           )
       }
     } else if (s.tipo === 'notas') {
-      const transicion = esc.documentos.aceptar.includes('NOTA_TRANSICION_RT54')
-      if (transicion !== (s.transicion !== null)) {
+      // La transición a la RT 54 va dentro de la Nota 1 (con ajustes o reclasificaciones).
+      const transicion = esc.documentos.aceptar.includes('NOTA_TRANSICION_RT54') && !!esc.transicion
+      if (!/^1\.1\. /m.test(s.notaUno.texto)) {
+        reg.hallazgo(
+          'error',
+          id,
+          doc,
+          'La Nota 1 (bases de preparación) no sale armada en el documento.',
+        )
+      }
+      if (transicion !== (s.notaUno.transicion !== null)) {
         reg.hallazgo(
           'error',
           id,
@@ -495,8 +504,8 @@ export async function controlar(ctx: Contexto, esc: Escenario, ej: string) {
           `La nota de transición a la RT 54 ${transicion ? 'se aceptó y no sale' : 'sale sin haberse aceptado'}.`,
         )
       }
-      if (s.transicion) {
-        const total = s.transicion.nota.conciliacionPN.find((f) => f.esTotal)
+      if (s.notaUno.transicion) {
+        const total = s.notaUno.transicion.nota.conciliacionPN.find((f) => f.esTotal)
         const inicio = sumarPor(
           pn.movimientos.filter(
             (m) => m.tipo === 'SALDO_INICIO' || m.tipo === 'MODIFICACION_INICIO',
@@ -517,7 +526,7 @@ export async function controlar(ctx: Contexto, esc: Escenario, ej: string) {
           total?.importe,
           inicio,
         )
-        for (const a of s.transicion.nota.advertencias)
+        for (const a of s.notaUno.transicion.nota.advertencias)
           reg.hallazgo('advertencia', id, doc, `Nota de transición: ${a}`)
       }
       for (const d of docs.filter(

@@ -1,12 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { ArrowRight, FileText, PlusCircle, Sparkles, Trash2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { ArrowRight, PlusCircle, Sparkles, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatCurrency } from '@/lib/utils/currency'
-import { toastSuccess } from '@/modules/errores/components/Toast'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
 import { BotonEditar } from '@/components/shared/BotonEditar'
 import { AvisosArrastre } from '@/components/shared/AvisosArrastre'
@@ -15,7 +11,6 @@ import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
 import {
   crearAjusteTransicionAction,
   eliminarAjusteTransicionAction,
-  generarNotaTransicionAction,
   guardarLoteAjustesTransicionAction,
 } from '../actions/ajustes.actions'
 import {
@@ -27,7 +22,7 @@ import {
   type ComponentePN,
   type TipoAjusteTransicion,
 } from '../domain/types'
-import type { FilaConciliacion, NotaTransicionGenerada } from '../lib/generarNota'
+import type { NotaTransicionGenerada } from '../lib/generarNota'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -91,39 +86,6 @@ function CeldaTexto({
   )
 }
 
-// ─── Vista previa: tabla de conciliación ──────────────────────────────────────
-
-function TablaConciliacion({ titulo, filas }: { titulo: string; filas: FilaConciliacion[] }) {
-  return (
-    <div className="overflow-hidden rounded-lg border border-slate-200">
-      <p className="border-b border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">
-        {titulo}
-      </p>
-      <table className="w-full">
-        <tbody>
-          {filas.map((f, i) => (
-            <tr
-              key={`${f.concepto}-${i}`}
-              className={cn(
-                'border-b border-slate-50 last:border-b-0',
-                f.esBase && 'bg-slate-50 text-slate-500',
-                f.esTotal && 'border-t border-t-slate-300 font-bold text-slate-900',
-              )}
-            >
-              <td className={cn('px-3 py-1.5 text-sm', !f.esBase && !f.esTotal && 'pl-6')}>
-                {f.concepto}
-              </td>
-              <td className="w-36 px-3 py-1.5 text-right font-mono text-sm tabular-nums">
-                {formatCurrency(f.importe, { decimales: 2 })}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 interface Props {
@@ -139,7 +101,6 @@ export function NotaTransicionCard({
   ajustes: initialAjustes,
   nota,
 }: Props) {
-  const router = useRouter()
   const {
     valor: ajustes,
     editando,
@@ -177,16 +138,6 @@ export function NotaTransicionCard({
     ejecutar(
       () => eliminarAjusteTransicionAction(id, ejercicioId, sociedadId),
       () => sincronizar((prev) => prev.filter((a) => a.id !== id)),
-    )
-  }
-
-  function generarNota() {
-    ejecutar(
-      () => generarNotaTransicionAction(ejercicioId, sociedadId),
-      () => {
-        toastSuccess('Nota de transición actualizada')
-        router.refresh()
-      },
     )
   }
 
@@ -436,74 +387,14 @@ export function NotaTransicionCard({
         </button>
       </div>
 
-      {/* Vista previa del borrador de la nota */}
-      <div className="space-y-4 border-t border-slate-200 bg-slate-50/60 px-5 py-4">
-        <div className="flex items-center gap-2">
-          <FileText className="h-4 w-4 text-slate-400" />
-          <p className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase">
-            Vista previa del borrador
-          </p>
-        </div>
-
-        <p className="text-sm font-bold text-slate-900 uppercase">{nota.titulo}</p>
-
-        <div className="space-y-2">
-          {nota.parrafos.map((p, i) => (
-            <p key={i} className="text-sm leading-relaxed text-slate-700">
-              {p}
-            </p>
-          ))}
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <TablaConciliacion
-            titulo="Conciliación del patrimonio neto al inicio"
-            filas={nota.conciliacionPN}
-          />
-          <TablaConciliacion
-            titulo="Conciliación del resultado del ejercicio anterior"
-            filas={nota.conciliacionResultado}
-          />
-        </div>
-
-        {nota.reclasificaciones.length > 0 && (
-          <div>
-            <p className="mb-1.5 text-xs font-semibold text-slate-700">
-              Reclasificaciones de exposición
-            </p>
-            <ul className="space-y-1">
-              {nota.reclasificaciones.map((r, i) => (
-                <li
-                  key={`${r.concepto}-${i}`}
-                  className="flex items-center justify-between gap-3 text-sm text-slate-700"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <span>{r.concepto}</span>
-                    {r.origen && r.destino && (
-                      <span className="flex items-center gap-1 text-xs text-slate-400">
-                        ({r.origen}
-                        <ArrowRight className="h-3 w-3" />
-                        {r.destino})
-                      </span>
-                    )}
-                  </span>
-                  <span className="font-mono text-sm text-slate-700 tabular-nums">
-                    {formatCurrency(r.importe, { decimales: 2 })}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
+      {/* La nota de transición va dentro de la Nota 1 (bases de preparación). */}
+      <div className="space-y-3 border-t border-slate-200 bg-slate-50/60 px-5 py-4">
+        <p className="text-sm text-slate-600">
+          Estos ajustes van dentro de la <strong>Nota 1</strong> (bases de preparación y adopción de
+          la RT 54), con sus conciliaciones. La fila &quot;Modificación de saldos al inicio&quot;
+          del E.E.P.N. los acompaña sola.
+        </p>
         <AvisosArrastre advertencias={nota.advertencias} />
-
-        <div className="flex justify-end">
-          <Button variant="secondary" size="sm" onClick={generarNota} disabled={isPendingTotal}>
-            <FileText className="mr-1.5 h-3.5 w-3.5" />
-            Generar / actualizar nota en el listado
-          </Button>
-        </div>
       </div>
     </div>
   )
