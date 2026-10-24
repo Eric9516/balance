@@ -8,6 +8,15 @@ import { describe, it, expect } from 'vitest'
 import { ARTICULOS, ARTICULO_POR_ID, buscarEnAyuda, resumenDePaso } from './contenido'
 import { PASO_INFO, articuloDePaso, type InfoPasoKey } from './domain/pasos'
 import { INFO_PANTALLAS } from './domain/pantallas'
+import { AdopcionRT54, CriteriosBienesCambio, TipoAjusteTransicion } from '@prisma/client'
+import {
+  ARTICULO_CONFIG_NOTAS,
+  AYUDA_ADOPCION_RT54,
+  AYUDA_CRITERIO_BIENES_CAMBIO,
+  AYUDA_TIPO_AJUSTE,
+  CONFIGURACION_NOTAS,
+  type ExplicacionOpcion,
+} from './domain/opciones'
 
 const SRC = join(__dirname, '..', '..')
 
@@ -70,6 +79,49 @@ describe('La ayuda cubre toda la app', () => {
     const explicados = new Set(ARTICULOS.flatMap((a) => a.codigos ?? []))
     const faltan = [...codigosDeLaApp()].filter((c) => !explicados.has(c)).sort()
     expect(faltan, 'Agregá su explicación en src/modules/ayuda/contenido/mensajes.ts').toEqual([])
+  })
+
+  it('cada opción de configuración de las notas explica qué hace y qué cambia', () => {
+    // Si se agrega un valor a la base (otro criterio, otro tipo de partida), falta su explicación.
+    const pares: [Record<string, ExplicacionOpcion>, string[]][] = [
+      [AYUDA_ADOPCION_RT54.opciones, Object.values(AdopcionRT54)],
+      [AYUDA_CRITERIO_BIENES_CAMBIO.opciones, Object.values(CriteriosBienesCambio)],
+      [AYUDA_TIPO_AJUSTE.opciones, Object.values(TipoAjusteTransicion)],
+    ]
+    for (const [opciones, valores] of pares) {
+      expect(Object.keys(opciones).sort()).toEqual([...valores].sort())
+    }
+    const { preguntas, campoNota, transicion, camposTransicion } = CONFIGURACION_NOTAS
+    // En el orden del artículo.
+    const todas = [
+      ...preguntas.flatMap((q) => Object.values(q.opciones)),
+      campoNota,
+      ...Object.values(transicion.opciones),
+      ...camposTransicion,
+    ]
+    for (const o of todas) {
+      expect(o.etiqueta && o.resumen && o.queHace, o.etiqueta).toBeTruthy()
+      expect(o.impacta.length, o.etiqueta).toBeGreaterThan(0)
+    }
+
+    // El artículo de la ayuda dice lo mismo que el símbolo (?) de cada opción.
+    const articulo = ARTICULO_POR_ID.get(ARTICULO_CONFIG_NOTAS)
+    const terminos = articulo?.bloques.flatMap((b) =>
+      b.tipo === 'definiciones' ? b.items.map((i) => i.termino) : [],
+    )
+    expect(terminos).toEqual(todas.map((o) => o.etiqueta))
+  })
+
+  it('las pantallas de configuración de las notas muestran el símbolo (?) de la ayuda', () => {
+    for (const archivo of [
+      'modules/notas/components/WizardNotaI.tsx',
+      'modules/notas/components/NotaCuantitativa.tsx',
+      'modules/transicion-rt54/components/NotaTransicionCard.tsx',
+    ]) {
+      const fuente = readFileSync(join(SRC, archivo), 'utf8')
+      expect(fuente, archivo).toContain('<AyudaOpcion')
+      expect(fuente, archivo).toContain("from '@/modules/ayuda/domain/opciones'")
+    }
   })
 
   it('identificadores únicos y relacionados que existen', () => {

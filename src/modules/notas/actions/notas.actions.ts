@@ -23,9 +23,9 @@ import {
 import {
   CRITERIO_LABEL,
   OPCIONES_POR_DEFECTO,
+  PALABRAS_BIENES_DE_CAMBIO,
   planificarRegeneracion,
   resumirPlan,
-  TEXTO_HECHOS_DEFAULT,
   TITULO_HECHOS,
   type OpcionesRegeneracion,
   type PlanRegeneracion,
@@ -236,6 +236,17 @@ export async function guardarConfigNotaIAction(
     const parsed = ConfigNotaISchema.safeParse(dataRecibida)
     if (!parsed.success) return actionError(errorFormulario(parsed.error.issues))
     const data = parsed.data
+    const textoHechos = data.hechosPosterioressTexto?.trim() ?? ''
+    if (data.hechosPosterioress === true && textoHechos === '') {
+      return actionError({
+        tipo: 'NEGOCIO',
+        severidad: 'BAJO',
+        codigo: 'NEG-007',
+        mensaje:
+          'Elegiste que hay hechos posteriores al cierre pero no escribiste cuáles. Describilos o elegí "No".',
+        campo: 'hechosPosterioressTexto',
+      })
+    }
 
     // 1. Guardar config en el ejercicio
     await db.ejercicioContable.update({
@@ -248,14 +259,17 @@ export async function guardarConfigNotaIAction(
       },
     })
 
-    // 2. Actualizar criterio de bienes de cambio en notas existentes
+    // 2. Actualizar criterio de bienes de cambio en notas existentes (solo la de bienes de cambio:
+    // "bienes de uso" o "bienes intangibles" conservan el suyo)
     if (data.criteriosBienesCambio) {
       const nuevoCriterio = CRITERIO_LABEL[data.criteriosBienesCambio]
       if (nuevoCriterio) {
         await db.notaEjercicio.updateMany({
           where: {
             ejercicioId,
-            titulo: { contains: 'BIEN', mode: 'insensitive' },
+            AND: PALABRAS_BIENES_DE_CAMBIO.map((p) => ({
+              titulo: { contains: p, mode: 'insensitive' as const },
+            })),
             tipo: 'CUANTITATIVA',
             criterioMedicion: { not: null },
           },
@@ -266,16 +280,12 @@ export async function guardarConfigNotaIAction(
 
     // 3. Sincronizar nota de Hechos Posteriores
     if (data.hechosPosterioress !== undefined) {
-      const textoHechos = data.hechosPosterioress
-        ? data.hechosPosterioressTexto?.trim() || TEXTO_HECHOS_DEFAULT
-        : null
-
       const notaExistente = await db.notaEjercicio.findFirst({
         where: { ejercicioId, titulo: TITULO_HECHOS },
         select: { id: true, orden: true },
       })
 
-      if (data.hechosPosterioress && textoHechos) {
+      if (data.hechosPosterioress) {
         if (notaExistente) {
           // Actualizar texto de la nota existente
           await db.notaEjercicio.update({
@@ -307,18 +317,6 @@ export async function guardarConfigNotaIAction(
         // Eliminar la nota y renumerar
         await db.notaEjercicio.delete({ where: { id: notaExistente.id } })
         await renumerarNotas(ejercicioId)
-      }
-    } else if (data.hechosPosterioress === true && data.hechosPosterioressTexto !== undefined) {
-      // Solo cambió el texto (ya existe la nota)
-      const notaExistente = await db.notaEjercicio.findFirst({
-        where: { ejercicioId, titulo: TITULO_HECHOS },
-        select: { id: true },
-      })
-      if (notaExistente) {
-        await db.notaEjercicio.update({
-          where: { id: notaExistente.id },
-          data: { textoApertura: data.hechosPosterioressTexto?.trim() || TEXTO_HECHOS_DEFAULT },
-        })
       }
     }
 

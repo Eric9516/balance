@@ -60,10 +60,15 @@ const EERR_SIN_NOTA = new Set([
   'IMPUESTO_GANANCIAS',
 ])
 
-// Bienes de cambio por nombre (sin acentos ni mayúsculas): si cambia el código, sigue andando.
+/**
+ * Bienes de cambio por nombre (sin acentos ni mayúsculas): si cambia el código, sigue andando. La
+ * nota lleva el nombre del rubro, así que la misma regla encuentra la nota.
+ */
+export const PALABRAS_BIENES_DE_CAMBIO = ['bien', 'cambio'] as const
+
 function esRubroBienDeCambio(nombre: string): boolean {
   const n = nombre.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-  return n.includes('bien') && n.includes('cambio')
+  return PALABRAS_BIENES_DE_CAMBIO.every((p) => n.includes(p))
 }
 
 type RubroNota = Pick<

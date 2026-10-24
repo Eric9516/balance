@@ -248,6 +248,10 @@ export async function recorrerPantallas(ctx: Contexto, escenarios: Escenario[]) 
           await page.screenshot({
             path: join(process.cwd(), 'auditoria', 'informes', 'nota-uno.png'),
           })
+          errores = []
+          await probarAyudaConfigNotas(ctx, page, esc.id)
+          for (const e of new Set(errores))
+            reg.hallazgo('error', esc.id, area, `Error en la consola en "Configurar Nota I": ${e}`)
         }
         for (const t of p.textos ?? []) {
           reg.controles++
@@ -275,6 +279,60 @@ export async function recorrerPantallas(ctx: Contexto, escenarios: Escenario[]) 
       writeFileSync(agents, agentsAntes)
     }
   }
+}
+
+/**
+ * "Configurar Nota I": el símbolo (?) de una opción abre su explicación, Escape la cierra sin cerrar
+ * el asistente, y con hechos posteriores no se puede confirmar sin describirlos. No guarda nada.
+ */
+async function probarAyudaConfigNotas(
+  ctx: Contexto,
+  page: import('playwright-core').Page,
+  escenario: string,
+) {
+  const { reg } = ctx
+  const area = 'Pantalla Notas'
+  const control = (ok: boolean, falla: string) => {
+    reg.controles++
+    if (!ok) reg.hallazgo('error', escenario, area, falla)
+  }
+  const visible = (l: import('playwright-core').Locator, estado: 'visible' | 'hidden') =>
+    l
+      .waitFor({ state: estado, timeout: 5_000 })
+      .then(() => true)
+      .catch(() => false)
+
+  await page.getByRole('button', { name: /Volver a configurar|Completar configuración/ }).click()
+  const asistente = page.getByRole('heading', { name: 'Adopción de la RT 54', exact: true })
+  control(await visible(asistente, 'visible'), 'No abre "Configurar Nota I".')
+  await page.getByRole('button', { name: 'Qué hace: Primera adopción', exact: true }).click()
+  const globo = page.getByRole('dialog', { name: 'Primera adopción', exact: true })
+  const abre = await visible(globo, 'visible')
+  control(abre, 'El símbolo (?) de "Primera adopción" no abre su explicación.')
+  if (abre) {
+    control(
+      (await globo.innerText()).includes('Modificación de saldos al inicio'),
+      'La explicación de "Primera adopción" no dice qué cambia en el E.E.P.N.',
+    )
+    await page.screenshot({
+      path: join(process.cwd(), 'auditoria', 'informes', 'ayuda-opcion.png'),
+    })
+  }
+  await page.keyboard.press('Escape')
+  control(
+    (await visible(globo, 'hidden')) && (await asistente.isVisible()),
+    'Escape no cierra solo la explicación: tiene que dejar abierto "Configurar Nota I".',
+  )
+
+  for (let i = 0; i < 2; i++) await page.getByRole('button', { name: 'Siguiente' }).click()
+  await page.getByText('Sí', { exact: true }).click()
+  await page.getByLabel(/Descripción de hechos posteriores/).fill('')
+  control(
+    await page.getByRole('button', { name: 'Confirmar', exact: true }).isDisabled(),
+    'Con hechos posteriores sin describir se puede confirmar (tiene que pedir la descripción).',
+  )
+  await page.keyboard.press('Escape')
+  control(await visible(asistente, 'hidden'), 'Escape no cierra "Configurar Nota I".')
 }
 
 /**

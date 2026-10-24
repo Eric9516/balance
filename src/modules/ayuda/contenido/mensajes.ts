@@ -222,6 +222,18 @@ const MENSAJES: Mensaje[] = [
     relacionados: ['nota-uno'],
   },
   {
+    codigo: 'NEG-007',
+    titulo: 'Falta describir los hechos posteriores al cierre',
+    significa:
+      'En "Configurar Nota I" se eligió que hay hechos posteriores, pero la descripción quedó vacía. La nota no puede salir sin texto.',
+    solucion: [
+      'Volvé a "Configurar Nota I" y escribí qué pasó después del cierre y, si se puede estimar, su efecto.',
+      'Si no hay nada que informar, elegí "No": la nota no se incluye.',
+    ],
+    claves: ['hechos posteriores vacio', 'descripcion de hechos posteriores'],
+    relacionados: ['configurar-notas'],
+  },
+  {
     codigo: 'NEG-010',
     titulo: 'No hay datos para continuar',
     significa:

@@ -1,5 +1,6 @@
 import type { ArticuloAyuda } from '../domain/tipos'
 import { aviso, defs, lista, p, pasos } from './bloques'
+import { CONFIGURAR_NOTAS } from './configuracionNotas'
 
 export const PASOS: ArticuloAyuda[] = [
   {
@@ -350,7 +351,7 @@ export const PASOS: ArticuloAyuda[] = [
     ],
     bloques: [
       pasos(
-        'Respondé "Configurar Nota I": adopción de la RT 54 (primera adopción o aplicación continuada), criterio de medición de bienes de cambio y hechos posteriores al cierre. Con eso y los datos del ejercicio, la app arma la Nota 1 (ver "Nota 1: bases de preparación").',
+        'Respondé "Configurar Nota I": adopción de la RT 54 (primera adopción o aplicación continuada), criterio de medición de bienes de cambio y hechos posteriores al cierre. Con eso y los datos del ejercicio, la app arma la Nota 1 (ver "Nota 1: bases de preparación"). Qué cambia cada respuesta: "Configuración de las notas: qué hace cada opción", o el símbolo (?) de cada opción.',
         'Hacé clic en "Generar las notas": se arma una nota por cada rubro que la lleva, con sus cuentas.',
         'Editá el texto de apertura o el criterio de cada nota si hace falta.',
       ),
@@ -372,8 +373,15 @@ export const PASOS: ArticuloAyuda[] = [
         'Si borrás una nota, las demás se renumeran.',
       ),
     ],
-    relacionados: ['nota-uno', 'nota-transicion', 'anterior-manual', 'paso-documentos'],
+    relacionados: [
+      'configurar-notas',
+      'nota-uno',
+      'nota-transicion',
+      'anterior-manual',
+      'paso-documentos',
+    ],
   },
+  CONFIGURAR_NOTAS,
   {
     id: 'nota-uno',
     titulo: 'Nota 1: bases de preparación (se arma sola y se puede editar)',

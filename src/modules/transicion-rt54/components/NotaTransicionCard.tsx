@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
 import { BotonEditar } from '@/components/shared/BotonEditar'
 import { AvisosArrastre } from '@/components/shared/AvisosArrastre'
+import { AyudaOpcion } from '@/components/shared/AyudaOpcion'
+import { AYUDA_CAMPOS_TRANSICION, AYUDA_TIPO_AJUSTE } from '@/modules/ayuda/domain/opciones'
 import { useEdicionLote } from '@/components/shared/useEdicionLote'
 import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
 import {
@@ -174,16 +176,34 @@ export function NotaTransicionCard({
         <table className="w-full">
           <thead>
             <tr className="border-b border-slate-100">
-              <th className={cn(thCls, 'w-44')}>Tipo</th>
+              <th className={cn(thCls, 'w-44')}>
+                <span className="inline-flex items-center gap-1">
+                  Tipo
+                  <AyudaOpcion ayuda={AYUDA_TIPO_AJUSTE} />
+                </span>
+              </th>
               <th className={thCls}>Concepto</th>
-              <th className={cn(thCls, 'w-48')}>Componente PN / Rubros</th>
+              <th className={cn(thCls, 'w-48')}>
+                <span className="inline-flex items-center gap-1">
+                  Componente PN / Rubros
+                  <AyudaOpcion ayuda={AYUDA_CAMPOS_TRANSICION.componentePN} />
+                </span>
+              </th>
               <th className={cn(thCls, 'w-36 text-right')}>
-                Efecto PN al inicio
+                <span className="inline-flex items-center gap-1">
+                  Efecto PN al inicio
+                  <AyudaOpcion ayuda={AYUDA_CAMPOS_TRANSICION.efectoPN} />
+                </span>
                 <span className="block font-normal text-slate-400 normal-case">
                   o importe reclasificado
                 </span>
               </th>
-              <th className={cn(thCls, 'w-36 text-right')}>Efecto resultado anterior</th>
+              <th className={cn(thCls, 'w-36 text-right')}>
+                <span className="inline-flex items-center gap-1">
+                  Efecto resultado anterior
+                  <AyudaOpcion ayuda={AYUDA_CAMPOS_TRANSICION.efectoResultadoAnterior} />
+                </span>
+              </th>
               <th className="w-8" />
             </tr>
           </thead>

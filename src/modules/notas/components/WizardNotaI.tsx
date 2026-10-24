@@ -1,12 +1,19 @@
 'use client'
 
-import { useState, useTransition, useEffect } from 'react'
+import { useState, useTransition, useEffect, useId } from 'react'
 import { useMontado } from '@/components/shared/useMontado'
 import { createPortal } from 'react-dom'
 import { ChevronRight, ChevronLeft, X, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { guardarConfigNotaIAction } from '../actions/notas.actions'
 import { toastError, toastSuccess } from '@/modules/errores/components/Toast'
+import { AyudaOpcion } from '@/components/shared/AyudaOpcion'
+import {
+  AYUDA_ADOPCION_RT54,
+  AYUDA_CRITERIO_BIENES_CAMBIO,
+  AYUDA_HECHOS_POSTERIORES,
+  type ExplicacionOpcion,
+} from '@/modules/ayuda/domain/opciones'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -17,24 +24,28 @@ export type ConfigNotaILocal = {
   hechosPosterioressTexto: string | null
 }
 
-const TEXTO_HECHOS_DEFAULT =
-  'No existen acontecimientos u operaciones ocurridos entre la fecha de cierre del ejercicio y la de emisión de los presentes estados contables que puedan modificar significativamente la situación patrimonial y financiera de la entidad a la fecha de cierre ni los resultados del presente ejercicio.'
-
 // ─── Helpers visuales ─────────────────────────────────────────────────────────
+
+function Explicacion({ texto }: { texto: string }) {
+  return <p className="mb-3 text-xs leading-relaxed text-slate-500">{texto}</p>
+}
 
 function RadioOpcion({
   checked,
   onChange,
-  label,
-  description,
+  ayuda,
 }: {
   checked: boolean
   onChange: () => void
-  label: string
-  description: string
+  /** Etiqueta, descripción y explicación del símbolo (?), de la ayuda. */
+  ayuda: ExplicacionOpcion
 }) {
+  // Atado por id: sin `htmlFor`, la etiqueta activaría el primer control que contiene, que es el
+  // símbolo (?), y tocar la opción abriría la ayuda en lugar de elegirla.
+  const id = useId()
   return (
     <label
+      htmlFor={id}
       className={cn(
         'relative flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-all',
         checked
@@ -50,11 +61,14 @@ function RadioOpcion({
       >
         {checked && <div className="h-full w-full scale-[0.4] rounded-full bg-white" />}
       </div>
-      <div>
-        <p className="text-sm font-semibold text-slate-800">{label}</p>
-        <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{description}</p>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1">
+          <p className="text-sm font-semibold text-slate-800">{ayuda.etiqueta}</p>
+          <AyudaOpcion ayuda={ayuda} />
+        </div>
+        <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{ayuda.resumen}</p>
       </div>
-      <input type="radio" checked={checked} onChange={onChange} className="sr-only" />
+      <input id={id} type="radio" checked={checked} onChange={onChange} className="sr-only" />
     </label>
   )
 }
@@ -68,20 +82,20 @@ function Paso1({
   value: ConfigNotaILocal['adopcionRT54']
   onChange: (v: ConfigNotaILocal['adopcionRT54']) => void
 }) {
+  const { explicacion, opciones } = AYUDA_ADOPCION_RT54
   return (
-    <div className="space-y-3">
-      <RadioOpcion
-        checked={value === 'PRIMERA_ADOPCION'}
-        onChange={() => onChange('PRIMERA_ADOPCION')}
-        label="Primera adopción"
-        description="Es el primer ejercicio en que la entidad presenta estados contables bajo RT 54. El texto de la Nota I incluirá la mención a la adopción inicial y las reclasificaciones realizadas."
-      />
-      <RadioOpcion
-        checked={value === 'APLICACION_CONTINUADA'}
-        onChange={() => onChange('APLICACION_CONTINUADA')}
-        label="Aplicación continuada"
-        description="La entidad ya venía aplicando RT 54 en ejercicios anteriores. El texto de la Nota I no incluye mención a adopción inicial."
-      />
+    <div>
+      <Explicacion texto={explicacion} />
+      <div className="space-y-3">
+        {(['PRIMERA_ADOPCION', 'APLICACION_CONTINUADA'] as const).map((k) => (
+          <RadioOpcion
+            key={k}
+            checked={value === k}
+            onChange={() => onChange(k)}
+            ayuda={opciones[k]}
+          />
+        ))}
+      </div>
     </div>
   )
 }
@@ -93,26 +107,20 @@ function Paso2({
   value: ConfigNotaILocal['criteriosBienesCambio']
   onChange: (v: ConfigNotaILocal['criteriosBienesCambio']) => void
 }) {
+  const { explicacion, opciones } = AYUDA_CRITERIO_BIENES_CAMBIO
   return (
-    <div className="space-y-3">
-      <RadioOpcion
-        checked={value === 'COSTO_ADQUISICION'}
-        onChange={() => onChange('COSTO_ADQUISICION')}
-        label="Costo de adquisición"
-        description="Los bienes de cambio se miden a su costo de adquisición reexpresado en moneda de cierre."
-      />
-      <RadioOpcion
-        checked={value === 'ULTIMA_COMPRA'}
-        onChange={() => onChange('ULTIMA_COMPRA')}
-        label="Costo de la última compra"
-        description="Los bienes de cambio se miden al costo de la última compra a la fecha de cierre."
-      />
-      <RadioOpcion
-        checked={value === 'COSTO_REPOSICION'}
-        onChange={() => onChange('COSTO_REPOSICION')}
-        label="Costo de reposición"
-        description="Precio que demandaría adquirir bienes de similares características a valores vigentes al cierre. Habitual en este estudio."
-      />
+    <div>
+      <Explicacion texto={explicacion} />
+      <div className="space-y-3">
+        {(['COSTO_ADQUISICION', 'ULTIMA_COMPRA', 'COSTO_REPOSICION'] as const).map((k) => (
+          <RadioOpcion
+            key={k}
+            checked={value === k}
+            onChange={() => onChange(k)}
+            ayuda={opciones[k]}
+          />
+        ))}
+      </div>
     </div>
   )
 }
@@ -128,40 +136,40 @@ function Paso3({
   onToggle: (v: boolean) => void
   onTexto: (v: string) => void
 }) {
+  const { explicacion, opciones } = AYUDA_HECHOS_POSTERIORES
   return (
     <div className="space-y-4">
-      <div className="space-y-3">
-        <RadioOpcion
-          checked={tieneHechos === false}
-          onChange={() => onToggle(false)}
-          label="No"
-          description="No existen hechos posteriores relevantes a informar. Se usará el texto estándar."
-        />
-        <RadioOpcion
-          checked={tieneHechos === true}
-          onChange={() => onToggle(true)}
-          label="Sí"
-          description="Existen hechos posteriores al cierre que deben informarse en notas."
-        />
-      </div>
-
-      {tieneHechos === false && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-          <p className="text-xs leading-relaxed text-slate-500 italic">{TEXTO_HECHOS_DEFAULT}</p>
+      <div>
+        <Explicacion texto={explicacion} />
+        <div className="space-y-3">
+          <RadioOpcion
+            checked={tieneHechos === false}
+            onChange={() => onToggle(false)}
+            ayuda={opciones.NO}
+          />
+          <RadioOpcion
+            checked={tieneHechos === true}
+            onChange={() => onToggle(true)}
+            ayuda={opciones.SI}
+          />
         </div>
-      )}
+      </div>
 
       {tieneHechos === true && (
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-slate-600">
-            Descripción de hechos posteriores
+          <label
+            htmlFor="hechos-posteriores-texto"
+            className="mb-1.5 block text-xs font-medium text-slate-600"
+          >
+            Descripción de hechos posteriores (obligatoria)
           </label>
           <textarea
+            id="hechos-posteriores-texto"
             value={texto ?? ''}
             onChange={(e) => onTexto(e.target.value)}
             rows={5}
             className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-blue-400 focus:outline-none"
-            placeholder="Describí los hechos posteriores al cierre del ejercicio..."
+            placeholder="Qué pasó después del cierre y, si se puede estimar, su efecto..."
           />
         </div>
       )}
@@ -172,9 +180,9 @@ function Paso3({
 // ─── Wizard principal ─────────────────────────────────────────────────────────
 
 const PASOS = [
-  { numero: 1, titulo: 'Adopción de la RT 54' },
-  { numero: 2, titulo: 'Criterio — Bienes de Cambio' },
-  { numero: 3, titulo: 'Hechos posteriores al cierre' },
+  { numero: 1, titulo: AYUDA_ADOPCION_RT54.titulo },
+  { numero: 2, titulo: AYUDA_CRITERIO_BIENES_CAMBIO.titulo },
+  { numero: 3, titulo: AYUDA_HECHOS_POSTERIORES.titulo },
 ]
 
 interface Props {
@@ -212,7 +220,12 @@ export function WizardNotaI({
   const puedeAvanzar = () => {
     if (paso === 1) return config.adopcionRT54 !== null
     if (paso === 2) return config.criteriosBienesCambio !== null
-    if (paso === 3) return config.hechosPosterioress !== null
+    // Con hechos posteriores, la descripción es obligatoria (NEG-007 en el servidor).
+    if (paso === 3)
+      return (
+        config.hechosPosterioress === false ||
+        (config.hechosPosterioress === true && !!config.hechosPosterioressTexto?.trim())
+      )
     return true
   }
 

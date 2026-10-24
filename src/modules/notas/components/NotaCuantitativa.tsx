@@ -8,6 +8,8 @@ import { formatFecha } from '@/lib/utils/dates'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
 import { CeldaBloqueada } from '@/components/shared/CeldaBloqueada'
 import { BotonEditar } from '@/components/shared/BotonEditar'
+import { AyudaOpcion } from '@/components/shared/AyudaOpcion'
+import { AYUDA_CRITERIO_NOTA } from '@/modules/ayuda/domain/opciones'
 import { useEdicionLote } from '@/components/shared/useEdicionLote'
 import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
 import { actionOk, type ActionResult } from '@/modules/errores/types'
@@ -219,7 +221,7 @@ export function NotaCuantitativa({
 
           {/* Criterio de medición — solo SSP (no EERR) */}
           {nota.criterioMedicion !== null && (
-            <div className="mt-0.5 flex items-baseline gap-1">
+            <div className="mt-0.5 flex items-center gap-1">
               <span className="text-xs text-slate-500">Criterio de medición:</span>
               {editando ? (
                 <input
@@ -231,6 +233,7 @@ export function NotaCuantitativa({
               ) : (
                 <span className="text-xs text-slate-600">{nota.criterioMedicion}</span>
               )}
+              <AyudaOpcion ayuda={AYUDA_CRITERIO_NOTA} />
             </div>
           )}
         </div>
