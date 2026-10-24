@@ -325,6 +325,17 @@ async function probarAyudaConfigNotas(
   )
 
   for (let i = 0; i < 2; i++) await page.getByRole('button', { name: 'Siguiente' }).click()
+  await page.getByText('No, con una nota que lo aclara', { exact: true }).click()
+  control(
+    (await page.getByLabel(/Texto de la nota/).inputValue()).startsWith(
+      'No existen acontecimientos',
+    ),
+    '"No, con una nota que lo aclara" no propone el texto estándar.',
+  )
+  await page.waitForTimeout(400) // que terminen las transiciones de color de las opciones
+  await page.screenshot({
+    path: join(process.cwd(), 'auditoria', 'informes', 'hechos-posteriores.png'),
+  })
   await page.getByText('Sí', { exact: true }).click()
   await page.getByLabel(/Descripción de hechos posteriores/).fill('')
   control(

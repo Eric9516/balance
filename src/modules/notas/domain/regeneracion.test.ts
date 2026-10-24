@@ -5,8 +5,11 @@ import {
   numeracionFinal,
   OPCIONES_POR_DEFECTO,
   planificarRegeneracion,
+  respuestaHechos,
   resumirPlan,
   seQuitaFila,
+  TEXTO_HECHOS_DEFAULT,
+  textoNotaHechos,
 } from './regeneracion'
 
 function rubro(id: string, nombre: string, orden: number, extra: Partial<RubroBaseSimple> = {}) {
@@ -201,5 +204,23 @@ describe('planificarRegeneracion: regenerar sin perder lo cargado a mano', () =>
     ])
     // La nota de transición está en el orden 0: al renumerar pasa al 1.
     expect(r.reordena).toBe(true)
+  })
+})
+
+describe('Nota de hechos posteriores: el contador elige', () => {
+  const casos = [
+    // [hechos, texto guardado, respuesta, texto de la nota]
+    [null, null, null, null],
+    [false, null, 'NO_SIN_NOTA', null],
+    [false, TEXTO_HECHOS_DEFAULT, 'NO_CON_NOTA', TEXTO_HECHOS_DEFAULT],
+    [false, '  No hubo hechos relevantes.  ', 'NO_CON_NOTA', 'No hubo hechos relevantes.'],
+    [true, 'Incendio del depósito.', 'SI', 'Incendio del depósito.'],
+    // Guardado antes de exigir la descripción (NEG-007): conserva el texto estándar.
+    [true, null, 'SI', TEXTO_HECHOS_DEFAULT],
+  ] as const
+  it.each(casos)('hechos %s, texto %j → %s', (hechos, texto, respuesta, nota) => {
+    const c = { hechosPosterioress: hechos, hechosPosterioressTexto: texto }
+    expect(respuestaHechos(c)).toBe(respuesta)
+    expect(textoNotaHechos(c)).toBe(nota)
   })
 })

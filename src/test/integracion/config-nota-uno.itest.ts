@@ -1,7 +1,8 @@
 /**
  * "Configurar Nota I": cada respuesta hace lo que explica su símbolo (?) en la pantalla
  * (src/modules/ayuda/domain/opciones.ts). El criterio de bienes de cambio cambia solo esa nota; con
- * hechos posteriores la nota lleva el texto escrito, que es obligatorio (NEG-007); con "No" se quita.
+ * hechos posteriores la nota lleva el texto escrito, que es obligatorio (NEG-007); con "No" el
+ * contador elige si va una nota que lo aclara.
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 
@@ -10,7 +11,7 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn(), 
 import { db } from '@/lib/db'
 import { crearEjercicio } from '@/modules/ejercicios/actions/ejercicio.actions'
 import { guardarConfigNotaIAction } from '@/modules/notas/actions/notas.actions'
-import { TITULO_HECHOS } from '@/modules/notas/domain/regeneracion'
+import { TEXTO_HECHOS_DEFAULT, TITULO_HECHOS } from '@/modules/notas/domain/regeneracion'
 
 const ctx = { estudioId: '', sociedadId: '', ej: '' }
 
@@ -112,7 +113,7 @@ describe('Configurar Nota I', () => {
     expect(await criterioDe('OTROS BIENES')).toBe('valor nominal')
   })
 
-  it('con hechos posteriores la nota lleva el texto escrito; con "No" se quita', async () => {
+  it('con hechos posteriores la nota lleva el texto escrito; con "No, sin nota" se quita', async () => {
     const texto = 'El 10/02/2026 un incendio destruyó el depósito; el efecto no puede estimarse.'
     expect(
       (await configurar({ hechosPosterioress: true, hechosPosterioressTexto: texto })).ok,
@@ -121,6 +122,23 @@ describe('Configurar Nota I', () => {
 
     expect(
       (await configurar({ hechosPosterioress: false, hechosPosterioressTexto: null })).ok,
+    ).toBe(true)
+    expect(await notaHechos()).toBeNull()
+  })
+
+  it('"No, con una nota que lo aclara": va la nota con el texto elegido y se guarda', async () => {
+    const r = await configurar({
+      hechosPosterioress: false,
+      hechosPosterioressTexto: ` ${TEXTO_HECHOS_DEFAULT} `,
+    })
+    expect(r.ok).toBe(true)
+    expect(await notaHechos()).toEqual({ textoApertura: TEXTO_HECHOS_DEFAULT, numero: 5 })
+    const ej = await db.ejercicioContable.findUniqueOrThrow({ where: { id: ctx.ej } })
+    expect(ej.hechosPosterioressTexto).toBe(TEXTO_HECHOS_DEFAULT)
+
+    // Texto vacío con "No": sin nota.
+    expect(
+      (await configurar({ hechosPosterioress: false, hechosPosterioressTexto: '  ' })).ok,
     ).toBe(true)
     expect(await notaHechos()).toBeNull()
   })

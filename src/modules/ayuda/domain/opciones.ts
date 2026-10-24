@@ -5,7 +5,11 @@
  * ayuda.test.ts exige que cada opción tenga su explicación.
  */
 import type { AdopcionRT54, CriteriosBienesCambio, TipoAjusteTransicion } from '@prisma/client'
-import { CRITERIO_LABEL, TITULO_HECHOS } from '@/modules/notas/domain/regeneracion'
+import {
+  CRITERIO_LABEL,
+  TITULO_HECHOS,
+  type RespuestaHechos,
+} from '@/modules/notas/domain/regeneracion'
 import { TIPO_AJUSTE_LABELS } from '@/modules/transicion-rt54/domain/types'
 
 /** Artículo de la ayuda que reúne todas estas explicaciones. */
@@ -109,17 +113,29 @@ export const AYUDA_CRITERIO_BIENES_CAMBIO: PreguntaConfig<CriteriosBienesCambio>
   },
 }
 
-export const AYUDA_HECHOS_POSTERIORES: PreguntaConfig<'NO' | 'SI'> = {
+const sinImportes = 'Los importes de los estados.'
+
+export const AYUDA_HECHOS_POSTERIORES: PreguntaConfig<RespuestaHechos> = {
   titulo: 'Hechos posteriores al cierre',
   explicacion:
-    'Si entre el cierre y la emisión de los estados pasó algo que haya que informar. Agrega o quita la nota de hechos posteriores.',
+    'Si entre el cierre y la emisión de los estados pasó algo que haya que informar. Define si va la nota de hechos posteriores y con qué texto.',
   opciones: {
-    NO: {
-      etiqueta: 'No',
-      resumen: 'No hay hechos posteriores para informar: no se agrega la nota.',
+    NO_SIN_NOTA: {
+      etiqueta: 'No, sin nota',
+      resumen: 'No hay hechos posteriores y el balance no lleva nota sobre el tema.',
       queHace: `No se incluye la nota ${titulo(TITULO_HECHOS)}.`,
       impacta: ['Si esa nota ya existía, se borra y las demás notas se renumeran.'],
-      noCambia: ['Los importes de los estados.'],
+      noCambia: [sinImportes],
+    },
+    NO_CON_NOTA: {
+      etiqueta: 'No, con una nota que lo aclara',
+      resumen: 'No hay hechos posteriores, pero el balance lleva una nota que lo dice.',
+      queHace: `Agrega la nota ${titulo(TITULO_HECHOS)} con el texto estándar ("No existen acontecimientos u operaciones ocurridos entre la fecha de cierre…"). Podés cambiar el texto antes de confirmar.`,
+      impacta: [
+        'La nota va al final y se numera después de las demás.',
+        'Si la nota ya existía, su texto se reemplaza por el de acá.',
+      ],
+      noCambia: [sinImportes],
     },
     SI: {
       etiqueta: 'Sí',

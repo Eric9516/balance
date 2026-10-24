@@ -414,6 +414,8 @@ model EjercicioContable {
   adopcionRT54              AdopcionRT54? @map("adopcion_rt54")
   criteriosBienesCambio     CriteriosBienesCambio? @map("criterios_bienes_cambio")
   hechosPosterioress        Boolean? @map("hechos_posterioress")
+  // Texto de la nota de hechos posteriores. Con "No" (false), null = sin nota y un texto = nota que
+  // aclara que no hubo (ver textoNotaHechos en src/modules/notas/domain/regeneracion.ts).
   hechosPosterioressTexto   String? @map("hechos_posterioress_texto")
   // Nota 1 (bases de preparación): texto escrito por el contador; null = el que genera la app.
   notaUnoTexto              String?   @map("nota_uno_texto")

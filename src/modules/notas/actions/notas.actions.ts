@@ -27,6 +27,7 @@ import {
   planificarRegeneracion,
   resumirPlan,
   TITULO_HECHOS,
+  textoNotaHechos,
   type OpcionesRegeneracion,
   type PlanRegeneracion,
   type ResumenRegeneracion,
@@ -236,14 +237,14 @@ export async function guardarConfigNotaIAction(
     const parsed = ConfigNotaISchema.safeParse(dataRecibida)
     if (!parsed.success) return actionError(errorFormulario(parsed.error.issues))
     const data = parsed.data
-    const textoHechos = data.hechosPosterioressTexto?.trim() ?? ''
-    if (data.hechosPosterioress === true && textoHechos === '') {
+    const textoHechos = data.hechosPosterioressTexto?.trim() || null
+    if (data.hechosPosterioress === true && textoHechos === null) {
       return actionError({
         tipo: 'NEGOCIO',
         severidad: 'BAJO',
         codigo: 'NEG-007',
         mensaje:
-          'Elegiste que hay hechos posteriores al cierre pero no escribiste cuáles. Describilos o elegí "No".',
+          'Elegiste que hay hechos posteriores al cierre pero no escribiste cuáles. Describilos o elegí una de las opciones "No".',
         campo: 'hechosPosterioressTexto',
       })
     }
@@ -255,7 +256,9 @@ export async function guardarConfigNotaIAction(
         adopcionRT54: data.adopcionRT54,
         criteriosBienesCambio: data.criteriosBienesCambio,
         hechosPosterioress: data.hechosPosterioress,
-        hechosPosterioressTexto: data.hechosPosterioressTexto,
+        // undefined: no cambia; vacío: null (con "No", sin nota)
+        hechosPosterioressTexto:
+          data.hechosPosterioressTexto === undefined ? undefined : textoHechos,
       },
     })
 
@@ -278,19 +281,23 @@ export async function guardarConfigNotaIAction(
       }
     }
 
-    // 3. Sincronizar nota de Hechos Posteriores
+    // 3. Sincronizar nota de Hechos Posteriores: va si hay texto (ver textoNotaHechos)
     if (data.hechosPosterioress !== undefined) {
+      const textoNota = textoNotaHechos({
+        hechosPosterioress: data.hechosPosterioress,
+        hechosPosterioressTexto: textoHechos,
+      })
       const notaExistente = await db.notaEjercicio.findFirst({
         where: { ejercicioId, titulo: TITULO_HECHOS },
         select: { id: true, orden: true },
       })
 
-      if (data.hechosPosterioress) {
+      if (textoNota !== null) {
         if (notaExistente) {
           // Actualizar texto de la nota existente
           await db.notaEjercicio.update({
             where: { id: notaExistente.id },
-            data: { textoApertura: textoHechos },
+            data: { textoApertura: textoNota },
           })
         } else {
           // Crear la nota al final de la lista
@@ -309,11 +316,11 @@ export async function guardarConfigNotaIAction(
               numero,
               orden,
               criterioMedicion: null,
-              textoApertura: textoHechos,
+              textoApertura: textoNota,
             },
           })
         }
-      } else if (!data.hechosPosterioress && notaExistente) {
+      } else if (notaExistente) {
         // Eliminar la nota y renumerar
         await db.notaEjercicio.delete({ where: { id: notaExistente.id } })
         await renumerarNotas(ejercicioId)

@@ -29,6 +29,38 @@ export const TITULO_HECHOS = 'HECHOS POSTERIORES AL CIERRE DEL EJERCICIO'
 export const TEXTO_HECHOS_DEFAULT =
   'No existen acontecimientos u operaciones ocurridos entre la fecha de cierre del ejercicio y la de emisión de los presentes estados contables que puedan modificar significativamente la situación patrimonial y financiera de la entidad a la fecha de cierre ni los resultados del presente ejercicio.'
 
+/**
+ * Texto de la nota de hechos posteriores, o null si no va. Única regla (la usan la configuración de
+ * la Nota I y la regeneración):
+ * - Sí: lo que escribió el contador (obligatorio desde NEG-007; un ejercicio guardado antes sin
+ *   texto conserva el estándar).
+ * - No: el contador elige. Con texto (el estándar o el suyo), va la nota que aclara que no hubo; sin
+ *   texto, no va nota.
+ */
+/** Las tres respuestas de "Hechos posteriores al cierre" en "Configurar Nota I". */
+export type RespuestaHechos = 'NO_SIN_NOTA' | 'NO_CON_NOTA' | 'SI'
+
+/** La respuesta que corresponde a lo guardado (null: sin responder). */
+export function respuestaHechos(c: {
+  hechosPosterioress: boolean | null
+  hechosPosterioressTexto: string | null
+}): RespuestaHechos | null {
+  if (c.hechosPosterioress === true) return 'SI'
+  if (c.hechosPosterioress === false)
+    return c.hechosPosterioressTexto === null ? 'NO_SIN_NOTA' : 'NO_CON_NOTA'
+  return null
+}
+
+export function textoNotaHechos(c: {
+  hechosPosterioress?: boolean | null
+  hechosPosterioressTexto?: string | null
+}): string | null {
+  const texto = c.hechosPosterioressTexto?.trim() || null
+  if (c.hechosPosterioress === true) return texto ?? TEXTO_HECHOS_DEFAULT
+  if (c.hechosPosterioress === false) return texto
+  return null
+}
+
 const TITULO_CAMBIOS = 'CAMBIOS EN LOS CRITERIOS CONTABLES'
 const TEXTO_CAMBIOS_CRITERIOS =
   'La sociedad ha observado los mismos criterios contables adoptados en el ejercicio anterior.'
@@ -167,12 +199,13 @@ function objetivos(
     ordenProvisional: lista.length + 1,
     cuentas: [],
   })
-  if (config.hechosPosterioress) {
+  const textoHechos = textoNotaHechos(config)
+  if (textoHechos !== null) {
     lista.push({
       titulo: TITULO_HECHOS,
       tipo: 'INFORMATIVA',
       criterioMedicion: null,
-      textoApertura: config.hechosPosterioressTexto?.trim() || TEXTO_HECHOS_DEFAULT,
+      textoApertura: textoHechos,
       ordenProvisional: lista.length + 1,
       cuentas: [],
     })

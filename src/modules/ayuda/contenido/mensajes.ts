@@ -228,7 +228,7 @@ const MENSAJES: Mensaje[] = [
       'En "Configurar Nota I" se eligió que hay hechos posteriores, pero la descripción quedó vacía. La nota no puede salir sin texto.',
     solucion: [
       'Volvé a "Configurar Nota I" y escribí qué pasó después del cierre y, si se puede estimar, su efecto.',
-      'Si no hay nada que informar, elegí "No": la nota no se incluye.',
+      'Si no hay nada que informar, elegí "No, sin nota" o "No, con una nota que lo aclara".',
     ],
     claves: ['hechos posteriores vacio', 'descripcion de hechos posteriores'],
     relacionados: ['configurar-notas'],

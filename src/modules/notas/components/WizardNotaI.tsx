@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useTransition, useEffect, useId } from 'react'
+import { useState, useTransition, useEffect, useId, useRef } from 'react'
 import { useMontado } from '@/components/shared/useMontado'
 import { createPortal } from 'react-dom'
 import { ChevronRight, ChevronLeft, X, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { guardarConfigNotaIAction } from '../actions/notas.actions'
+import { respuestaHechos, TEXTO_HECHOS_DEFAULT, type RespuestaHechos } from '../domain/regeneracion'
 import { toastError, toastSuccess } from '@/modules/errores/components/Toast'
 import { AyudaOpcion } from '@/components/shared/AyudaOpcion'
 import {
@@ -126,14 +127,14 @@ function Paso2({
 }
 
 function Paso3({
-  tieneHechos,
+  respuesta,
   texto,
-  onToggle,
+  onElegir,
   onTexto,
 }: {
-  tieneHechos: boolean | null
+  respuesta: RespuestaHechos | null
   texto: string | null
-  onToggle: (v: boolean) => void
+  onElegir: (r: RespuestaHechos) => void
   onTexto: (v: string) => void
 }) {
   const { explicacion, opciones } = AYUDA_HECHOS_POSTERIORES
@@ -142,26 +143,26 @@ function Paso3({
       <div>
         <Explicacion texto={explicacion} />
         <div className="space-y-3">
-          <RadioOpcion
-            checked={tieneHechos === false}
-            onChange={() => onToggle(false)}
-            ayuda={opciones.NO}
-          />
-          <RadioOpcion
-            checked={tieneHechos === true}
-            onChange={() => onToggle(true)}
-            ayuda={opciones.SI}
-          />
+          {(['NO_SIN_NOTA', 'NO_CON_NOTA', 'SI'] as const).map((r) => (
+            <RadioOpcion
+              key={r}
+              checked={respuesta === r}
+              onChange={() => onElegir(r)}
+              ayuda={opciones[r]}
+            />
+          ))}
         </div>
       </div>
 
-      {tieneHechos === true && (
+      {(respuesta === 'SI' || respuesta === 'NO_CON_NOTA') && (
         <div>
           <label
             htmlFor="hechos-posteriores-texto"
             className="mb-1.5 block text-xs font-medium text-slate-600"
           >
-            Descripción de hechos posteriores (obligatoria)
+            {respuesta === 'SI'
+              ? 'Descripción de hechos posteriores (obligatoria)'
+              : 'Texto de la nota (podés cambiarlo)'}
           </label>
           <textarea
             id="hechos-posteriores-texto"
@@ -169,7 +170,11 @@ function Paso3({
             onChange={(e) => onTexto(e.target.value)}
             rows={5}
             className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-blue-400 focus:outline-none"
-            placeholder="Qué pasó después del cierre y, si se puede estimar, su efecto..."
+            placeholder={
+              respuesta === 'SI'
+                ? 'Qué pasó después del cierre y, si se puede estimar, su efecto...'
+                : 'Texto de la nota que aclara que no hubo hechos posteriores...'
+            }
           />
         </div>
       )}
@@ -202,6 +207,15 @@ export function WizardNotaI({
 }: Props) {
   const [paso, setPaso] = useState(1)
   const [config, setConfig] = useState<ConfigNotaILocal>(initialConfig)
+  const respuesta = respuestaHechos(config)
+  // Lo escrito en cada respuesta con texto: ir y volver entre opciones no lo pierde.
+  const textos = useRef<Record<'SI' | 'NO_CON_NOTA', string>>({
+    SI: respuesta === 'SI' ? (initialConfig.hechosPosterioressTexto ?? '') : '',
+    NO_CON_NOTA:
+      respuesta === 'NO_CON_NOTA'
+        ? (initialConfig.hechosPosterioressTexto ?? '')
+        : TEXTO_HECHOS_DEFAULT,
+  })
   const [isPending, startTransition] = useTransition()
   const mounted = useMontado()
 
@@ -220,11 +234,12 @@ export function WizardNotaI({
   const puedeAvanzar = () => {
     if (paso === 1) return config.adopcionRT54 !== null
     if (paso === 2) return config.criteriosBienesCambio !== null
-    // Con hechos posteriores, la descripción es obligatoria (NEG-007 en el servidor).
+    // Con hechos posteriores la descripción es obligatoria (NEG-007 en el servidor); con la nota
+    // que aclara que no hubo, también hace falta su texto.
     if (paso === 3)
       return (
-        config.hechosPosterioress === false ||
-        (config.hechosPosterioress === true && !!config.hechosPosterioressTexto?.trim())
+        respuesta === 'NO_SIN_NOTA' ||
+        (respuesta !== null && !!config.hechosPosterioressTexto?.trim())
       )
     return true
   }
@@ -235,9 +250,7 @@ export function WizardNotaI({
         adopcionRT54: config.adopcionRT54,
         criteriosBienesCambio: config.criteriosBienesCambio,
         hechosPosterioress: config.hechosPosterioress,
-        hechosPosterioressTexto: config.hechosPosterioress
-          ? config.hechosPosterioressTexto?.trim() || null
-          : null,
+        hechosPosterioressTexto: config.hechosPosterioressTexto?.trim() || null,
       })
       if (result.ok) {
         toastSuccess('Configuración guardada')
@@ -319,16 +332,19 @@ export function WizardNotaI({
           )}
           {paso === 3 && (
             <Paso3
-              tieneHechos={config.hechosPosterioress}
+              respuesta={respuesta}
               texto={config.hechosPosterioressTexto}
-              onToggle={(v) =>
+              onElegir={(r) =>
                 setConfig((prev) => ({
                   ...prev,
-                  hechosPosterioress: v,
-                  hechosPosterioressTexto: v ? (prev.hechosPosterioressTexto ?? '') : null,
+                  hechosPosterioress: r === 'SI',
+                  hechosPosterioressTexto: r === 'NO_SIN_NOTA' ? null : textos.current[r],
                 }))
               }
-              onTexto={(v) => setConfig((prev) => ({ ...prev, hechosPosterioressTexto: v }))}
+              onTexto={(v) => {
+                if (respuesta === 'SI' || respuesta === 'NO_CON_NOTA') textos.current[respuesta] = v
+                setConfig((prev) => ({ ...prev, hechosPosterioressTexto: v }))
+              }}
             />
           )}
         </div>
