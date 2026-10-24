@@ -13,8 +13,6 @@ import { findAjustesByEjercicio } from '../repository/ajustes.repository'
 import { generarNotaTransicionRT54, type NotaTransicionGenerada } from '../lib/generarNota'
 import type { AjusteTransicionDTO } from '../domain/types'
 
-export const TITULO_NOTA_TRANSICION = 'PRIMERA APLICACIÓN DE LA RESOLUCIÓN TÉCNICA N° 54'
-
 export async function previsualizarNotaTransicion(
   ejercicio: EjercicioContableDTO,
   precargado?: { estados?: EstadosConPN; ajustes?: AjusteTransicionDTO[] },
