@@ -79,6 +79,8 @@ export function ejercicioPrueba(
     criteriosBienesCambio: null,
     hechosPosterioress: false,
     hechosPosterioressTexto: null,
+    notaUnoTexto: null,
+    notaUnoEditadaEn: null,
     pnConfirmado: false,
     estadosConfirmado: false,
     balanceAnteriorDisponible: true,

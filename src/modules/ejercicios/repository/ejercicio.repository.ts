@@ -280,6 +280,14 @@ export async function resetEstadosConfirmado(ejercicioId: string): Promise<void>
   })
 }
 
+/** Texto de la Nota 1 escrito por el contador; null vuelve al que genera la app. */
+export async function guardarNotaUno(ejercicioId: string, texto: string | null): Promise<void> {
+  await db.ejercicioContable.update({
+    where: { id: ejercicioId },
+    data: { notaUnoTexto: texto, notaUnoEditadaEn: texto === null ? null : new Date() },
+  })
+}
+
 /** El E.E.P.N. cambió: se vuelve a confirmar, y también los estados que lo usan. */
 export async function desconfirmarPN(ejercicioId: string): Promise<void> {
   await db.ejercicioContable.update({

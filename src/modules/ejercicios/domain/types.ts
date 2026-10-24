@@ -36,6 +36,9 @@ export type EjercicioContableDTO = {
   criteriosBienesCambio: CriteriosBienesCambio | null
   hechosPosterioress: boolean | null
   hechosPosterioressTexto: string | null
+  /** Nota 1 escrita por el contador; null = la genera la app con los datos del ejercicio. */
+  notaUnoTexto: string | null
+  notaUnoEditadaEn: Date | null
   pnConfirmado: boolean
   estadosConfirmado: boolean
   // Balance anterior
@@ -128,6 +131,8 @@ export function toEjercicioDTO(e: WithAuditor): EjercicioContableDTO {
     criteriosBienesCambio: e.criteriosBienesCambio,
     hechosPosterioress: e.hechosPosterioress,
     hechosPosterioressTexto: e.hechosPosterioressTexto,
+    notaUnoTexto: e.notaUnoTexto ?? null,
+    notaUnoEditadaEn: e.notaUnoEditadaEn ?? null,
     pnConfirmado: e.pnConfirmado ?? false,
     estadosConfirmado: e.estadosConfirmado ?? false,
     balanceAnteriorDisponible: e.balanceAnteriorDisponible ?? true,

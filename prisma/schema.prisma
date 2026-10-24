@@ -415,6 +415,9 @@ model EjercicioContable {
   criteriosBienesCambio     CriteriosBienesCambio? @map("criterios_bienes_cambio")
   hechosPosterioress        Boolean? @map("hechos_posterioress")
   hechosPosterioressTexto   String? @map("hechos_posterioress_texto")
+  // Nota 1 (bases de preparación): texto escrito por el contador; null = el que genera la app.
+  notaUnoTexto              String?   @map("nota_uno_texto")
+  notaUnoEditadaEn          DateTime? @db.Timestamptz(3) @map("nota_uno_editada_en")
   pnConfirmado                Boolean              @default(false) @map("pn_confirmado")
   estadosConfirmado           Boolean              @default(false) @map("estados_confirmado")
   // ── Ejercicio anterior ───────────────────────────────────────────────────────
