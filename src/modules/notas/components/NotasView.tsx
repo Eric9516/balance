@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, type ReactNode } from 'react'
 import { useMontado } from '@/components/shared/useMontado'
 import { RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { WizardNotaI, type ConfigNotaILocal } from './WizardNotaI'
@@ -30,6 +30,11 @@ interface Props {
   origenAnterior?: string | null
   tieneCuentasClasificadas: boolean
   configNotaI: ConfigNotaILocal
+  /**
+   * Lo que va entre la configuración de la Nota I y las demás notas (la Nota 1 y la nota de
+   * transición): la configuración queda arriba de todo, porque define el texto de la Nota 1.
+   */
+  antesDeLasNotas?: ReactNode
 }
 
 export function NotasView({
@@ -43,6 +48,7 @@ export function NotasView({
   origenAnterior = null,
   tieneCuentasClasificadas,
   configNotaI: initialConfig,
+  antesDeLasNotas,
 }: Props) {
   const [notas, setNotas] = useState<NotaDTO[]>(initialNotas)
   const [isPendingGen, startGen] = useTransition()
@@ -137,6 +143,8 @@ export function NotasView({
           {configCompleta ? 'Volver a configurar' : 'Completar configuración'}
         </button>
       </div>
+
+      {antesDeLasNotas}
 
       {/* Overlay "regenerar obligatorio" */}
       {pendienteRegenerar && (

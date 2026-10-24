@@ -333,33 +333,6 @@ export default async function CuentasPage({ params, searchParams }: Props) {
     })
     content = (
       <div className="max-w-4xl space-y-6">
-        <NotaUnoCard
-          nota={{
-            titulo: notaUno.titulo,
-            textoPropio: ejercicio.notaUnoTexto,
-            textoGenerado: notaUno.textoGenerado,
-            editadaEn: notaUno.editadaEn ? formatFecha(notaUno.editadaEn) : null,
-            transicion: notaUno.transicion,
-            advertencias: notaUno.advertencias,
-          }}
-          ejercicioId={ejercicioId}
-          sociedadId={id}
-          editable={ejercicio.estado !== 'CERRADO'}
-        />
-        {!inclusion.incluir && inclusion.motivo === 'NO_INCLUIDA' && (
-          <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2 text-xs text-amber-700">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500" />
-            {inclusion.advertencia}
-          </p>
-        )}
-        {notaTransicion && (
-          <NotaTransicionCard
-            ejercicioId={ejercicioId}
-            sociedadId={id}
-            ajustes={ajustes}
-            nota={notaTransicion}
-          />
-        )}
         <NotasView
           notas={notas}
           ejercicioId={ejercicioId}
@@ -376,6 +349,37 @@ export default async function CuentasPage({ params, searchParams }: Props) {
             hechosPosterioress: ejercicio.hechosPosterioress ?? null,
             hechosPosterioressTexto: ejercicio.hechosPosterioressTexto ?? null,
           }}
+          antesDeLasNotas={
+            <>
+              <NotaUnoCard
+                nota={{
+                  titulo: notaUno.titulo,
+                  textoPropio: ejercicio.notaUnoTexto,
+                  textoGenerado: notaUno.textoGenerado,
+                  editadaEn: notaUno.editadaEn ? formatFecha(notaUno.editadaEn) : null,
+                  transicion: notaUno.transicion,
+                  advertencias: notaUno.advertencias,
+                }}
+                ejercicioId={ejercicioId}
+                sociedadId={id}
+                editable={ejercicio.estado !== 'CERRADO'}
+              />
+              {!inclusion.incluir && inclusion.motivo === 'NO_INCLUIDA' && (
+                <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2 text-xs text-amber-700">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500" />
+                  {inclusion.advertencia}
+                </p>
+              )}
+              {notaTransicion && (
+                <NotaTransicionCard
+                  ejercicioId={ejercicioId}
+                  sociedadId={id}
+                  ajustes={ajustes}
+                  nota={notaTransicion}
+                />
+              )}
+            </>
+          }
         />
       </div>
     )

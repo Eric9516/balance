@@ -253,6 +253,19 @@ export async function recorrerPantallas(ctx: Contexto, escenarios: Escenario[]) 
           for (const e of new Set(errores))
             reg.hallazgo('error', esc.id, area, `Error en la consola en "Configurar Nota I": ${e}`)
         }
+        if (p.nombre === 'Notas') {
+          // La configuración define el texto de la Nota 1: va arriba de todo.
+          reg.controles++
+          const config = texto.indexOf('La configuración de la Nota I')
+          if (config < 0 || config > texto.indexOf('Nota N° 1:')) {
+            reg.hallazgo(
+              'error',
+              esc.id,
+              area,
+              'La configuración de la Nota I no está arriba de todo (antes de la Nota 1).',
+            )
+          }
+        }
         for (const t of p.textos ?? []) {
           reg.controles++
           if (!texto.includes(t)) reg.hallazgo('error', esc.id, area, `No muestra "${t}".`)
