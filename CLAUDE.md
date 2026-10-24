@@ -66,6 +66,7 @@ Antes de implementar una nueva función, definir:
 8. Qué impacto tiene sobre datos existentes.
 9. Cómo se prueba.
 10. Qué riesgo técnico o contable tiene.
+11. Cómo se explica en la ayuda: todo paso, pantalla o código de error (NEG, AUT…) nuevo lleva su artículo en `src/modules/ayuda/contenido` (una sola fuente para la página /ayuda, su buscador y el botón (i) de cada paso). `src/modules/ayuda/ayuda.test.ts` falla si falta.
 
 ## Base de datos (OBLIGATORIA)
 

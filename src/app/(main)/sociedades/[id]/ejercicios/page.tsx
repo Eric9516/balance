@@ -7,22 +7,7 @@ import { StepInfoButton } from '@/components/shared/StepInfoButton'
 import { EjercicioTable } from '@/modules/ejercicios/components/EjercicioTable'
 import { findEjerciciosBySociedad } from '@/modules/ejercicios/repository/ejercicio.repository'
 import { findSociedadById } from '@/modules/sociedades/repository/sociedad.repository'
-import type { StepInfo } from '@/components/shared/StepInfoButton'
-
-const EJERCICIOS_INFO: StepInfo = {
-  title: 'Ejercicios contables',
-  purpose:
-    'Lista todos los períodos contables de esta sociedad. Desde acá se crea cada ejercicio, se trabaja sobre sus cuentas, anexos y estados, y se vincula con el anterior para generar balances con columna comparativa.',
-  sources: [
-    'Datos del ejercicio: fechas de inicio y cierre, número de ejercicio, auditor asignado.',
-    'Ejercicio anterior (requisito comparativo RT 54): vinculado a un ejercicio cargado, saldos cargados manualmente o primer ejercicio de la sociedad.',
-  ],
-  formulas: ['No aplica — esta pantalla es de gestión, no realiza cálculos contables.'],
-  notes: [
-    'Cada fila indica cómo se resuelve su ejercicio anterior. Un chip ámbar significa que falta definirlo desde "Editar".',
-    'Los ejercicios vinculados aparecen conectados visualmente en esta lista.',
-  ],
-}
+import { INFO_EJERCICIOS, articuloDePaso } from '@/modules/ayuda/domain/pasos'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -48,7 +33,10 @@ export default async function EjerciciosPage({ params }: Props) {
         description="Períodos contables del cliente."
         action={
           <div className="flex items-center gap-2">
-            <StepInfoButton info={EJERCICIOS_INFO} />
+            <StepInfoButton
+              info={INFO_EJERCICIOS}
+              ayudaHref={`/ayuda#${articuloDePaso('ejercicios')}`}
+            />
             <Button variant="secondary" size="sm" asChild>
               <Link href="/sociedades">
                 <ChevronLeft className="mr-1 h-3.5 w-3.5" />

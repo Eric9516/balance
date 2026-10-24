@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ProgresoEjercicio } from '@/components/layout/ProgresoEjercicio'
 import { StepInfoButton } from '@/components/shared/StepInfoButton'
-import { PASO_TITULO, PASO_INFO, isPasoKey, type InfoPasoKey } from './_info'
+import { PASO_TITULO, PASO_INFO, articuloDePaso, isPasoKey, type InfoPasoKey } from './_info'
 
 // Componentes de cada paso
 import { CaratulaContent } from '@/modules/sociedades/components/CaratulaContent'
@@ -417,7 +417,10 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         description={`${sociedad.razonSocial} — ${ejercicio.denominacion}`}
         action={
           <div className="flex items-center gap-2">
-            <StepInfoButton info={PASO_INFO[pasoInfoKey]} />
+            <StepInfoButton
+              info={PASO_INFO[pasoInfoKey]}
+              ayudaHref={`/ayuda#${articuloDePaso(pasoInfoKey)}`}
+            />
             <Button variant="secondary" size="sm" asChild>
               <a
                 href={`/sociedades/${id}/ejercicios/${ejercicioId}/imprimir`}

@@ -2,16 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import type React from 'react'
+import type { InfoPaso } from '@/modules/ayuda/domain/tipos'
 import { createPortal } from 'react-dom'
 import { Calculator, Database, Info, X } from 'lucide-react'
 
-type StepInfo = {
-  title: string
-  purpose: string
-  sources: string[]
-  formulas: string[]
-  notes?: string[]
-}
+type StepInfo = InfoPaso
 
 function InfoSection({
   icon,
@@ -33,7 +28,15 @@ function InfoSection({
   )
 }
 
-function InfoModal({ info, onClose }: { info: StepInfo; onClose: () => void }) {
+function InfoModal({
+  info,
+  ayudaHref,
+  onClose,
+}: {
+  info: StepInfo
+  ayudaHref?: string
+  onClose: () => void
+}) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
@@ -123,7 +126,17 @@ function InfoModal({ info, onClose }: { info: StepInfo; onClose: () => void }) {
           )}
         </div>
 
-        <div className="flex justify-end border-t border-slate-100 px-6 py-4">
+        <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-6 py-4">
+          {ayudaHref ? (
+            <a
+              href={ayudaHref}
+              className="text-sm font-medium text-blue-700 underline-offset-2 hover:underline"
+            >
+              Ver la ayuda completa de este paso
+            </a>
+          ) : (
+            <span />
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -138,7 +151,8 @@ function InfoModal({ info, onClose }: { info: StepInfo; onClose: () => void }) {
   )
 }
 
-export function StepInfoButton({ info }: { info: StepInfo }) {
+/** `ayudaHref`: el artículo de la ayuda que explica el paso en detalle. */
+export function StepInfoButton({ info, ayudaHref }: { info: StepInfo; ayudaHref?: string }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -151,7 +165,7 @@ export function StepInfoButton({ info }: { info: StepInfo }) {
       >
         <Info className="h-3.5 w-3.5" />
       </button>
-      {open && <InfoModal info={info} onClose={() => setOpen(false)} />}
+      {open && <InfoModal info={info} ayudaHref={ayudaHref} onClose={() => setOpen(false)} />}
     </>
   )
 }
