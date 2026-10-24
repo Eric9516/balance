@@ -7,6 +7,7 @@ export default function NuevaSociedadPage() {
   return (
     <div>
       <PageHeader
+        ayuda="sociedad"
         title="Nueva sociedad"
         description="Completá los datos de la empresa o persona."
       />

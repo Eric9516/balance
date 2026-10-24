@@ -261,6 +261,7 @@ export async function recorrerPantallas(ctx: Contexto, escenarios: Escenario[]) 
         }
       }
     }
+    await recorrerGestion(ctx, page)
     await recorrerAyuda(
       ctx,
       page,
@@ -345,4 +346,46 @@ async function recorrerAyuda(
   })
   for (const e of new Set(errores()))
     reg.hallazgo('error', GENERAL, area, `Error en la consola: ${e}`)
+}
+
+/**
+ * Pantallas de gestión: abren sin error y su botón (i) muestra el resumen de la pantalla con el
+ * enlace a la ayuda completa.
+ */
+async function recorrerGestion(ctx: Contexto, page: import('playwright-core').Page) {
+  const { reg } = ctx
+  for (const [nombre, ruta] of [
+    ['Sociedades', '/sociedades'],
+    ['Auditores', '/auditores'],
+    ['Estudio', '/configuracion'],
+    ['Clasificaciones RT 54', '/configuracion/rubros'],
+  ] as const) {
+    const area = `Pantalla ${nombre}`
+    const respuesta = await page.goto(`${URL_BASE}${ruta}`, {
+      waitUntil: 'networkidle',
+      timeout: 180_000,
+    })
+    const estado = respuesta?.status() ?? 0
+    reg.paso(GENERAL, `Abrir ${nombre}`, estado > 0 && estado < 400, `respondió ${estado}`)
+    if (estado >= 400) continue
+    reg.controles++
+    const boton = page.locator('button[title^="Información:"]').first()
+    if ((await boton.count()) === 0) {
+      reg.hallazgo('error', GENERAL, area, 'No tiene el botón (i) de información.')
+      continue
+    }
+    await boton.click()
+    const enlace = page.locator('a', { hasText: 'Ver la ayuda completa' })
+    try {
+      await enlace.waitFor({ timeout: 5_000 })
+    } catch {
+      reg.hallazgo(
+        'error',
+        GENERAL,
+        area,
+        'El botón (i) no abre el resumen con el enlace a la ayuda.',
+      )
+    }
+    await page.keyboard.press('Escape')
+  }
 }

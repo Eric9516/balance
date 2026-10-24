@@ -29,6 +29,7 @@ export default async function ImportarManualPage({ params }: Props) {
   return (
     <div>
       <PageHeader
+        ayuda="importar-manual"
         title="Carga manual de cuentas"
         description={`${sociedad.razonSocial} — ${ejercicio.denominacion}`}
         action={

@@ -3,7 +3,6 @@ import { Plus, FolderPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { RubroBaseTable } from '@/modules/rubros-base/components/RubroBaseTable'
-import { ClasificacionesInfoButton } from '@/modules/rubros-base/components/ClasificacionesInfoButton'
 import { findAllRubrosBase } from '@/modules/rubros-base/repository/rubro-base.repository'
 import { findAllRubroGrupos } from '@/modules/rubros-grupo/repository/rubro-grupo.repository'
 
@@ -22,11 +21,11 @@ export default async function RubrosPage({ searchParams }: Props) {
   return (
     <div>
       <PageHeader
+        ayuda="clasificaciones"
         title="Clasificaciones"
         description={`${grupos.length} ${grupos.length === 1 ? 'sección' : 'secciones'} · ${rubros.length} clasificaciones`}
         action={
           <div className="flex items-center gap-2">
-            <ClasificacionesInfoButton />
             {volver && (
               <Button variant="secondary" size="sm" asChild>
                 <Link href={volver}>← Volver a clasificar</Link>

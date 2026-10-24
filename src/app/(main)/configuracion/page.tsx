@@ -12,7 +12,11 @@ export default async function ConfiguracionPage() {
 
   return (
     <div>
-      <PageHeader title="Configuración" description="Datos y apariencia del estudio contable." />
+      <PageHeader
+        ayuda="estudio"
+        title="Configuración"
+        description="Datos y apariencia del estudio contable."
+      />
       <div className="space-y-6 px-8 py-6">
         <EstudioForm defaultValues={estudio} redirectTo="/configuracion" />
         <PreferenciasForm inicial={preferencias} />

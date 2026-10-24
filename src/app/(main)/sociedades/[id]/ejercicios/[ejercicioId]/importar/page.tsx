@@ -29,6 +29,7 @@ export default async function ImportarPage({ params }: Props) {
   return (
     <div>
       <PageHeader
+        ayuda="importar"
         title="Importar balance de sumas y saldos"
         description={`${sociedad.razonSocial} — ${ejercicio.denominacion}`}
         action={

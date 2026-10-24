@@ -3,11 +3,9 @@ import { notFound } from 'next/navigation'
 import { Plus, ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { StepInfoButton } from '@/components/shared/StepInfoButton'
 import { EjercicioTable } from '@/modules/ejercicios/components/EjercicioTable'
 import { findEjerciciosBySociedad } from '@/modules/ejercicios/repository/ejercicio.repository'
 import { findSociedadById } from '@/modules/sociedades/repository/sociedad.repository'
-import { INFO_EJERCICIOS, articuloDePaso } from '@/modules/ayuda/domain/pasos'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -29,14 +27,11 @@ export default async function EjerciciosPage({ params }: Props) {
   return (
     <div>
       <PageHeader
+        ayuda="ejercicios"
         title={`Ejercicios — ${sociedad.razonSocial}`}
         description="Períodos contables del cliente."
         action={
           <div className="flex items-center gap-2">
-            <StepInfoButton
-              info={INFO_EJERCICIOS}
-              ayudaHref={`/ayuda#${articuloDePaso('ejercicios')}`}
-            />
             <Button variant="secondary" size="sm" asChild>
               <Link href="/sociedades">
                 <ChevronLeft className="mr-1 h-3.5 w-3.5" />

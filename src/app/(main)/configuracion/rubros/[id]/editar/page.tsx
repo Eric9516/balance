@@ -25,6 +25,7 @@ export default async function EditarRubroPage({ params, searchParams }: Props) {
   return (
     <div>
       <PageHeader
+        ayuda="clasificacion"
         title="Editar clasificación"
         description={rubro.nombre}
         action={

@@ -7,6 +7,7 @@ import { join, sep } from 'node:path'
 import { describe, it, expect } from 'vitest'
 import { ARTICULOS, ARTICULO_POR_ID, buscarEnAyuda, resumenDePaso } from './contenido'
 import { PASO_INFO, articuloDePaso, type InfoPasoKey } from './domain/pasos'
+import { INFO_PANTALLAS } from './domain/pantallas'
 
 const SRC = join(__dirname, '..', '..')
 
@@ -40,6 +41,29 @@ describe('La ayuda cubre toda la app', () => {
       expect(articulo, `falta el artículo del paso "${paso}"`).toBeDefined()
       expect(resumenDePaso(articulo!), paso).not.toBeNull()
     }
+  })
+
+  it('cada pantalla tiene su botón (i) y lleva a un artículo que existe', () => {
+    for (const [clave, { articulo }] of Object.entries(INFO_PANTALLAS)) {
+      expect(ARTICULO_POR_ID.has(articulo), `${clave} → ${articulo}`).toBe(true)
+    }
+    const paginas: string[] = []
+    const recorrer = (dir: string) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const ruta = join(dir, e.name)
+        if (e.isDirectory()) recorrer(ruta)
+        else if (e.name === 'page.tsx') paginas.push(ruta)
+      }
+    }
+    recorrer(join(SRC, 'app', '(main)'))
+    const sinBoton = paginas
+      .filter((p) => !p.includes(`${sep}ayuda${sep}`))
+      .filter((p) => !/ayuda="|<StepInfoButton/.test(readFileSync(p, 'utf8')))
+      .map((p) => p.slice(SRC.length + 1))
+    expect(
+      sinBoton,
+      'Agregá ayuda="<pantalla>" al PageHeader (ver src/modules/ayuda/domain/pantallas.ts)',
+    ).toEqual([])
   })
 
   it('cada código de error o aviso de la app está explicado', () => {

@@ -19,6 +19,7 @@ export default async function NuevoRubroPage({ searchParams }: Props) {
   return (
     <div>
       <PageHeader
+        ayuda="clasificacion"
         title="Nueva clasificación"
         action={
           <Button variant="secondary" size="sm" asChild>

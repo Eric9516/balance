@@ -7,6 +7,7 @@ export default function NuevaSeccionPage() {
   return (
     <div>
       <PageHeader
+        ayuda="seccion"
         title="Nueva sección"
         description="Las secciones agrupan las clasificaciones en la tabla y en el dropdown."
       />

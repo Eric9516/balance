@@ -16,7 +16,7 @@ export default async function EditarSeccionPage({ params }: Props) {
 
   return (
     <div>
-      <PageHeader title="Editar sección" description={grupo.nombre} />
+      <PageHeader ayuda="seccion" title="Editar sección" description={grupo.nombre} />
       <div className="flex justify-center px-8 py-6">
         <RubroGrupoForm defaultValues={grupo} />
       </div>

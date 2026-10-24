@@ -47,6 +47,7 @@ export default async function EditarEjercicioPage({ params }: Props) {
   return (
     <div>
       <PageHeader
+        ayuda="ejercicio"
         title="Editar ejercicio"
         description={`${sociedad.razonSocial} — ${ejercicio.denominacion}`}
       />

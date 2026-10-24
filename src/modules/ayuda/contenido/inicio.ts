@@ -285,6 +285,8 @@ export const INICIO: ArticuloAyuda[] = [
         'El catálogo trae los rubros de la RT 54. Podés agregar clasificaciones y secciones propias.',
         'Algunos rubros disparan anexos o notas: por ejemplo, Bienes de uso sugiere el Anexo I y Bienes de cambio la nota de bienes de cambio.',
         'Caja y bancos (y los rubros marcados como efectivo) son los que usa el Estado de Flujo de Efectivo.',
+        'Ejemplo: la sección "Gastos operativos / GTO", marcada como gasto, con las clasificaciones Sueldos y Alquileres, da una línea "Gastos operativos" en el Estado de Resultados y una columna GTO en el Anexo III.',
+        'Una sección de gastos que no tiene que salir en el Estado de Resultados (por ejemplo, gastos vinculados al costo) se configura en el Anexo III.',
       ),
     ],
     relacionados: ['paso-clasificar', 'secciones-gasto'],

@@ -15,6 +15,7 @@ export default async function SociedadesPage() {
   return (
     <div>
       <PageHeader
+        ayuda="sociedades"
         title="Sociedades"
         description="Empresas y personas para las que se generan estados contables."
         action={

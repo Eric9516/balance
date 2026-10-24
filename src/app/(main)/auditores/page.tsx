@@ -15,6 +15,7 @@ export default async function AuditoresPage() {
   return (
     <div>
       <PageHeader
+        ayuda="auditores"
         title="Auditores"
         description="Contadores y profesionales habilitados para firmar estados contables."
         action={
