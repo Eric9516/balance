@@ -55,6 +55,7 @@ const EERR_GASTOS_LABELS = Object.fromEntries(
 export const findGastosDinamicos = cache(_findGastosDinamicos)
 
 async function _findGastosDinamicos(
+  estudioId: string,
   ejercicioId: string,
   ejercicioAnteriorId: string | null,
 ): Promise<GastosSecciones> {
@@ -80,7 +81,7 @@ async function _findGastosDinamicos(
     rubros,
   ] = await Promise.all([
     db.rubroGrupo.findMany({
-      where: { activo: true },
+      where: { estudioId, activo: true },
       select: {
         id: true,
         nombre: true,
@@ -119,9 +120,12 @@ async function _findGastosDinamicos(
         })
       : Promise.resolve([]),
     // ── 7. Config de secciones legacy (orden + aparecEnEERR) ──────────────────
-    db.gastoSeccionConfig.findMany({ where: { clave: { in: legacyKeys } } }),
+    db.gastoSeccionConfig.findMany({ where: { estudioId, clave: { in: legacyKeys } } }),
     // ── Catálogo de rubros (grupo y sección de cada uno), en la misma oleada ──
-    db.rubroBase.findMany({ select: { id: true, rubroGrupoId: true, seccionEERR: true } }),
+    db.rubroBase.findMany({
+      where: { estudioId },
+      select: { id: true, rubroGrupoId: true, seccionEERR: true },
+    }),
   ])
 
   const rubroPorId = new Map(rubros.map((r) => [r.id, r]))

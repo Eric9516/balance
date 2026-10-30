@@ -7,7 +7,8 @@ import { importe } from '@/lib/importe'
 
 // ─── Saldos del balance, indexados por CÓDIGO de rubro ───────────────────────
 // Reusa la misma fuente que aggregate.ts: suma de saldoFinal de las cuentas,
-// agrupadas por rubroBaseId, mapeadas a RubroBase.codigo.
+// agrupadas por rubroBaseId, mapeadas a RubroBase.codigo. Solo los rubros que usan las cuentas
+// del ejercicio: son del catálogo de su estudio.
 
 export async function saldoPorCodigoRubro(ejercicioId: string): Promise<Map<string, number>> {
   const [grupos, rubros] = await Promise.all([
@@ -16,7 +17,10 @@ export async function saldoPorCodigoRubro(ejercicioId: string): Promise<Map<stri
       where: { ejercicioId, rubroBaseId: { not: null } },
       _sum: { saldoFinal: true },
     }),
-    db.rubroBase.findMany({ select: { id: true, codigo: true } }),
+    db.rubroBase.findMany({
+      where: { cuentas: { some: { ejercicioId } } },
+      select: { id: true, codigo: true },
+    }),
   ])
   const codigoDe = new Map(rubros.map((r) => [r.id, r.codigo]))
   const out = new Map<string, number>()
@@ -27,9 +31,12 @@ export async function saldoPorCodigoRubro(ejercicioId: string): Promise<Map<stri
   return out
 }
 
-/** Catálogo código → nombre, para mostrar el "por qué" de una sugerencia. */
-export async function nombrePorCodigoRubro(): Promise<Map<string, string>> {
-  const rubros = await db.rubroBase.findMany({ select: { codigo: true, nombre: true } })
+/** Catálogo del estudio código → nombre, para mostrar el "por qué" de una sugerencia. */
+export async function nombrePorCodigoRubro(estudioId: string): Promise<Map<string, string>> {
+  const rubros = await db.rubroBase.findMany({
+    where: { estudioId },
+    select: { codigo: true, nombre: true },
+  })
   return new Map(rubros.map((r) => [r.codigo, r.nombre]))
 }
 
@@ -81,14 +88,17 @@ export async function findDocumentosByEjercicio(
  * Contexto del ejercicio que afecta la evaluación: anterior derivable (solo modo
  * VINCULADO, para la referencia blanda) y si es primera adopción de RT 54.
  */
-export async function getContextoEjercicio(
-  ejercicioId: string,
-): Promise<{ ejercicioAnteriorId: string | null; esPrimeraAdopcion: boolean }> {
+export async function getContextoEjercicio(ejercicioId: string): Promise<{
+  estudioId: string | null
+  ejercicioAnteriorId: string | null
+  esPrimeraAdopcion: boolean
+}> {
   const ej = await db.ejercicioContable.findUnique({
     where: { id: ejercicioId },
-    select: { ejercicioAnteriorId: true, modoAnterior: true, adopcionRT54: true },
+    select: { estudioId: true, ejercicioAnteriorId: true, modoAnterior: true, adopcionRT54: true },
   })
   return {
+    estudioId: ej?.estudioId ?? null,
     ejercicioAnteriorId: ej ? idAnteriorDerivable(ej) : null,
     esPrimeraAdopcion: ej?.adopcionRT54 === 'PRIMERA_ADOPCION',
   }

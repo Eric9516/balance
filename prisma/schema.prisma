@@ -210,6 +210,8 @@ enum ModuloSistema {
 // aparecEnEERR=false → solo en Anexo III (ej: gastos vinculados al costo, ya incluidos en Costo de Ventas)
 model RubroGrupo {
   id            String         @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  // Cada estudio tiene su propio catálogo (migración 20261030120000_catalogo_por_estudio)
+  estudioId     String         @default(dbgenerated("estudio_de_la_sesion()")) @map("estudio_id") @db.Uuid
   nombre        String
   sigla         String?        // Ej: "GTO", "GAST" — definida por el contador
   esGasto       Boolean        @default(false) @map("es_gasto")
@@ -222,22 +224,26 @@ model RubroGrupo {
   createdAt     DateTime       @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt     DateTime       @updatedAt @db.Timestamptz(3) @map("updated_at")
 
-  rubros RubroBase[]
+  estudio Estudio     @relation(fields: [estudioId], references: [id], onDelete: Cascade)
+  rubros  RubroBase[]
 
+  @@index([estudioId, orden])
   @@map("rubros_grupo")
 }
 
 model RubroBase {
   id                 String             @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  // Cada estudio tiene su propio catálogo: al crearse recibe una copia del oficial (CatalogoRubro)
+  estudioId          String             @default(dbgenerated("estudio_de_la_sesion()")) @map("estudio_id") @db.Uuid
   rubroGrupoId       String? @map("rubro_grupo_id") @db.Uuid
-  codigo             String             @unique
+  codigo             String
   nombre             String
   descripcion        String?
   estadoDestino      EstadoDestino @map("estado_destino")
   seccionSSP         SeccionSSP? @map("seccion_ssp")
   seccionEERR        SeccionEERR? @map("seccion_eerr")
   naturalezaEsperada NaturalezaEsperada @map("naturaleza_esperada")
-  orden              Int                @unique
+  orden              Int
   activo                Boolean            @default(true)
   generaNotaInformativa Boolean            @default(false) @map("genera_nota_informativa")
   // Efectivo y equivalentes: sus cuentas forman el efectivo al inicio y al cierre del
@@ -247,12 +253,38 @@ model RubroBase {
   createdAt             DateTime           @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt             DateTime           @updatedAt @db.Timestamptz(3) @map("updated_at")
 
+  estudio       Estudio             @relation(fields: [estudioId], references: [id], onDelete: Cascade)
   rubroGrupo    RubroGrupo?         @relation(fields: [rubroGrupoId], references: [id], onDelete: SetNull)
   cuentas       CuentaContable[]
   rubrosEstudio RubroActivoEstudio[]
 
+  @@unique([estudioId, codigo])
+  @@unique([estudioId, orden])
   @@index([rubroGrupoId])
   @@map("rubros_base")
+}
+
+// Catálogo oficial de la RT 54. Es de la plataforma, no de un estudio: cada estudio nuevo recibe
+// una copia en RubroBase al crearse (disparador "catalogo" en estudios) y después cambia la suya.
+// La app no lo lee; una incorporación oficial es una migración que lo agrega acá y en cada estudio.
+model CatalogoRubro {
+  id                    String             @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  codigo                String             @unique
+  nombre                String
+  descripcion           String?
+  estadoDestino         EstadoDestino      @map("estado_destino")
+  seccionSSP            SeccionSSP?        @map("seccion_ssp")
+  seccionEERR           SeccionEERR?       @map("seccion_eerr")
+  naturalezaEsperada    NaturalezaEsperada @map("naturaleza_esperada")
+  orden                 Int                @unique
+  activo                Boolean            @default(true)
+  generaNotaInformativa Boolean            @default(false) @map("genera_nota_informativa")
+  esEfectivo            Boolean            @default(false) @map("es_efectivo")
+  textoNotaDefault      String?            @map("texto_nota_default")
+  createdAt             DateTime           @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt             DateTime           @updatedAt @db.Timestamptz(3) @map("updated_at")
+
+  @@map("catalogo_rubros")
 }
 
 model RubroActivoEstudio {
@@ -294,6 +326,9 @@ model Estudio {
   plantillasNotas PlantillaNota[]
   mapeosExcel     MapeoExcel[]
   rubrosActivos   RubroActivoEstudio[]
+  rubrosGrupo     RubroGrupo[]
+  rubrosBase      RubroBase[]
+  gastoSecciones  GastoSeccionConfig[]
 
   @@map("estudios")
 }
@@ -909,9 +944,14 @@ model AjusteTransicionRT54 {
 // Config por sección legacy de gastos (las que no tienen RubroGrupo)
 // Permite controlar aparecEnEERR y orden igual que los grupos custom.
 model GastoSeccionConfig {
-  clave        String  @id   // ej: "legacy:GASTOS_ADM"
+  // Cada estudio tiene la suya (migración 20261030120000_catalogo_por_estudio)
+  estudioId    String  @default(dbgenerated("estudio_de_la_sesion()")) @map("estudio_id") @db.Uuid
+  clave        String  // ej: "legacy:GASTOS_ADM"
   aparecEnEERR Boolean @default(true) @map("aparec_en_eerr")
   orden        Int     @default(9999)
 
+  estudio Estudio @relation(fields: [estudioId], references: [id], onDelete: Cascade)
+
+  @@id([estudioId, clave])
   @@map("gasto_seccion_config")
 }

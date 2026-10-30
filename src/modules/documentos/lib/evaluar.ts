@@ -33,7 +33,8 @@ const EPSILON = 0.005
  *  - Es PURO respecto de la DB: sólo lee, nunca escribe.
  */
 export async function evaluarDocumentos(ejercicioId: string): Promise<DocumentoEvaluado[]> {
-  const { ejercicioAnteriorId, esPrimeraAdopcion } = await getContextoEjercicio(ejercicioId)
+  const { estudioId, ejercicioAnteriorId, esPrimeraAdopcion } =
+    await getContextoEjercicio(ejercicioId)
   const [
     saldos,
     nombres,
@@ -44,7 +45,7 @@ export async function evaluarDocumentos(ejercicioId: string): Promise<DocumentoE
     aceptadasAnterior,
   ] = await Promise.all([
     saldoPorCodigoRubro(ejercicioId),
-    nombrePorCodigoRubro(),
+    estudioId ? nombrePorCodigoRubro(estudioId) : Promise.resolve(new Map<string, string>()),
     existeCostoVentas(ejercicioId),
     hayCuentasEnMonedaExtranjera(ejercicioId),
     findDocumentosByEjercicio(ejercicioId),

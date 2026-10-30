@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { RubroBaseForm } from '@/modules/rubros-base/components/RubroBaseForm'
 import { findAllRubroGrupos } from '@/modules/rubros-grupo/repository/rubro-grupo.repository'
+import { getCurrentEstudioId } from '@/lib/estudio-context'
 
 export const metadata = { title: 'Nueva clasificación — BalanceRT' }
 
@@ -13,7 +14,7 @@ interface Props {
 
 export default async function NuevoRubroPage({ searchParams }: Props) {
   const { volver, grupoId } = await searchParams
-  const [grupos] = await Promise.all([findAllRubroGrupos()])
+  const grupos = await findAllRubroGrupos(await getCurrentEstudioId())
   const volverHref = `/configuracion/rubros${volver ? `?volver=${encodeURIComponent(volver)}` : ''}`
 
   return (

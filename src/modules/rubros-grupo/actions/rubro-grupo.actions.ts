@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { actionOk, actionError } from '@/modules/errores/types'
 import { errorHandler } from '@/modules/errores/handler'
+import { getCurrentEstudioId } from '@/lib/estudio-context'
 import type { ActionResult } from '@/modules/errores/types'
 import { CreateRubroGrupoSchema, type CreateRubroGrupoInput } from '../schemas/rubro-grupo.schemas'
 import {
@@ -32,7 +33,7 @@ export async function crearRubroGrupo(
         detalle: parsed.error.issues[0]?.message,
       })
     }
-    const grupo = await createRubroGrupo(parsed.data)
+    const grupo = await createRubroGrupo(await getCurrentEstudioId(), parsed.data)
     revalidate()
     return actionOk(grupo)
   } catch (error) {
@@ -55,7 +56,7 @@ export async function actualizarRubroGrupo(
         detalle: parsed.error.issues[0]?.message,
       })
     }
-    const existing = await findRubroGrupoById(id)
+    const existing = await findRubroGrupoById(await getCurrentEstudioId(), id)
     if (!existing)
       return actionError({
         tipo: 'TECNICO',
@@ -75,7 +76,8 @@ export async function actualizarRubroGrupo(
 
 export async function eliminarRubroGrupo(id: string): Promise<ActionResult<void>> {
   try {
-    const existing = await findRubroGrupoById(id)
+    const estudioId = await getCurrentEstudioId()
+    const existing = await findRubroGrupoById(estudioId, id)
     if (!existing)
       return actionError({
         tipo: 'TECNICO',
@@ -91,7 +93,7 @@ export async function eliminarRubroGrupo(id: string): Promise<ActionResult<void>
         mensaje: `No se puede eliminar: tiene ${existing.totalRubros} clasificación${existing.totalRubros !== 1 ? 'es' : ''} asignada${existing.totalRubros !== 1 ? 's' : ''}.`,
       })
     }
-    await deleteRubroGrupo(id)
+    await deleteRubroGrupo(estudioId, id)
     revalidate()
     return actionOk(undefined)
   } catch (error) {
@@ -101,7 +103,7 @@ export async function eliminarRubroGrupo(id: string): Promise<ActionResult<void>
 
 export async function getSiguienteOrdenGrupo(): Promise<number> {
   try {
-    return await findNextOrdenGrupo()
+    return await findNextOrdenGrupo(await getCurrentEstudioId())
   } catch {
     return 10
   }

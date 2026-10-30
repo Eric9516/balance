@@ -12,7 +12,8 @@ function unauthorized(message: string): AppError {
   }
 }
 
-export async function assertEjercicioBelongsToCurrentEstudio(ejercicioId: string): Promise<void> {
+/** Devuelve el estudio, para leer su catálogo sin otra consulta. */
+export async function assertEjercicioBelongsToCurrentEstudio(ejercicioId: string): Promise<string> {
   if (!esUuid(ejercicioId)) throw unauthorized('No tenés permiso para modificar este ejercicio.')
   const estudioId = await getCurrentEstudioId()
   const ejercicio = await db.ejercicioContable.findFirst({
@@ -22,4 +23,5 @@ export async function assertEjercicioBelongsToCurrentEstudio(ejercicioId: string
   if (!ejercicio) {
     throw unauthorized('No tenés permiso para modificar este ejercicio.')
   }
+  return estudioId
 }

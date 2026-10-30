@@ -54,7 +54,7 @@ export async function cargarAnteriorCostoVentas(ejercicio: EjercicioContableDTO)
     manual
       ? findComparativoByEjercicio(ejercicio.id, 'COSTO_VENTAS')
       : Promise.resolve([] as ComparativoManualDTO[]),
-    manual ? findRubrosBase() : Promise.resolve([]),
+    manual ? findRubrosBase(ejercicio.estudioId) : Promise.resolve([]),
     manual ? findCuentasByEjercicio(ejercicio.id) : Promise.resolve([]),
     manual ? findNotasByEjercicio(ejercicio.id) : Promise.resolve([]),
   ])

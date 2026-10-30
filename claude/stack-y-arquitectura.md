@@ -139,7 +139,7 @@ Estudio
 
 ### RubroBase
 
-Catálogo maestro de rubros contables bajo RT 54. Se siembra con `prisma/seed/rubros.ts`.  
+Catálogo de rubros contables bajo RT 54, propio de cada estudio. El oficial está en `CatalogoRubro` (lo carga una migración) y cada estudio recibe una copia al crearse; después cambia la suya sin tocar a los demás.  
 Cada rubro tiene: `codigo`, `nombre`, `estadoDestino` (SSP/EERR/PN), `seccionSSP?`, `seccionEERR?`, `naturalezaEsperada` (DEUDORA/ACREEDORA), `orden`.
 
 Las cuentas del balance se clasifican asignando un `rubroBaseId`.

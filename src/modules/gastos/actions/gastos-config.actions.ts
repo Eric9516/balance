@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
+import { getCurrentEstudioId } from '@/lib/estudio-context'
 import { actionOk, actionError } from '@/modules/errores/types'
 import { errorHandler } from '@/modules/errores/handler'
 import type { ActionResult } from '@/modules/errores/types'
@@ -21,7 +22,7 @@ export async function toggleGastoSeccionAction(
   ejercicioId: string,
 ): Promise<ActionResult<void>> {
   try {
-    await toggleEsGastoGrupo(grupoId, esGasto)
+    await toggleEsGastoGrupo(await getCurrentEstudioId(), grupoId, esGasto)
     revalidate(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {
@@ -39,13 +40,14 @@ export async function toggleAparecEnEERRAction(
   ejercicioId: string,
 ): Promise<ActionResult<void>> {
   try {
+    const estudioId = await getCurrentEstudioId()
     if (key.startsWith('grupo:')) {
-      await toggleAparecEnEERRGrupo(key.replace('grupo:', ''), aparecEnEERR)
+      await toggleAparecEnEERRGrupo(estudioId, key.replace('grupo:', ''), aparecEnEERR)
     } else {
       await db.gastoSeccionConfig.upsert({
-        where: { clave: key },
+        where: { estudioId_clave: { estudioId, clave: key } },
         update: { aparecEnEERR },
-        create: { clave: key, aparecEnEERR },
+        create: { estudioId, clave: key, aparecEnEERR },
       })
     }
     revalidate(sociedadId, ejercicioId)
@@ -65,16 +67,17 @@ export async function reordenarGastoSeccionAction(
   ejercicioId: string,
 ): Promise<ActionResult<void>> {
   try {
+    const estudioId = await getCurrentEstudioId()
     const getOrden = async (key: string) => {
       if (key.startsWith('grupo:')) {
-        const g = await db.rubroGrupo.findUnique({
-          where: { id: key.replace('grupo:', '') },
+        const g = await db.rubroGrupo.findFirst({
+          where: { id: key.replace('grupo:', ''), estudioId },
           select: { orden: true },
         })
         return g?.orden ?? 9999
       } else {
         const c = await db.gastoSeccionConfig.findUnique({
-          where: { clave: key },
+          where: { estudioId_clave: { estudioId, clave: key } },
           select: { orden: true },
         })
         return c?.orden ?? 9999
@@ -82,12 +85,15 @@ export async function reordenarGastoSeccionAction(
     }
     const setOrden = async (key: string, orden: number) => {
       if (key.startsWith('grupo:')) {
-        await db.rubroGrupo.update({ where: { id: key.replace('grupo:', '') }, data: { orden } })
+        await db.rubroGrupo.updateMany({
+          where: { id: key.replace('grupo:', ''), estudioId },
+          data: { orden },
+        })
       } else {
         await db.gastoSeccionConfig.upsert({
-          where: { clave: key },
+          where: { estudioId_clave: { estudioId, clave: key } },
           update: { orden },
-          create: { clave: key, orden },
+          create: { estudioId, clave: key, orden },
         })
       }
     }

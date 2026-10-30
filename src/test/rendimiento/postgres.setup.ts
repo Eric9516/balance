@@ -2,18 +2,14 @@
  * globalSetup de la medición de rendimiento (`pnpm rendimiento`).
  *
  * Levanta un PostgreSQL REAL (ver postgres-embebido.ts), aplica TODAS las migraciones desde
- * cero y siembra el catálogo de rubros. Los datos grandes los siembra la propia medición
- * (ver datos-sinteticos.ts).
+ * cero (incluyen el catálogo oficial de la RT 54, que recibe cada estudio al crearse). Los datos
+ * grandes los siembra la propia medición (ver datos-sinteticos.ts).
  *
  * Otra base: variable RENDIMIENTO_DATABASE_URL (por ejemplo, el servicio de PostgreSQL de la CI).
  * Por seguridad, su nombre tiene que terminar en "_rendimiento": la medición la llena de datos.
  */
 import { execSync } from 'node:child_process'
 import { Client } from 'pg'
-import { PrismaClient } from '@prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
-import { crearPoolPg } from '../../lib/pool-pg'
-import { seedRubrosBase } from '../../../prisma/seed/rubros'
 import { iniciarPostgresEmbebido, type PostgresEmbebido } from '../postgres-embebido'
 
 const PUERTO = 55433
@@ -75,23 +71,6 @@ export default async function setup() {
     stdio: 'ignore',
     env: { ...process.env, DATABASE_URL: RENDIMIENTO_DATABASE_URL },
   })
-
-  const prisma = new PrismaClient({
-    adapter: new PrismaPg(crearPoolPg({ connectionString: RENDIMIENTO_DATABASE_URL }), {
-      disposeExternalPool: true,
-    }),
-  })
-  try {
-    const log = console.log
-    console.log = () => {}
-    try {
-      await seedRubrosBase(prisma)
-    } finally {
-      console.log = log
-    }
-  } finally {
-    await prisma.$disconnect()
-  }
 
   return async () => {
     await embebido?.detener()

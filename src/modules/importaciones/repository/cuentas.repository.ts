@@ -152,9 +152,10 @@ export async function resumenCuentasByEjercicio(
 
 export const findRubrosBase = cache(_findRubrosBase)
 
-async function _findRubrosBase(): Promise<RubroBaseSimple[]> {
+/** El catálogo del estudio: cada estudio tiene el suyo. */
+async function _findRubrosBase(estudioId: string): Promise<RubroBaseSimple[]> {
   const rows = await db.rubroBase.findMany({
-    where: { activo: true },
+    where: { estudioId, activo: true },
     select: {
       id: true,
       codigo: true,

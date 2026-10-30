@@ -23,6 +23,7 @@ import { findNotasByEjercicio } from '@/modules/notas/repository/notas.repositor
 import { findGastosDinamicos } from '@/modules/gastos/repository/gastos-dinamico.repository'
 
 type Ctx = {
+  estudioId: string
   sociedadId: string
   e1: string
   e2: string
@@ -98,17 +99,24 @@ beforeAll(async () => {
   // pasa a un grupo de gasto propio del estudio.
   const rubroDe = (seccionEERR: 'GASTOS_ADM' | 'GASTOS_COM') =>
     db.rubroBase.findFirstOrThrow({
-      where: { seccionEERR, activo: true, rubroGrupoId: null },
+      where: { estudioId: estudio.id, seccionEERR, activo: true, rubroGrupoId: null },
       select: { id: true, nombre: true },
       orderBy: { orden: 'asc' },
     })
   const [rubroA, rubroGrupo] = await Promise.all([rubroDe('GASTOS_ADM'), rubroDe('GASTOS_COM')])
   const grupo = await db.rubroGrupo.create({
-    data: { nombre: 'Gastos del personal', esGasto: true, aparecEnEERR: true, orden: 1 },
+    data: {
+      estudioId: estudio.id,
+      nombre: 'Gastos del personal',
+      esGasto: true,
+      aparecEnEERR: true,
+      orden: 1,
+    },
   })
   await db.rubroBase.update({ where: { id: rubroGrupo.id }, data: { rubroGrupoId: grupo.id } })
 
   Object.assign(ctx, {
+    estudioId: estudio.id,
     sociedadId: sociedad.id,
     e1: e1.id,
     e2: e2.id,
@@ -122,7 +130,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  // El catálogo de rubros es compartido con las otras pruebas: se deja como estaba.
+  // El catálogo del estudio de la prueba se deja como estaba.
   if (!ctx.grupoId) return
   await db.rubroBase.updateMany({
     where: { rubroGrupoId: ctx.grupoId },
@@ -250,7 +258,7 @@ describe('findGastosDinamicos (rubros del catálogo en la misma oleada)', () => 
         },
       ],
     })
-    const { secciones } = await findGastosDinamicos(ctx.e3, ctx.e2)
+    const { secciones } = await findGastosDinamicos(ctx.estudioId, ctx.e3, ctx.e2)
     const grupo = secciones.find((s) => s.key === `grupo:${ctx.grupoId}`)
     const legacy = secciones.find((s) => s.key === 'legacy:GASTOS_ADM')
     expect(grupo?.filas.map((f) => [f.cuentaNombre, f.importe, f.importeAnterior])).toEqual([

@@ -82,8 +82,7 @@ cp .env.example .env
 ### Base de datos
 
 ```bash
-pnpm db:migrate    # crea/actualiza el schema
-pnpm db:seed       # inserta los 30 rubros base de RT 54
+pnpm db:migrate    # crea/actualiza el schema (incluye el catálogo oficial de la RT 54)
 pnpm db:studio     # Prisma Studio (opcional)
 ```
 
@@ -95,7 +94,7 @@ La migración `20261018000323_regularizar_schema_actual` es idempotente: lleva a
 
 | Estado de la base | Qué hacer |
 |---|---|
-| Base nueva (vacía) | `pnpm exec prisma migrate deploy` y luego `pnpm db:seed`. |
+| Base nueva (vacía) | `pnpm exec prisma migrate deploy`. Cada estudio recibe el catálogo oficial de la RT 54 al crearse. |
 | Base que ya corrió `migrate` alguna vez (existe `_prisma_migrations`) | `pnpm exec prisma migrate deploy`. La regularización no toca lo que ya existe. |
 | Base actualizada solo con `db push` (no existe `_prisma_migrations`) | Marcar como aplicadas las migraciones previas a la regularización, una por una, y recién después `migrate deploy`: |
 

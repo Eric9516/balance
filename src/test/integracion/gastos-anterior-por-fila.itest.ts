@@ -75,7 +75,9 @@ beforeAll(async () => {
   })
   const ejercicio = await createEjercicio(sociedad.id, estudioId, input)
   // Una cuenta de gastos de administración del ejercicio actual (sección legacy:GASTOS_ADM).
-  const rubroAdm = await db.rubroBase.findFirstOrThrow({ where: { codigo: 'EERR-GADM-01' } })
+  const rubroAdm = await db.rubroBase.findFirstOrThrow({
+    where: { estudioId, codigo: 'EERR-GADM-01' },
+  })
   await db.cuentaContable.create({
     data: {
       ejercicioId: ejercicio.id,

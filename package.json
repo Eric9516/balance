@@ -22,7 +22,6 @@
     "test:coverage": "vitest run --coverage",
     "knip": "knip",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run test",
-    "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed/index.ts",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",

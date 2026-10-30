@@ -45,7 +45,10 @@ beforeAll(async () => {
   const auditor = await db.auditor.create({
     data: { estudioId, nombre: 'Ana', apellido: 'Pérez', esDefault: true },
   })
-  const rubros = await db.rubroBase.findMany({ select: { id: true, codigo: true } })
+  const rubros = await db.rubroBase.findMany({
+    where: { estudioId: estudio.id },
+    select: { id: true, codigo: true },
+  })
   Object.assign(ctx, {
     auditorId: auditor.id,
     rubroId: new Map(rubros.map((r) => [r.codigo, r.id])),

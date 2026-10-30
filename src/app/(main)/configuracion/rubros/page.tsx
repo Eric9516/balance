@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { RubroBaseTable } from '@/modules/rubros-base/components/RubroBaseTable'
 import { findAllRubrosBase } from '@/modules/rubros-base/repository/rubro-base.repository'
 import { findAllRubroGrupos } from '@/modules/rubros-grupo/repository/rubro-grupo.repository'
+import { getCurrentEstudioId } from '@/lib/estudio-context'
 
 export const metadata = { title: 'Clasificaciones — BalanceRT' }
 
@@ -14,7 +15,11 @@ interface Props {
 
 export default async function RubrosPage({ searchParams }: Props) {
   const { volver } = await searchParams
-  const [rubros, grupos] = await Promise.all([findAllRubrosBase(), findAllRubroGrupos()])
+  const estudioId = await getCurrentEstudioId()
+  const [rubros, grupos] = await Promise.all([
+    findAllRubrosBase(estudioId),
+    findAllRubroGrupos(estudioId),
+  ])
 
   const nuevoHref = `/configuracion/rubros/nuevo${volver ? `?volver=${encodeURIComponent(volver)}` : ''}`
 

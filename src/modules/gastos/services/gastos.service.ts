@@ -14,7 +14,7 @@ import { findGastosDinamicos, type GastosSecciones } from '../repository/gastos-
 export async function cargarGastos(ejercicio: EjercicioContableDTO): Promise<GastosSecciones> {
   const modo = modoEfectivo(ejercicio)
   const [gastos, comparativos] = await Promise.all([
-    findGastosDinamicos(ejercicio.id, idAnteriorDerivable(ejercicio)),
+    findGastosDinamicos(ejercicio.estudioId, ejercicio.id, idAnteriorDerivable(ejercicio)),
     editarAnteriorManual(modo)
       ? // Totales por sección ('GASTOS') y filas ('GASTOS_FILA') en una sola consulta.
         findComparativoByEjercicio(ejercicio.id).then((cs) =>

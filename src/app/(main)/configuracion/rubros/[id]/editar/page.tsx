@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { RubroBaseForm } from '@/modules/rubros-base/components/RubroBaseForm'
 import { findRubroBaseById } from '@/modules/rubros-base/repository/rubro-base.repository'
 import { findAllRubroGrupos } from '@/modules/rubros-grupo/repository/rubro-grupo.repository'
+import { getCurrentEstudioId } from '@/lib/estudio-context'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -17,7 +18,11 @@ export const metadata = { title: 'Editar clasificación — BalanceRT' }
 export default async function EditarRubroPage({ params, searchParams }: Props) {
   const { id } = await params
   const { volver } = await searchParams
-  const [rubro, grupos] = await Promise.all([findRubroBaseById(id), findAllRubroGrupos()])
+  const estudioId = await getCurrentEstudioId()
+  const [rubro, grupos] = await Promise.all([
+    findRubroBaseById(estudioId, id),
+    findAllRubroGrupos(estudioId),
+  ])
   if (!rubro) notFound()
 
   const volverHref = `/configuracion/rubros${volver ? `?volver=${encodeURIComponent(volver)}` : ''}`

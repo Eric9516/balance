@@ -82,7 +82,10 @@ beforeAll(async () => {
       cuit: `30${Date.now().toString().slice(-8)}7`,
     },
   })
-  const rubros = await db.rubroBase.findMany({ select: { id: true, codigo: true } })
+  const rubros = await db.rubroBase.findMany({
+    where: { estudioId: estudio.id },
+    select: { id: true, codigo: true },
+  })
   Object.assign(ctx, {
     estudioId: estudio.id,
     sociedadId: sociedad.id,

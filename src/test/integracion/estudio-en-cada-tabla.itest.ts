@@ -2,8 +2,9 @@
  * Una sola base para todos los estudios (docs/decisiones/0011), etapa 1: cada tabla con datos de un
  * estudio lleva el estudio, y la base no deja que una fila apunte a un dato de otro estudio ni que
  * cambie de estudio. Falla si se agrega una tabla sin el estudio o un vínculo sin su control
- * (ver la migración 20261029150000_estudio_en_cada_tabla). Además controla que la base coincida con
- * schema.prisma.
+ * (ver la migración 20261029150000_estudio_en_cada_tabla). Cada estudio tiene su propio catálogo de
+ * clasificaciones y secciones (20261030120000_catalogo_por_estudio). Además controla que la base
+ * coincida con schema.prisma.
  */
 import { execSync } from 'node:child_process'
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
@@ -12,6 +13,12 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn(), 
 
 import { db } from '@/lib/db'
 import { crearEjercicio } from '@/modules/ejercicios/actions/ejercicio.actions'
+import {
+  findAllRubrosBase,
+  findRubroBaseById,
+  updateRubroBase,
+} from '@/modules/rubros-base/repository/rubro-base.repository'
+import { findRubrosBase } from '@/modules/importaciones/repository/cuentas.repository'
 
 /**
  * Tablas sin estudio, a propósito. Cada una con su motivo: agregar una acá es una decisión, no un
@@ -21,10 +28,7 @@ const SIN_ESTUDIO: Record<string, string> = {
   estudios: 'es la tabla de los estudios',
   _prisma_migrations: 'historial de migraciones',
   errores_tecnicos_log: 'registro técnico de la plataforma (se decide con el login)',
-  // Catálogo: hoy común a todos; falta decidir si cada estudio tiene el suyo (ver el informe)
-  rubros_grupo: 'catálogo de secciones (decisión pendiente)',
-  rubros_base: 'catálogo de clasificaciones (decisión pendiente)',
-  gasto_seccion_config: 'configuración de secciones de gastos (decisión pendiente)',
+  catalogo_rubros: 'catálogo oficial de la plataforma: cada estudio recibe una copia al crearse',
 }
 
 const ctx = { a: '', b: '', socA: '', socB: '', ejA: '', ejB: '' }
@@ -197,5 +201,85 @@ describe('El estudio en cada tabla', () => {
       .split('\n')
       .filter((l) => l.trim() && !l.trim().startsWith('--') && !/^Loaded Prisma config/.test(l))
     expect(sentencias, salida).toEqual([])
+  })
+})
+
+describe('Cada estudio con su catálogo', () => {
+  const rubroDe = (estudioId: string, codigo: string) =>
+    db.rubroBase.findUniqueOrThrow({ where: { estudioId_codigo: { estudioId, codigo } } })
+
+  it('cada estudio nuevo recibe el catálogo oficial completo', async () => {
+    const oficial = await db.catalogoRubro.findMany({ select: { codigo: true, orden: true } })
+    expect(oficial.length).toBeGreaterThan(50)
+    for (const estudioId of [ctx.a, ctx.b]) {
+      const propio = await db.rubroBase.findMany({
+        where: { estudioId },
+        select: { codigo: true, orden: true },
+      })
+      expect(new Set(propio.map((r) => `${r.codigo}·${r.orden}`))).toEqual(
+        new Set(oficial.map((r) => `${r.codigo}·${r.orden}`)),
+      )
+    }
+  })
+
+  it('lo que cambia un estudio en su catálogo no le cambia nada a otro', async () => {
+    const [deA, deB] = await Promise.all([
+      rubroDe(ctx.a, 'ACT-CTE-01'),
+      rubroDe(ctx.b, 'ACT-CTE-01'),
+    ])
+    expect(deA.id).not.toBe(deB.id)
+    await updateRubroBase(deA.id, {
+      codigo: deA.codigo,
+      nombre: 'Caja, bancos y valores a depositar',
+      estadoDestino: deA.estadoDestino,
+      seccionSSP: deA.seccionSSP ?? '',
+      seccionEERR: '',
+      naturalezaEsperada: deA.naturalezaEsperada,
+      orden: String(deA.orden),
+      rubroGrupoId: '',
+    })
+    expect((await rubroDe(ctx.b, 'ACT-CTE-01')).nombre).toBe(deB.nombre)
+  })
+
+  it('la app lee solo el catálogo de su estudio', async () => {
+    const [idsDeB, listaA, clasificarA] = await Promise.all([
+      db.rubroBase.findMany({ where: { estudioId: ctx.b }, select: { id: true } }),
+      findAllRubrosBase(ctx.a),
+      findRubrosBase(ctx.a),
+    ])
+    const deB = new Set(idsDeB.map((r) => r.id))
+    expect(listaA.some((r) => deB.has(r.id))).toBe(false)
+    expect(clasificarA.some((r) => deB.has(r.id))).toBe(false)
+    // Una clasificación de B no se encuentra desde A
+    expect(await findRubroBaseById(ctx.a, [...deB][0] ?? '')).toBeNull()
+  })
+
+  it('no deja usar la clasificación ni la sección de otro estudio', async () => {
+    const [rubroB, rubroA] = await Promise.all([
+      rubroDe(ctx.b, 'ACT-CTE-02'),
+      rubroDe(ctx.a, 'ACT-CTE-02'),
+    ])
+    // una cuenta de A clasificada con la clasificación de B
+    await falla(
+      db.cuentaContable.create({
+        data: { ejercicioId: ctx.ejA, codigo: '7', nombre: 'Prestada', rubroBaseId: rubroB.id },
+      }),
+    )
+    // una clasificación de A en una sección de B
+    const seccionB = await db.rubroGrupo.create({
+      data: { estudioId: ctx.b, nombre: 'Sección de B', orden: 1 },
+    })
+    await falla(
+      db.rubroBase.update({ where: { id: rubroA.id }, data: { rubroGrupoId: seccionB.id } }),
+    )
+  })
+
+  it('el código y el orden se repiten entre estudios, pero no dentro de uno', async () => {
+    const deA = await rubroDe(ctx.a, 'ACT-CTE-03')
+    await expect(
+      db.rubroBase.create({
+        data: { ...deA, id: undefined, createdAt: undefined, updatedAt: undefined, orden: 99999 },
+      }),
+    ).rejects.toThrow(/Unique constraint/)
   })
 })

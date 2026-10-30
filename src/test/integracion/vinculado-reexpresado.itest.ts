@@ -92,7 +92,10 @@ beforeAll(async () => {
       data: { estudioId: estudio.id, razonSocial: 'Reexpresada S.A.', cuit: '30777777784' },
     })
   ).id
-  for (const r of await db.rubroBase.findMany({ select: { id: true, codigo: true } })) {
+  for (const r of await db.rubroBase.findMany({
+    where: { estudioId: estudio.id },
+    select: { id: true, codigo: true },
+  })) {
     rubro.set(r.codigo, r.id)
   }
 

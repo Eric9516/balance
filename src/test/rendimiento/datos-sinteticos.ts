@@ -92,11 +92,21 @@ export async function sembrar(prisma: PrismaClient, escala: Escala): Promise<Sem
   const estudio = await prisma.estudio.create({
     data: { nombre: 'Estudio de medición', cuit: '30-00000000-1', razonSocial: 'Estudio SA' },
   })
+  // Otro estudio en la misma base, con su propio catálogo: las lecturas del primero no lo ven.
+  // Más nuevo, para que "el estudio activo" siga siendo el de la medición.
+  await prisma.estudio.create({
+    data: {
+      nombre: 'Estudio vecino',
+      cuit: '30-00000000-2',
+      razonSocial: 'Vecino SA',
+      createdAt: new Date('2099-01-01T00:00:00Z'),
+    },
+  })
   const auditor = await prisma.auditor.create({
     data: { estudioId: estudio.id, nombre: 'Ana', apellido: 'Auditora', esDefault: true },
   })
   const rubros = await prisma.rubroBase.findMany({
-    where: { activo: true },
+    where: { estudioId: estudio.id, activo: true },
     select: { id: true, orden: true, naturalezaEsperada: true },
     orderBy: { orden: 'asc' },
   })

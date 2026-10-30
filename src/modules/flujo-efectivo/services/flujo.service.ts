@@ -25,7 +25,7 @@ export async function cargarFlujo(
 ): Promise<FlujoData> {
   const anteriorId = idAnteriorDerivable(ejercicio)
   const [rubros, base, flujoAnterior] = await Promise.all([
-    findRubrosBase(),
+    findRubrosBase(ejercicio.estudioId),
     guardado !== undefined ? Promise.resolve(guardado) : findFlujo(ejercicio.id),
     anteriorId ? findFlujo(anteriorId) : Promise.resolve(null),
   ])

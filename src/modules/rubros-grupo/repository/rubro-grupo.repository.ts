@@ -1,26 +1,31 @@
-import type { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { esUuid } from '@/lib/utils/uuid'
 import { toRubroGrupoDTO, type RubroGrupoDTO } from '../domain/types'
 import type { CreateRubroGrupoInput } from '../schemas/rubro-grupo.schemas'
 
+// Cada estudio tiene sus propias secciones: todo se lee y se cambia dentro del estudio.
+
 const withCount = { _count: { select: { rubros: true } } } as const
 
-export async function findAllRubroGrupos(): Promise<RubroGrupoDTO[]> {
+export async function findAllRubroGrupos(estudioId: string): Promise<RubroGrupoDTO[]> {
   const rows = await db.rubroGrupo.findMany({
+    where: { estudioId },
     orderBy: { orden: 'asc' },
     include: withCount,
   })
   return rows.map(toRubroGrupoDTO)
 }
 
-export async function findRubroGrupoById(id: string): Promise<RubroGrupoDTO | null> {
+export async function findRubroGrupoById(
+  estudioId: string,
+  id: string,
+): Promise<RubroGrupoDTO | null> {
   if (!esUuid(id)) return null
-  const g = await db.rubroGrupo.findUnique({ where: { id }, include: withCount })
+  const g = await db.rubroGrupo.findFirst({ where: { id, estudioId }, include: withCount })
   return g ? toRubroGrupoDTO(g) : null
 }
 
-function buildData(input: CreateRubroGrupoInput): Prisma.RubroGrupoCreateInput {
+function buildData(input: CreateRubroGrupoInput) {
   return {
     nombre: input.nombre,
     sigla: input.sigla || null,
@@ -33,11 +38,18 @@ function buildData(input: CreateRubroGrupoInput): Prisma.RubroGrupoCreateInput {
   }
 }
 
-export async function createRubroGrupo(input: CreateRubroGrupoInput): Promise<RubroGrupoDTO> {
-  const g = await db.rubroGrupo.create({ data: buildData(input), include: withCount })
+export async function createRubroGrupo(
+  estudioId: string,
+  input: CreateRubroGrupoInput,
+): Promise<RubroGrupoDTO> {
+  const g = await db.rubroGrupo.create({
+    data: { estudioId, ...buildData(input) },
+    include: withCount,
+  })
   return toRubroGrupoDTO(g)
 }
 
+/** El llamador comprueba antes que la sección es del estudio (findRubroGrupoById). */
 export async function updateRubroGrupo(
   id: string,
   input: CreateRubroGrupoInput,
@@ -50,22 +62,30 @@ export async function updateRubroGrupo(
   return toRubroGrupoDTO(g)
 }
 
-export async function toggleEsGastoGrupo(id: string, esGasto: boolean): Promise<void> {
-  await db.rubroGrupo.update({ where: { id }, data: { esGasto } })
+export async function toggleEsGastoGrupo(
+  estudioId: string,
+  id: string,
+  esGasto: boolean,
+): Promise<void> {
+  await db.rubroGrupo.updateMany({ where: { id, estudioId }, data: { esGasto } })
 }
 
-export async function toggleAparecEnEERRGrupo(id: string, aparecEnEERR: boolean): Promise<void> {
-  await db.rubroGrupo.update({ where: { id }, data: { aparecEnEERR } })
+export async function toggleAparecEnEERRGrupo(
+  estudioId: string,
+  id: string,
+  aparecEnEERR: boolean,
+): Promise<void> {
+  await db.rubroGrupo.updateMany({ where: { id, estudioId }, data: { aparecEnEERR } })
 }
 
-export async function deleteRubroGrupo(id: string): Promise<void> {
-  await db.rubroGrupo.delete({ where: { id } })
+export async function deleteRubroGrupo(estudioId: string, id: string): Promise<void> {
+  await db.rubroGrupo.deleteMany({ where: { id, estudioId } })
 }
 
-export async function swapOrdenGrupos(idA: string, idB: string): Promise<void> {
+export async function swapOrdenGrupos(estudioId: string, idA: string, idB: string): Promise<void> {
   const [a, b] = await Promise.all([
-    db.rubroGrupo.findUnique({ where: { id: idA }, select: { orden: true } }),
-    db.rubroGrupo.findUnique({ where: { id: idB }, select: { orden: true } }),
+    db.rubroGrupo.findFirst({ where: { id: idA, estudioId }, select: { orden: true } }),
+    db.rubroGrupo.findFirst({ where: { id: idB, estudioId }, select: { orden: true } }),
   ])
   if (!a || !b) return
   await db.$transaction([
@@ -74,8 +94,9 @@ export async function swapOrdenGrupos(idA: string, idB: string): Promise<void> {
   ])
 }
 
-export async function findNextOrdenGrupo(): Promise<number> {
+export async function findNextOrdenGrupo(estudioId: string): Promise<number> {
   const last = await db.rubroGrupo.findFirst({
+    where: { estudioId },
     orderBy: { orden: 'desc' },
     select: { orden: true },
   })

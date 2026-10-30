@@ -344,10 +344,13 @@ const SIN_CUENTAS: AppError = {
 }
 
 /** Plan de regeneración del ejercicio (todas las lecturas en un solo viaje). */
-async function planDelEjercicio(ejercicioId: string): Promise<PlanRegeneracion | null> {
+async function planDelEjercicio(
+  estudioId: string,
+  ejercicioId: string,
+): Promise<PlanRegeneracion | null> {
   const [cuentas, rubros, ejercicio, notas] = await Promise.all([
     findCuentasByEjercicio(ejercicioId),
-    findRubrosBase(),
+    findRubrosBase(estudioId),
     db.ejercicioContable.findUnique({
       where: { id: ejercicioId },
       select: {
@@ -376,8 +379,8 @@ export async function previsualizarRegeneracionAction(
   ejercicioId: string,
 ): Promise<ActionResult<ResumenRegeneracion>> {
   try {
-    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
-    const plan = await planDelEjercicio(ejercicioId)
+    const estudioId = await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    const plan = await planDelEjercicio(estudioId, ejercicioId)
     if (!plan) return actionError(SIN_CUENTAS)
     return actionOk(resumirPlan(plan))
   } catch (error) {
@@ -407,10 +410,10 @@ export async function generarNotasAutomaticasAction(
   opciones?: Partial<OpcionesRegeneracion>,
 ): Promise<ActionResult<void>> {
   try {
-    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    const estudioId = await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
     const parsed = OpcionesSchema.safeParse(opciones ?? {})
     if (!parsed.success) return actionError(errorFormulario(parsed.error.issues))
-    const plan = await planDelEjercicio(ejercicioId)
+    const plan = await planDelEjercicio(estudioId, ejercicioId)
     if (!plan) return actionError(SIN_CUENTAS)
 
     const { quitoAnterior } = await aplicarRegeneracion(ejercicioId, plan, {

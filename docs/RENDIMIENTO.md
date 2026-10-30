@@ -131,3 +131,7 @@ Ver [0011](decisiones/0011-una-sola-base-para-todos-los-estudios.md). Las 13 tab
 | Base completa | 504 MB | 530 MB | +5% |
 
 Los disparadores corren adentro de la base: no suman viajes. Hay más viajes que el 19/10 en el documento imprimible (de 9 a 13) y en el paso Estados (de 7 a 8) por lo que se agregó desde entonces (Nota 1, flujo de efectivo), no por este cambio: conviene agruparlos, aunque con la app y la base en el mismo servidor cada viaje deja de costar decenas de milisegundos.
+
+## Cada estudio con su catálogo (2026-10-30, escala media)
+
+Ver [0012](decisiones/0012-catalogo-propio-de-cada-estudio.md). La medición siembra ahora dos estudios, cada uno con su catálogo (57 clasificaciones), y todas las lecturas del catálogo filtran por estudio. Resultado igual al 29/10: importar 800 cuentas 155 ms de mediana local, los mismos viajes en cada operación (Estados 8, documento imprimible 13), base de 530,7 MB, ninguna clave foránea sin índice y ninguna lectura completa de tablas grandes. Los saldos por código del paso Documentos leen ahora solo las clasificaciones que usan las cuentas del ejercicio (antes, el catálogo entero).

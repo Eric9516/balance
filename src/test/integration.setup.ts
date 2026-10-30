@@ -1,7 +1,8 @@
 /**
  * globalSetup de las pruebas de integración: crea la base de prueba si no existe,
  * aplica TODAS las migraciones desde cero (lo que además verifica que el historial
- * de migraciones esté completo) y siembra el catálogo de rubros.
+ * de migraciones esté completo) y deja la base sin estudios (cada estudio que crea una prueba
+ * recibe el catálogo oficial de la RT 54).
  *
  * Sin TEST_DATABASE_URL levanta solo un PostgreSQL real embebido (ver postgres-embebido.ts):
  * no hace falta tener PostgreSQL instalado. Con TEST_DATABASE_URL usa esa base (por ejemplo,
@@ -12,7 +13,6 @@ import { Client } from 'pg'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { crearPoolPg } from '../lib/pool-pg'
-import { seedRubrosBase } from '../../prisma/seed/rubros'
 import { iniciarPostgresEmbebido, type PostgresEmbebido } from './postgres-embebido'
 
 const PUERTO_EMBEBIDO = 55435
@@ -70,16 +70,13 @@ export default async function setup() {
     env: { ...process.env, DATABASE_URL: url },
   })
 
-  // 3. Base limpia (los datos de corridas anteriores alterarían "el estudio activo") y
-  //    catálogo de rubros.
+  // 3. Base limpia: los datos de corridas anteriores alterarían "el estudio activo". El catálogo
+  //    de cada estudio se va con él; el oficial (catalogo_rubros) queda.
   const prisma = new PrismaClient({
     adapter: new PrismaPg(crearPoolPg({ connectionString: url }), { disposeExternalPool: true }),
   })
   try {
-    await prisma.$executeRawUnsafe(
-      'TRUNCATE TABLE "estudios", "rubros_grupo", "gasto_seccion_config", "errores_tecnicos_log" CASCADE',
-    )
-    await seedRubrosBase(prisma)
+    await prisma.$executeRawUnsafe('TRUNCATE TABLE "estudios", "errores_tecnicos_log" CASCADE')
   } finally {
     await prisma.$disconnect()
   }

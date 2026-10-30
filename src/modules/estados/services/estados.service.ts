@@ -73,11 +73,11 @@ export async function cargarEstadosConPN(
     movsActual,
     bienesDeUso,
   ] = await Promise.all([
-    findRubrosBase(),
+    findRubrosBase(ejercicio.estudioId),
     anteriorId ? findCuentasByEjercicio(anteriorId) : Promise.resolve([] as CuentaContableDTO[]),
     findCostoVentas(ejercicioId),
     anteriorId ? findCostoVentas(anteriorId) : Promise.resolve(null),
-    findGastosDinamicos(ejercicioId, anteriorId),
+    findGastosDinamicos(ejercicio.estudioId, ejercicioId, anteriorId),
     findNotasByEjercicio(ejercicioId),
     editarAnteriorManual(modo)
       ? findComparativoByEjercicio(ejercicioId)

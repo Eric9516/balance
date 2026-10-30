@@ -166,7 +166,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
   } else if (paso === 'clasificar') {
     const [cuentas, rubros] = await Promise.all([
       findCuentasByEjercicio(ejercicioId),
-      findRubrosBase(),
+      findRubrosBase(ejercicio.estudioId),
     ])
     content = (
       <div className="space-y-3">

@@ -86,10 +86,12 @@ beforeAll(async () => {
     }),
   ).id
   const rubro = new Map(
-    (await db.rubroBase.findMany({ select: { id: true, codigo: true } })).map((r) => [
-      r.codigo,
-      r.id,
-    ]),
+    (
+      await db.rubroBase.findMany({
+        where: { estudioId: estudio.id },
+        select: { id: true, codigo: true },
+      })
+    ).map((r) => [r.codigo, r.id]),
   )
   const cuentas: [string, string, number][] = [
     ['ACT-CTE-09', 'Mercaderías de reventa', 4_800_000],

@@ -4,31 +4,44 @@ import { toRubroBaseDTO, type RubroBaseDTO } from '../domain/types'
 import type { CreateRubroBaseInput } from '../schemas/rubro-base.schemas'
 import { esSeccionEERR, esSeccionSSP } from '../domain/secciones'
 
+// Cada estudio tiene su propio catálogo: todo se lee y se cambia dentro del estudio.
+
 const includeGrupo = {
   rubroGrupo: {
     select: { nombre: true, estadoDestino: true, seccionSSP: true, seccionEERR: true },
   },
 } as const
 
-export async function findAllRubrosBase(): Promise<RubroBaseDTO[]> {
+export async function findAllRubrosBase(estudioId: string): Promise<RubroBaseDTO[]> {
   const rows = await db.rubroBase.findMany({
+    where: { estudioId },
     orderBy: { orden: 'asc' },
     include: includeGrupo,
   })
   return rows.map(toRubroBaseDTO)
 }
 
-export async function findRubroBaseById(id: string): Promise<RubroBaseDTO | null> {
+export async function findRubroBaseById(
+  estudioId: string,
+  id: string,
+): Promise<RubroBaseDTO | null> {
   if (!esUuid(id)) return null
-  const r = await db.rubroBase.findUnique({ where: { id }, include: includeGrupo })
+  const r = await db.rubroBase.findFirst({ where: { id, estudioId }, include: includeGrupo })
   return r ? toRubroBaseDTO(r) : null
 }
 
-export async function createRubroBase(input: CreateRubroBaseInput): Promise<RubroBaseDTO> {
-  const r = await db.rubroBase.create({ data: buildData(input), include: includeGrupo })
+export async function createRubroBase(
+  estudioId: string,
+  input: CreateRubroBaseInput,
+): Promise<RubroBaseDTO> {
+  const r = await db.rubroBase.create({
+    data: { estudioId, ...buildData(input) },
+    include: includeGrupo,
+  })
   return toRubroBaseDTO(r)
 }
 
+/** El llamador comprueba antes que la clasificación es del estudio (findRubroBaseById). */
 export async function updateRubroBase(
   id: string,
   input: CreateRubroBaseInput,
@@ -41,11 +54,15 @@ export async function updateRubroBase(
   return toRubroBaseDTO(r)
 }
 
-export async function deleteRubroBase(id: string): Promise<void> {
-  await db.rubroBase.delete({ where: { id } })
+export async function deleteRubroBase(estudioId: string, id: string): Promise<void> {
+  await db.rubroBase.deleteMany({ where: { id, estudioId } })
 }
 
-export async function findNextOrden(seccionSSP?: string, seccionEERR?: string): Promise<number> {
+export async function findNextOrden(
+  estudioId: string,
+  seccionSSP?: string,
+  seccionEERR?: string,
+): Promise<number> {
   const where = esSeccionSSP(seccionSSP)
     ? { seccionSSP }
     : esSeccionEERR(seccionEERR)
@@ -53,7 +70,7 @@ export async function findNextOrden(seccionSSP?: string, seccionEERR?: string): 
       : {}
 
   const last = await db.rubroBase.findFirst({
-    where,
+    where: { estudioId, ...where },
     orderBy: { orden: 'desc' },
     select: { orden: true },
   })

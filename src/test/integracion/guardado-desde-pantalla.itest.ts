@@ -477,7 +477,10 @@ describe('Clasificación de cuentas', () => {
 
   it('no modifica, clasifica ni borra una cuenta de otro ejercicio', async () => {
     const ajena = await cuenta(ctx.otroEjercicioId, '1.1.02')
-    const rubro = await db.rubroBase.findFirstOrThrow({ select: { id: true } })
+    const rubro = await db.rubroBase.findFirstOrThrow({
+      where: { estudioId: await getCurrentEstudioId() },
+      select: { id: true },
+    })
     const args = [ctx.ejercicioId, ctx.sociedadId] as const
 
     expect(fallo(await actualizarCuentaAction(ajena.id, { nombre: 'Pisada' }, ...args))).toBe(
