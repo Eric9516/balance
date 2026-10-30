@@ -26,6 +26,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "usuarios:crear": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/crear-usuario.mjs",
+    "usuarios:rescatar": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/rescatar-usuario.mjs",
     "postinstall": "prisma generate",
     "prepare": "husky"
   },
@@ -54,6 +55,7 @@
     "react-hook-form": "^7.76.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
+    "uqr": "0.1.3",
     "xlsx": "file:vendor/xlsx-0.20.3.tgz",
     "zod": "^4.4.3"
   },

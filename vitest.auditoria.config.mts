@@ -16,7 +16,12 @@ export default defineConfig({
     include: ['src/test/auditoria/**/*.auditoria.ts'],
     globalSetup: ['./src/test/integration.setup.ts'],
     setupFiles: ['./src/test/contexto-pruebas.ts'],
-    env: { DATABASE_URL: TEST_DATABASE_URL, NODE_ENV: 'test' },
+    env: {
+      DATABASE_URL: TEST_DATABASE_URL,
+      NODE_ENV: 'test',
+      // Clave de pruebas para el código del celular (la de producción va solo en su .env)
+      CLAVE_CODIGOS: 'cHJ1ZWJhcy1iYWxhbmNlcnQtY29kaWdvcy0zMmJ5dGU=',
+    },
     fileParallelism: false,
     testTimeout: 600_000,
     hookTimeout: 120_000,

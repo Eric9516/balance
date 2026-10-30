@@ -7,8 +7,8 @@ import { FormEntrar } from '@/modules/acceso/components/FormEntrar'
 export const metadata = { title: 'Entrar' }
 
 const AVISOS: Record<string, string> = {
-  contrasena: 'Listo: tu contraseña nueva quedó guardada. Entrá con ella.',
   salir: 'Saliste de BalanceRT.',
+  codigo: 'Cinco códigos equivocados seguidos: por seguridad, volvé a entrar con tu contraseña.',
 }
 
 export default async function EntrarPage({

@@ -11,6 +11,12 @@ const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   /** Conexiones máximas del pool de pg (Supabase session pooler: mantener bajo). */
   DB_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
+  /**
+   * Clave para cifrar el secreto del código del celular (32 bytes en base64). Va solo en el .env del
+   * servidor, nunca en el repositorio. Se genera con:
+   * node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+   */
+  CLAVE_CODIGOS: z.string().optional(),
   /** '1' = loguear en consola las consultas lentas (≥ 50 ms) en desarrollo. */
   PRISMA_LOG_QUERIES: z.enum(['0', '1']).default('0'),
 })

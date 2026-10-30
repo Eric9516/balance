@@ -15,12 +15,18 @@ import {
   errorDeContrasena,
   normalizarEmail,
 } from '../domain/reglas'
+import { base32, direccionOtpauth, pasoDelCodigo } from '../domain/codigo'
+import { cifrar, descifrar } from '../infra/cifrado'
 import { contrasenaCoincide, huellaDeContrasena } from '../infra/contrasenas'
 import {
   abrirSesion,
+  aceptarCodigo,
   cerrarSesion,
+  codigoDeLaSesion,
+  codigoFallido,
   datosParaEntrar,
   fijarContrasena,
+  guardarCodigo,
   puedeIntentar,
   registrarIntento,
   sesionActiva,
@@ -37,7 +43,15 @@ export type PedidoDeEntrada = {
 }
 
 export type ResultadoEntrada =
-  { ok: true; token: string; vence: Date } | { ok: false; error: AppError }
+  | {
+      ok: true
+      token: string
+      vence: Date
+      /** Usa código del celular: la sesión queda a medio entrar hasta que lo escriba. */
+      faltaCodigo: boolean
+      codigoConfigurado: boolean
+    }
+  | { ok: false; error: AppError }
 
 const FORMATO_TOKEN = /^[A-Za-z0-9_-]{43}$/
 
@@ -69,7 +83,7 @@ export async function entrar(pedido: PedidoDeEntrada): Promise<ResultadoEntrada>
   }
 
   const token = randomBytes(32).toString('base64url')
-  const [, vence] = await Promise.all([
+  const [, sesion] = await Promise.all([
     registrarIntento(email, pedido.ip, true),
     abrirSesion(
       cuenta.usuarioId,
@@ -79,7 +93,74 @@ export async function entrar(pedido: PedidoDeEntrada): Promise<ResultadoEntrada>
       pedido.navegador,
     ),
   ])
-  return { ok: true, token, vence }
+  return { ok: true, token, ...sesion }
+}
+
+// ─── El código del celular ───────────────────────────────────────────────────
+
+export const CODIGO_INCORRECTO: AppError = {
+  tipo: 'AUTORIZACION',
+  severidad: 'MEDIO',
+  codigo: 'AUTH-005',
+  mensaje: 'El código no es correcto o ya se usó. Escribí el que muestra ahora la app del celular.',
+}
+
+export const CODIGO_DEMASIADOS: AppError = {
+  tipo: 'AUTORIZACION',
+  severidad: 'MEDIO',
+  codigo: 'AUTH-006',
+  mensaje: 'Cinco códigos equivocados seguidos: por seguridad, volvé a entrar con tu contraseña.',
+}
+
+export type CodigoParaConfigurar = {
+  /** Lo que lee la app del celular en el QR. */
+  direccion: string
+  /** El mismo secreto para escribirlo a mano, en grupos de 4. */
+  claveManual: string
+}
+
+/**
+ * La primera vez: genera el secreto (o reusa el que quedó a medio configurar), lo guarda cifrado y
+ * devuelve lo que hay que mostrar para cargarlo en el celular. null si la sesión venció o si ya
+ * tiene un código activado.
+ */
+export async function prepararCodigo(
+  token: string | undefined,
+): Promise<CodigoParaConfigurar | null> {
+  if (!token || !FORMATO_TOKEN.test(token)) return null
+  const huella = huellaDeToken(token)
+  const actual = await codigoDeLaSesion(huella)
+  if (!actual || actual.activado) return null
+  let secreto = actual.secreto ? descifrar(actual.secreto) : null
+  if (!secreto) {
+    secreto = randomBytes(20)
+    await guardarCodigo(huella, cifrar(secreto))
+  }
+  return {
+    direccion: direccionOtpauth(secreto, actual.email),
+    claveManual: base32(secreto)
+      .replace(/(.{4})/g, '$1 ')
+      .trim(),
+  }
+}
+
+/** Revisa el código que escribió la persona y, si está bien, completa la sesión. */
+export async function verificarCodigo(
+  token: string | undefined,
+  codigo: string,
+  ahoraMs = Date.now(),
+): Promise<{ ok: true } | { ok: false; error: AppError; sesionCerrada: boolean }> {
+  if (!token || !FORMATO_TOKEN.test(token))
+    return { ok: false, error: CODIGO_DEMASIADOS, sesionCerrada: true }
+  const huella = huellaDeToken(token)
+  const actual = await codigoDeLaSesion(huella)
+  if (!actual?.secreto) return { ok: false, error: CODIGO_DEMASIADOS, sesionCerrada: true }
+  const paso = pasoDelCodigo(descifrar(actual.secreto), codigo, ahoraMs)
+  if (paso !== null && (await aceptarCodigo(huella, paso))) return { ok: true }
+  const sigue = await codigoFallido(huella)
+  return sigue
+    ? { ok: false, error: CODIGO_INCORRECTO, sesionCerrada: false }
+    : { ok: false, error: CODIGO_DEMASIADOS, sesionCerrada: true }
 }
 
 /** De quién es el número de la cookie, o null si no es válido, venció o la cuenta se desactivó. */
@@ -130,10 +211,14 @@ export async function darDeAltaUsuario(
   return { ok: true, usuarioId }
 }
 
-/** Cambia la contraseña de la persona de la sesión (ya no es provisoria) y cierra sus sesiones. */
+/**
+ * Cambia la contraseña de la persona de la sesión (ya no es provisoria). Cierra sus sesiones en los
+ * otros equipos; la de este (su token) sigue.
+ */
 export async function cambiarContrasena(
   sesion: SesionActiva,
   nueva: string,
+  tokenActual?: string,
 ): Promise<{ ok: true } | { ok: false; error: AppError }> {
   const problema = errorDeContrasena(nueva)
   if (problema)
@@ -142,6 +227,10 @@ export async function cambiarContrasena(
       error: { tipo: 'FORMULARIO', severidad: 'BAJO', codigo: 'FORM-001', mensaje: problema },
     }
   const huella = await huellaDeContrasena(nueva)
-  await conEstudio(sesion.estudioId, () => fijarContrasena(sesion.usuarioId, huella, false))
+  const mantener =
+    tokenActual && FORMATO_TOKEN.test(tokenActual) ? huellaDeToken(tokenActual) : null
+  await conEstudio(sesion.estudioId, () =>
+    fijarContrasena(sesion.usuarioId, huella, false, mantener),
+  )
   return { ok: true }
 }

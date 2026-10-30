@@ -400,6 +400,30 @@ const MENSAJES: Mensaje[] = [
     solucion: ['Pedile al dueño de tu estudio que active tu cuenta.'],
     claves: ['entrar', 'login', 'desactivada', 'bloqueada'],
   },
+  {
+    codigo: 'AUTH-005',
+    titulo: 'Código del celular incorrecto',
+    significa:
+      'Las 6 cifras no coinciden con las que muestra la app de tu celular en este momento, o ese código ya se usó para entrar.',
+    solucion: [
+      'Escribí el código que se ve ahora en la app (cambia cada 30 segundos).',
+      'Si los códigos nunca coinciden, revisá que la hora del celular esté en automático.',
+    ],
+    claves: ['codigo', 'celular', 'autenticador', 'segundo paso'],
+    relacionados: ['codigo-celular'],
+  },
+  {
+    codigo: 'AUTH-006',
+    titulo: 'Demasiados códigos equivocados',
+    significa:
+      'Hubo 5 códigos equivocados seguidos. Por seguridad la sesión se cerró: hay que volver a entrar con la contraseña.',
+    solucion: [
+      'Volvé a entrar con tu correo y tu contraseña, y escribí el código que muestra la app en ese momento.',
+      'Si perdiste el celular, pedile al administrador de BalanceRT que te borre el código para configurarlo de nuevo.',
+    ],
+    claves: ['codigo', 'celular', 'bloqueado'],
+    relacionados: ['codigo-celular'],
+  },
 ]
 
 export const MENSAJES_AYUDA: ArticuloAyuda[] = MENSAJES.map((m) => ({

@@ -6,12 +6,15 @@ import type { SesionActiva } from '@/modules/acceso/repository/acceso.repository
 
 /**
  * La sesión de quien usa la pantalla o la acción. Sin sesión, a la pantalla de entrada; con una
- * contraseña provisoria, a elegir la suya antes de seguir (docs/decisiones/0013).
+ * contraseña provisoria, a elegir la suya; si falta el código del celular, a escribirlo (o a
+ * configurarlo la primera vez) antes de seguir (docs/decisiones/0013).
  */
 export const exigirSesion = cache(async (): Promise<SesionActiva> => {
   const sesion = await sesionActual()
   if (!sesion) redirect('/entrar')
   if (sesion.contrasenaProvisoria) redirect('/entrar/nueva-contrasena')
+  if (sesion.faltaCodigo)
+    redirect(sesion.codigoConfigurado ? '/entrar/codigo' : '/entrar/configurar-codigo')
   return sesion
 })
 

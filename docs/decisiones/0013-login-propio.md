@@ -24,6 +24,9 @@ Cómo (patrón de Gestión empresarial, migración `20261030180000_login_propio`
 - El esquema `acceso`, cerrado para la app, guarda las contraseñas (solo su huella Argon2id), las sesiones (solo la huella sha-256 del número al azar que viaja en la cookie) y los intentos. La app usa solo sus funciones, que son las únicas que ven más de un estudio a propósito.
 - Freno a quien prueba contraseñas: 5 fallos seguidos de un correo o 30 de una dirección en 15 minutos. Mismo mensaje y mismo tiempo de respuesta si el correo no existe.
 - Contraseña de al menos 12 caracteres, sin reglas de composición: lo que cuenta es el largo.
+- Código del celular (migración `20261030220000_codigo_del_celular`): TOTP de 6 cifras cada 30 segundos (RFC 6238), calculado con lo que trae Node. El secreto se guarda cifrado (AES-256-GCM) con `CLAVE_CODIGOS`, que no está en la base. Hasta escribir el código, la sesión queda "a medio entrar": 10 minutos, sin ver ningún dato, y 5 códigos equivocados la cierran. Un código no se acepta dos veces.
+- Orden al entrar: la contraseña; si es provisoria, elegir la propia (se cierran las sesiones de los otros equipos, no la de este); si usa código, configurarlo o escribirlo; y después, la página que se había pedido.
+- Desde la plataforma: `pnpm usuarios:crear` da de alta a una persona y `pnpm usuarios:rescatar` le borra el código del celular o le da una contraseña provisoria.
 
 ## Consecuencias
 

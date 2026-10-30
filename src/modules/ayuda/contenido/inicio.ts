@@ -42,7 +42,7 @@ export const INICIO: ArticuloAyuda[] = [
         'Si la app dice que tu cuenta está desactivada, pedile al dueño de tu estudio que la active.',
       ),
     ],
-    relacionados: ['nueva-contrasena', 'auth-002', 'auth-003', 'auth-004'],
+    relacionados: ['nueva-contrasena', 'codigo-celular', 'auth-002', 'auth-003', 'auth-004'],
   },
   {
     id: 'nueva-contrasena',
@@ -58,10 +58,44 @@ export const INICIO: ArticuloAyuda[] = [
       lista(
         'Tiene que tener al menos 12 caracteres. No hace falta que tenga mayúsculas, números ni signos: lo que la hace segura es el largo.',
         'Lo más seguro es una frase que puedas recordar, por ejemplo "el mate de las cinco".',
-        'Al guardarla se cierran las sesiones abiertas en otros equipos, y volvés a entrar con la nueva.',
+        'Al guardarla se cierran tus sesiones en otros equipos; en este seguís adentro. Si sos dueño, después configurás el código del celular.',
       ),
     ],
     relacionados: ['entrar'],
+  },
+  {
+    id: 'codigo-celular',
+    titulo: 'El código del celular',
+    categoria: 'inicio',
+    resumen:
+      'Un segundo paso al entrar: además de la contraseña, el número de 6 cifras que muestra la app de tu celular. Es obligatorio para los dueños.',
+    claves: [
+      'codigo',
+      'celular',
+      'autenticador',
+      'google authenticator',
+      'microsoft authenticator',
+      'doble factor',
+      'segundo paso',
+      'qr',
+    ],
+    bloques: [
+      p(
+        'Aunque alguien robe o adivine una contraseña, no puede entrar sin el celular de su dueño. El dueño puede hacer todo en su estudio, por eso lo usa siempre.',
+      ),
+      pasos(
+        'Instalá Google Authenticator o Microsoft Authenticator (gratis) en tu celular.',
+        'La primera vez que entrás, BalanceRT muestra un código QR: escanealo con la app. Si no podés, escribí a mano la clave que aparece abajo.',
+        'Escribí el número de 6 cifras que muestra la app. Cambia cada 30 segundos.',
+        'Las próximas veces, después de la contraseña la app te pide ese número.',
+      ),
+      lista(
+        'Con "recordar este equipo", el código se pide una vez cada 30 días en esa computadora.',
+        'Si los códigos no coinciden, revisá que la hora del celular esté en automático.',
+        'Si perdiste o cambiaste el celular, pedile al administrador de BalanceRT que te borre el código: la próxima vez que entres lo configurás de nuevo.',
+      ),
+    ],
+    relacionados: ['entrar', 'auth-005', 'auth-006'],
   },
   {
     id: 'como-funciona',

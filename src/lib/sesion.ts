@@ -54,6 +54,11 @@ function olvidarSesiones(): void {
   recientes.clear()
 }
 
+/** Después de completar la sesión (el código del celular), que la próxima lectura vaya a la base. */
+export function olvidarSesion(): void {
+  olvidarSesiones()
+}
+
 function sesionRecordada(token: string | undefined): Promise<SesionActiva | null> {
   if (!token) return Promise.resolve(null)
   const ahora = Date.now()
@@ -100,5 +105,6 @@ registrarContextoDelPedido(async () => {
     return null
   }
   const sesion = await sesionRecordada(token)
-  return sesion ? { estudioId: sesion.estudioId } : { sinEstudio: true }
+  // A medio entrar (falta el código del celular): todavía no ve ningún dato
+  return sesion && !sesion.faltaCodigo ? { estudioId: sesion.estudioId } : { sinEstudio: true }
 })

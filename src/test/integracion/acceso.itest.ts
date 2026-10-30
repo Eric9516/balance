@@ -20,6 +20,8 @@ import {
 } from '@/modules/acceso/services/entrada.service'
 import { fijarContrasena } from '@/modules/acceso/repository/acceso.repository'
 import { huellaDeContrasena } from '@/modules/acceso/infra/contrasenas'
+import { codigoDelPaso, desdeBase32, pasoDe } from '@/modules/acceso/domain/codigo'
+import { prepararCodigo, verificarCodigo } from '@/modules/acceso/services/entrada.service'
 
 const CLAVE = 'una clave larga de prueba'
 const ctx = { a: '', b: '', duenoA: '', contadorA: '', duenoB: '' }
@@ -88,26 +90,29 @@ afterAll(async () => {
 
 describe('Entrar', () => {
   it('con la contraseña correcta: la sesión dice quién es, de qué estudio y con qué rol', async () => {
-    const r = await entrar(pedido('  Dueno.A@Acceso.TEST '))
+    const r = await entrar(pedido('  Contador.A@Acceso.TEST '))
     expect(r.ok).toBe(true)
     if (!r.ok) return
     const horas = (r.vence.getTime() - Date.now()) / 3_600_000
     expect(horas).toBeGreaterThan(7.9)
     expect(horas).toBeLessThan(8.1)
+    expect(r.faltaCodigo).toBe(false)
     expect(await sesionDelToken(r.token)).toEqual({
-      usuarioId: ctx.duenoA,
+      usuarioId: ctx.contadorA,
       estudioId: ctx.a,
-      rol: 'DUENO',
+      rol: 'CONTADOR',
       contrasenaProvisoria: true,
+      faltaCodigo: false,
+      codigoConfigurado: false,
     })
     const u = await comoPlataforma(() =>
-      db.usuario.findUniqueOrThrow({ where: { id: ctx.duenoA } }),
+      db.usuario.findUniqueOrThrow({ where: { id: ctx.contadorA } }),
     )
     expect(u.ultimoIngreso).not.toBeNull()
   })
 
   it('"recordar este equipo" deja la sesión 30 días', async () => {
-    const r = await entrar(pedido('dueno.a@acceso.test', { recordar: true }))
+    const r = await entrar(pedido('contador.a@acceso.test', { recordar: true }))
     if (!r.ok) throw new Error(r.error.mensaje)
     const dias = (r.vence.getTime() - Date.now()) / 86_400_000
     expect(dias).toBeGreaterThan(29.9)
@@ -224,6 +229,24 @@ describe('Contraseñas', () => {
     await borrarIntentos()
   })
 
+  it('quien la cambia sigue adentro en su equipo; en los otros, la sesión se cierra', async () => {
+    const huella = await huellaDeContrasena('clave temporal de la prueba')
+    await conEstudio(ctx.a, () => fijarContrasena(ctx.contadorA, huella, true))
+    const [aca, otro] = await Promise.all([
+      entrar(pedido('contador.a@acceso.test', { contrasena: 'clave temporal de la prueba' })),
+      entrar(pedido('contador.a@acceso.test', { contrasena: 'clave temporal de la prueba' })),
+    ])
+    if (!aca.ok || !otro.ok) throw new Error('no entró')
+    const sesion = (await sesionDelToken(aca.token))!
+    expect(sesion.contrasenaProvisoria).toBe(true)
+    expect(await cambiarContrasena(sesion, 'la nueva clave del contador', aca.token)).toEqual({
+      ok: true,
+    })
+    expect(await sesionDelToken(aca.token)).toMatchObject({ contrasenaProvisoria: false })
+    expect(await sesionDelToken(otro.token)).toBeNull()
+    await borrarIntentos()
+  })
+
   it('desde un estudio no se toca la contraseña de alguien de otro', async () => {
     const huella = await huellaDeContrasena('una clave de intruso larga')
     await expect(
@@ -250,13 +273,98 @@ describe('Siempre un dueño', () => {
   })
 })
 
+describe('Código del celular', () => {
+  const AHORA = 1_900_000_000_000
+  const codigoEn = (secreto: Buffer, ms: number) => codigoDelPaso(secreto, pasoDe(ms))
+  let secreto: Buffer
+
+  it('el dueño queda a medio entrar: la contraseña sola no alcanza', async () => {
+    const r = await entrar(pedido('dueno.a@acceso.test'))
+    if (!r.ok) throw new Error(r.error.mensaje)
+    expect(r).toMatchObject({ faltaCodigo: true, codigoConfigurado: false })
+    const minutos = (r.vence.getTime() - Date.now()) / 60_000
+    expect(minutos).toBeGreaterThan(9.9)
+    expect(minutos).toBeLessThan(10.1)
+    expect(await sesionDelToken(r.token)).toMatchObject({ faltaCodigo: true, estudioId: ctx.a })
+  })
+
+  it('la primera vez lo configura: QR y clave, guardados cifrados, y el código lo completa', async () => {
+    const r = await entrar(pedido('dueno.a@acceso.test'))
+    if (!r.ok) throw new Error(r.error.mensaje)
+    const preparado = await prepararCodigo(r.token)
+    expect(preparado?.direccion).toMatch(
+      /^otpauth:\/\/totp\/BalanceRT%3Adueno\.a%40acceso\.test\?secret=/,
+    )
+    // Volver a la pantalla no cambia el secreto
+    expect((await prepararCodigo(r.token))?.claveManual).toBe(preparado?.claveManual)
+    secreto = desdeBase32(preparado!.claveManual)
+    const [guardado] = await comoPlataforma(
+      () =>
+        db.$queryRaw<{ secreto: Uint8Array }[]>`
+          SELECT secreto FROM acceso.codigos WHERE usuario_id = ${ctx.duenoA}::uuid`,
+    )
+    expect(Buffer.from(guardado!.secreto).includes(secreto)).toBe(false)
+
+    expect(await verificarCodigo(r.token, '000000', AHORA)).toMatchObject({
+      ok: false,
+      error: { codigo: 'AUTH-005' },
+      sesionCerrada: false,
+    })
+    expect(await verificarCodigo(r.token, codigoEn(secreto, AHORA), AHORA)).toEqual({ ok: true })
+    expect(await sesionDelToken(r.token)).toMatchObject({
+      faltaCodigo: false,
+      codigoConfigurado: true,
+    })
+    expect(await prepararCodigo(r.token)).toBeNull()
+  })
+
+  it('las veces siguientes pide el código; uno ya usado no vale dos veces', async () => {
+    const r = await entrar(pedido('dueno.a@acceso.test'))
+    if (!r.ok) throw new Error(r.error.mensaje)
+    expect(r).toMatchObject({ faltaCodigo: true, codigoConfigurado: true })
+    expect(await verificarCodigo(r.token, codigoEn(secreto, AHORA), AHORA)).toMatchObject({
+      ok: false,
+      error: { codigo: 'AUTH-005' },
+    })
+    const despues = AHORA + 60_000
+    expect(await verificarCodigo(r.token, codigoEn(secreto, despues), despues)).toEqual({
+      ok: true,
+    })
+  })
+
+  it('cinco códigos equivocados cierran la sesión', async () => {
+    const r = await entrar(pedido('dueno.a@acceso.test'))
+    if (!r.ok) throw new Error(r.error.mensaje)
+    for (let i = 0; i < 4; i++)
+      expect(await verificarCodigo(r.token, '111111', AHORA)).toMatchObject({
+        sesionCerrada: false,
+      })
+    expect(await verificarCodigo(r.token, '111111', AHORA)).toMatchObject({
+      ok: false,
+      error: { codigo: 'AUTH-006' },
+      sesionCerrada: true,
+    })
+    expect(await sesionDelToken(r.token)).toBeNull()
+    await borrarIntentos()
+  })
+
+  it('contadores y asistentes entran sin código (salvo que lo activen)', async () => {
+    const r = await entrar(
+      pedido('contador.a@acceso.test', { contrasena: 'la nueva clave del contador' }),
+    )
+    if (!r.ok) throw new Error(r.error.mensaje)
+    expect(r.faltaCodigo).toBe(false)
+    await borrarIntentos()
+  })
+})
+
 describe('El esquema acceso, cerrado para la app', () => {
   it('la app no lee ni escribe sus tablas', async () => {
     const c = new Client({ connectionString: process.env.DATABASE_URL })
     await c.connect()
     try {
       await c.query("SELECT set_config('role', 'balancert_app', false)")
-      for (const t of ['contrasenas', 'sesiones', 'intentos']) {
+      for (const t of ['contrasenas', 'sesiones', 'intentos', 'codigos']) {
         await expect(c.query(`SELECT 1 FROM acceso.${t} LIMIT 1`), t).rejects.toThrow(
           /permission denied/,
         )
@@ -279,9 +387,13 @@ describe('El esquema acceso, cerrado para la app', () => {
     expect(funciones.every((f) => f.con_ruta)).toBe(true)
     expect(funciones.filter((f) => f.la_app).map((f) => f.nombre)).toEqual([
       'abrir_sesion',
+      'aceptar_codigo',
       'cerrar_sesion',
+      'codigo_de_la_sesion',
+      'codigo_fallido',
       'datos_para_entrar',
       'fijar_contrasena',
+      'guardar_codigo',
       'puede_intentar',
       'registrar_intento',
       'sesion_activa',

@@ -26,6 +26,8 @@ sesionDePruebas(async () => {
         estudioId: estudio.id,
         rol: 'DUENO',
         contrasenaProvisoria: false,
+        faltaCodigo: false,
+        codigoConfigurado: true,
       }
     : null
 })

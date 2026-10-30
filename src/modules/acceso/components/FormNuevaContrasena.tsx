@@ -12,7 +12,7 @@ import {
 import { CONTRASENA_MINIMO } from '../domain/reglas'
 import { CampoContrasena } from './CampoContrasena'
 
-export function FormNuevaContrasena() {
+export function FormNuevaContrasena({ volver }: { volver?: string }) {
   const [estado, accion, enviando] = useActionState<EstadoFormulario, FormData>(
     nuevaContrasenaAction,
     { error: null },
@@ -43,6 +43,7 @@ export function FormNuevaContrasena() {
       )}
 
       <form action={accion} className="mt-6 space-y-5" noValidate>
+        {volver && <input type="hidden" name="volver" value={volver} />}
         <div className="space-y-2">
           <Label htmlFor="nueva">Contraseña nueva</Label>
           <CampoContrasena

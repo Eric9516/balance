@@ -14,6 +14,7 @@ import { randomBytes } from 'node:crypto'
 import { db } from '@/lib/db'
 import { comoPlataforma } from '@/lib/contexto-base'
 import { darDeAltaUsuario } from '@/modules/acceso/services/entrada.service'
+import { codigoDelPaso, desdeBase32, pasoDe } from '@/modules/acceso/domain/codigo'
 import { sumarPor } from '@/lib/importe'
 import { formatCurrency } from '@/lib/utils/currency'
 import type { Escenario } from './referencia'
@@ -493,14 +494,22 @@ async function entrarComoDueno(
     await page.waitForURL((u) => u.pathname === '/entrar/nueva-contrasena', espera)
     reg.paso(GENERAL, 'Con la contraseña provisoria, pide elegir una nueva', true)
 
+    // Con la contraseña elegida sigue en la misma entrada: el dueño configura el código del
+    // celular, leyendo la clave como la cargaría en la app
     await page.fill('#nueva', nueva)
     await page.fill('#repetida', nueva)
     await page.click('button[type=submit]')
-    await page.waitForURL((u) => u.pathname === '/entrar' && u.search.includes('listo'), espera)
-
-    await entrar(nueva)
+    await page.waitForURL((u) => u.pathname === '/entrar/configurar-codigo', espera)
+    reg.paso(GENERAL, 'El dueño tiene que configurar el código del celular', true)
+    const clave = (await page.locator('#clave-manual').innerText()).trim()
+    await page.fill('#codigo', '000000')
+    await page.click('button[type=submit]')
+    await page.waitForSelector('#error-codigo', espera)
+    reg.paso(GENERAL, 'Un código equivocado no entra', true)
+    await page.fill('#codigo', codigoDelPaso(desdeBase32(clave), pasoDe(Date.now())))
+    await page.click('button[type=submit]')
     await page.waitForURL((u) => u.pathname === '/sociedades', espera)
-    reg.paso(GENERAL, 'Con la contraseña nueva, entra', true)
+    reg.paso(GENERAL, 'Con el código, entra', true)
     return true
   } catch (e) {
     reg.paso(
