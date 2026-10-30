@@ -29,9 +29,12 @@ const SIN_ESTUDIO: Record<string, string[]> = {
   _prisma_migrations: [],
 }
 /** Las funciones que puede ejecutar la app; las demás, ninguna. */
-const FUNCIONES_DE_LA_APP = ['_estudio_unico', 'estudio_de_la_sesion', 'uuidv7']
-/** Las únicas que corren con los permisos de su dueño (saltean las reglas a propósito). */
-const FUNCIONES_ESPECIALES = ['_estudio_unico']
+const FUNCIONES_DE_LA_APP = ['estudio_de_la_sesion', 'uuidv7']
+/**
+ * Las que corren con los permisos de su dueño (saltean las reglas a propósito). En public, ninguna:
+ * las del login viven en el esquema acceso (ver acceso.itest.ts).
+ */
+const FUNCIONES_ESPECIALES: string[] = []
 
 type Datos = { estudio: string; ejercicio: string; sociedad: string }
 const A = {} as Datos
@@ -378,7 +381,7 @@ describe('Estructura de la separación', () => {
     expect(Object.fromEntries(filas.map((f) => [f.tabla, f.permisos]))).toEqual(SIN_ESTUDIO)
   })
 
-  it('la app ejecuta solo sus funciones, y solo una saltea las reglas a propósito', async () => {
+  it('la app ejecuta solo sus funciones, y ninguna de public saltea las reglas', async () => {
     const [ejecutables, especiales] = await comoPlataforma(() =>
       Promise.all([
         db.$queryRaw<{ nombre: string }[]>`

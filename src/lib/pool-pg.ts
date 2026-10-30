@@ -1,5 +1,5 @@
 import pg from 'pg'
-import { contextoActual } from './contexto-base'
+import { contextoParaLaBase } from './contexto-base'
 
 /**
  * Cliente de PostgreSQL que fija la sesión en UTC como parte de la conexión: el pool no lo entrega
@@ -39,6 +39,9 @@ type AlEntregar = (err: Error | undefined, c?: pg.PoolClient, liberar?: () => vo
  * (contexto-base.ts). El SET va antes de la consulta, en la misma conexión, y solo cuando la
  * conexión venía con otro: con un mismo estudio, no suma viajes a la base.
  *
+ * El contexto se resuelve antes de tomar la conexión: si sale de la sesión del pedido, esa lectura
+ * usa su propia conexión, y tomar las dos a la vez podría trabar el pool.
+ *
  * Es un ajuste de la sesión (no de la transacción): necesita una conexión directa o un pooler en
  * modo sesión, donde la conexión del servidor es siempre la misma. Con un pooler en modo
  * transacción otra conexión podría llegar con el estudio de otro: crearPoolPg lo rechaza.
@@ -47,12 +50,12 @@ class PoolPorEstudio extends pg.Pool {
   override connect(): Promise<pg.PoolClient>
   override connect(callback: AlEntregar): void
   override connect(callback?: AlEntregar): Promise<pg.PoolClient> | void {
-    // Se lee ahora, en el contexto de quien pide la conexión.
-    const contexto = contextoActual()
-    const rol = contexto && 'plataforma' in contexto ? 'none' : ROL_APP
-    const estudio = contexto && 'estudioId' in contexto ? contexto.estudioId : ''
-    const clave = `${rol}|${estudio}`
-    const entregado = super.connect().then(async (cliente) => {
+    // Se pide ahora, en el contexto de quien pide la conexión.
+    const entregado = contextoParaLaBase().then(async (contexto) => {
+      const rol = contexto && 'plataforma' in contexto ? 'none' : ROL_APP
+      const estudio = contexto && 'estudioId' in contexto ? contexto.estudioId : ''
+      const clave = `${rol}|${estudio}`
+      const cliente = await super.connect()
       if (estadoDe.get(cliente) !== clave) {
         try {
           await cliente.query(

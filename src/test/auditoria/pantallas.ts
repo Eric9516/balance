@@ -10,6 +10,10 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { randomBytes } from 'node:crypto'
+import { db } from '@/lib/db'
+import { comoPlataforma } from '@/lib/contexto-base'
+import { darDeAltaUsuario } from '@/modules/acceso/services/entrada.service'
 import { sumarPor } from '@/lib/importe'
 import { formatCurrency } from '@/lib/utils/currency'
 import type { Escenario } from './referencia'
@@ -154,7 +158,7 @@ function paginas(esc: Escenario, soc: string, ej: string): Pagina[] {
   return lista
 }
 
-export async function recorrerPantallas(ctx: Contexto, escenarios: Escenario[]) {
+export async function recorrerPantallas(ctx: Contexto, escenarios: Escenario[], estudioId: string) {
   const { reg } = ctx
   const url = new URL(process.env.DATABASE_URL ?? '')
   if (!url.pathname.endsWith('_test')) {
@@ -227,6 +231,8 @@ export async function recorrerPantallas(ctx: Contexto, escenarios: Escenario[]) 
       if (m.type() === 'error') errores.push(m.text().slice(0, 300))
     })
     page.on('pageerror', (e) => errores.push(e.message.slice(0, 300)))
+
+    if (!(await entrarComoDueno(ctx, page, estudioId))) return
 
     for (const esc of escenarios) {
       const hecho = ctx.hechos.get(esc.id)
@@ -434,6 +440,79 @@ async function recorrerAyuda(
  * Pantallas de gestión: abren sin error y su botón (i) muestra el resumen de la pantalla con el
  * enlace a la ayuda completa.
  */
+/**
+ * Entra como lo haría una persona nueva: sin sesión la app manda a "Entrar"; con la contraseña
+ * provisoria pide elegir una nueva; con la nueva, entra. Las contraseñas son al azar, de esta corrida.
+ */
+async function entrarComoDueno(
+  ctx: Contexto,
+  page: import('playwright-core').Page,
+  estudioId: string,
+): Promise<boolean> {
+  const { reg } = ctx
+  const email = 'duena.auditoria@balancert.test'
+  const provisoria = randomBytes(12).toString('base64url')
+  const nueva = randomBytes(12).toString('base64url')
+  const espera = { timeout: 180_000 }
+
+  await page.goto(`${URL_BASE}/sociedades`, { waitUntil: 'networkidle', ...espera })
+  const sinSesion = new URL(page.url())
+  reg.paso(
+    GENERAL,
+    'Sin sesión, la app manda a Entrar',
+    sinSesion.pathname === '/entrar' && sinSesion.searchParams.get('volver') === '/sociedades',
+    `quedó en ${sinSesion.pathname}${sinSesion.search}`,
+  )
+
+  await comoPlataforma(() => db.usuario.deleteMany({ where: { email } }))
+  const alta = await darDeAltaUsuario({
+    estudioId,
+    email,
+    nombre: 'Dueña de la auditoría',
+    rol: 'DUENO',
+    contrasenaProvisoria: provisoria,
+  })
+  if (!alta.ok) {
+    reg.hallazgo('error', GENERAL, 'Entrar', `No se pudo crear el usuario: ${alta.error.mensaje}`)
+    return false
+  }
+
+  const entrar = async (contrasena: string) => {
+    await page.fill('#email', email)
+    await page.fill('#contrasena', contrasena)
+    await page.click('button[type=submit]')
+  }
+  try {
+    await page.fill('#email', email)
+    await page.fill('#contrasena', 'una contraseña equivocada')
+    await page.click('button[type=submit]')
+    await page.waitForSelector('#error-entrar', espera)
+    reg.paso(GENERAL, 'Una contraseña equivocada no entra', true)
+
+    await entrar(provisoria)
+    await page.waitForURL((u) => u.pathname === '/entrar/nueva-contrasena', espera)
+    reg.paso(GENERAL, 'Con la contraseña provisoria, pide elegir una nueva', true)
+
+    await page.fill('#nueva', nueva)
+    await page.fill('#repetida', nueva)
+    await page.click('button[type=submit]')
+    await page.waitForURL((u) => u.pathname === '/entrar' && u.search.includes('listo'), espera)
+
+    await entrar(nueva)
+    await page.waitForURL((u) => u.pathname === '/sociedades', espera)
+    reg.paso(GENERAL, 'Con la contraseña nueva, entra', true)
+    return true
+  } catch (e) {
+    reg.paso(
+      GENERAL,
+      'Entrar',
+      false,
+      `quedó en ${page.url()}: ${(e as Error).message.slice(0, 200)}`,
+    )
+    return false
+  }
+}
+
 async function recorrerGestion(ctx: Contexto, page: import('playwright-core').Page) {
   const { reg } = ctx
   for (const [nombre, ruta] of [

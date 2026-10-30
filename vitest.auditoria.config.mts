@@ -15,7 +15,7 @@ export default defineConfig({
     environment: 'node',
     include: ['src/test/auditoria/**/*.auditoria.ts'],
     globalSetup: ['./src/test/integration.setup.ts'],
-    setupFiles: ['./src/test/plataforma-por-defecto.ts'],
+    setupFiles: ['./src/test/contexto-pruebas.ts'],
     env: { DATABASE_URL: TEST_DATABASE_URL, NODE_ENV: 'test' },
     fileParallelism: false,
     testTimeout: 600_000,

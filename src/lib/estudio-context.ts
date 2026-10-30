@@ -1,38 +1,26 @@
 import { cache } from 'react'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
-import { comoPlataforma } from '@/lib/contexto-base'
+import { sesionActual } from '@/lib/sesion'
+import type { SesionActiva } from '@/modules/acceso/repository/acceso.repository'
 
 /**
- * Sin estudio visible: si la base no tiene ninguno, se configura el primero. Si tiene alguno pero la
- * app no lo ve (más de un estudio y todavía sin login, ver contexto-base.ts), no hay a dónde ir: se
- * corta con un error claro en vez de rebotar entre /setup y /sociedades.
+ * La sesión de quien usa la pantalla o la acción. Sin sesión, a la pantalla de entrada; con una
+ * contraseña provisoria, a elegir la suya antes de seguir (docs/decisiones/0013).
  */
-async function sinEstudioVisible(): Promise<never> {
-  const alguno = await comoPlataforma(() => db.estudio.findFirst({ select: { id: true } }))
-  if (alguno) {
-    throw new Error(
-      'La base tiene más de un estudio y la app todavía no sabe cuál mostrar (falta el login).',
-    )
-  }
-  redirect('/setup')
-}
+export const exigirSesion = cache(async (): Promise<SesionActiva> => {
+  const sesion = await sesionActual()
+  if (!sesion) redirect('/entrar')
+  if (sesion.contrasenaProvisoria) redirect('/entrar/nueva-contrasena')
+  return sesion
+})
 
+/** El estudio de la sesión: una cuenta es de un solo estudio. */
 export const getCurrentEstudioId = cache(async (): Promise<string> => {
-  const estudio = await db.estudio.findFirst({
-    where: { activo: true },
-    select: { id: true },
-    orderBy: { createdAt: 'asc' },
-  })
-  if (!estudio) return sinEstudioVisible()
-  return estudio.id
+  return (await exigirSesion()).estudioId
 })
 
 export const getCurrentEstudio = cache(async () => {
-  const estudio = await db.estudio.findFirst({
-    where: { activo: true },
-    orderBy: { createdAt: 'asc' },
-  })
-  if (!estudio) return sinEstudioVisible()
-  return estudio
+  const id = await getCurrentEstudioId()
+  return db.estudio.findUniqueOrThrow({ where: { id } })
 })

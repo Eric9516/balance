@@ -93,7 +93,7 @@ describe('Auditoría de BalanceRT', () => {
 
   // Se saltea con `pnpm auditoria:rapida`.
   it('Pantallas — cada paso de cada ejercicio y el documento imprimible', async () => {
-    await recorrerPantallas(ctx, ESCENARIOS)
+    await recorrerPantallas(ctx, ESCENARIOS, estudioId)
   })
 
   it('Resultado — sin errores', () => {

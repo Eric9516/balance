@@ -3,6 +3,67 @@ import { aviso, defs, lista, p, pasos } from './bloques'
 
 export const INICIO: ArticuloAyuda[] = [
   {
+    id: 'entrar',
+    titulo: 'Entrar a BalanceRT',
+    categoria: 'inicio',
+    resumen:
+      'Cada persona entra con su correo y su contraseña, y ve solo los datos de su estudio. Cómo funciona la sesión y qué hacer si te olvidaste la contraseña.',
+    claves: [
+      'entrar',
+      'login',
+      'iniciar sesion',
+      'contraseña',
+      'clave',
+      'recordar este equipo',
+      'salir',
+      'cerrar sesion',
+    ],
+    bloques: [
+      p(
+        'Cada cuenta es de un solo estudio: al entrar, la app ya sabe de qué estudio sos y te muestra solo lo suyo. Si trabajás para dos estudios, necesitás una cuenta en cada uno, con correos distintos.',
+      ),
+      defs(
+        [
+          'Sesión',
+          'Queda abierta mientras uses la app y se cierra sola a las 8 horas sin uso o al cerrar el navegador.',
+        ],
+        [
+          'Recordar este equipo',
+          'La sesión dura 30 días en esa computadora o celular. No lo marques en un equipo compartido.',
+        ],
+        [
+          'Salir',
+          'El botón está abajo de todo en la barra lateral, junto a tu nombre y tu rol. Cierra la sesión en ese equipo.',
+        ],
+      ),
+      lista(
+        '¿Te olvidaste la contraseña? Pedile una provisoria al dueño de tu estudio. Si sos el dueño, pedísela al administrador de BalanceRT.',
+        'Después de 5 intentos fallidos seguidos con el mismo correo, la entrada se frena 15 minutos.',
+        'Si la app dice que tu cuenta está desactivada, pedile al dueño de tu estudio que la active.',
+      ),
+    ],
+    relacionados: ['nueva-contrasena', 'auth-002', 'auth-003', 'auth-004'],
+  },
+  {
+    id: 'nueva-contrasena',
+    titulo: 'Elegir tu contraseña',
+    categoria: 'inicio',
+    resumen:
+      'Si entraste con una contraseña provisoria, la app te pide que elijas la tuya antes de seguir.',
+    claves: ['contraseña provisoria', 'cambiar contraseña', 'nueva contraseña', 'clave'],
+    bloques: [
+      p(
+        'Una contraseña provisoria es la que te dio otra persona (el dueño del estudio o el administrador de BalanceRT). Para que solo vos la sepas, la app te pide una nueva la primera vez que entrás.',
+      ),
+      lista(
+        'Tiene que tener al menos 12 caracteres. No hace falta que tenga mayúsculas, números ni signos: lo que la hace segura es el largo.',
+        'Lo más seguro es una frase que puedas recordar, por ejemplo "el mate de las cinco".',
+        'Al guardarla se cierran las sesiones abiertas en otros equipos, y volvés a entrar con la nueva.',
+      ),
+    ],
+    relacionados: ['entrar'],
+  },
+  {
     id: 'como-funciona',
     titulo: 'Cómo se hace un balance en BalanceRT',
     categoria: 'inicio',

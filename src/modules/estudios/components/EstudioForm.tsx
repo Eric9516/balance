@@ -12,18 +12,18 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { toastError, toastSuccess } from '@/modules/errores/components/Toast'
 import { CreateEstudioSchema, type CreateEstudioInput } from '../schemas/estudio.schemas'
-import { crearEstudio, actualizarEstudio } from '../actions/estudio.actions'
+import { actualizarEstudio } from '../actions/estudio.actions'
 import type { EstudioDTO } from '../domain/types'
 
+// Solo cambia los datos del estudio de la sesión: los estudios nuevos los da de alta la plataforma.
 interface EstudioFormProps {
-  defaultValues?: EstudioDTO
+  defaultValues: EstudioDTO
   redirectTo?: string
 }
 
 export function EstudioForm({ defaultValues, redirectTo = '/sociedades' }: EstudioFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const isEdit = Boolean(defaultValues?.id)
 
   const {
     register,
@@ -32,19 +32,17 @@ export function EstudioForm({ defaultValues, redirectTo = '/sociedades' }: Estud
     formState: { errors },
   } = useForm<CreateEstudioInput>({
     resolver: zodResolver(CreateEstudioSchema),
-    defaultValues: defaultValues
-      ? {
-          tipoPersona: defaultValues.tipoPersona,
-          nombre: defaultValues.nombre,
-          cuit: defaultValues.cuit,
-          razonSocial: defaultValues.razonSocial,
-          domicilio: defaultValues.domicilio ?? '',
-          localidad: defaultValues.localidad ?? '',
-          provincia: defaultValues.provincia ?? '',
-          telefono: defaultValues.telefono ?? '',
-          email: defaultValues.email ?? '',
-        }
-      : { tipoPersona: TipoPersona.JURIDICA },
+    defaultValues: {
+      tipoPersona: defaultValues.tipoPersona,
+      nombre: defaultValues.nombre,
+      cuit: defaultValues.cuit,
+      razonSocial: defaultValues.razonSocial,
+      domicilio: defaultValues.domicilio ?? '',
+      localidad: defaultValues.localidad ?? '',
+      provincia: defaultValues.provincia ?? '',
+      telefono: defaultValues.telefono ?? '',
+      email: defaultValues.email ?? '',
+    },
   })
 
   const tipoPersona = useWatch({ control, name: 'tipoPersona' })
@@ -52,17 +50,14 @@ export function EstudioForm({ defaultValues, redirectTo = '/sociedades' }: Estud
 
   function onSubmit(values: CreateEstudioInput) {
     startTransition(async () => {
-      const result =
-        isEdit && defaultValues?.id
-          ? await actualizarEstudio(defaultValues.id, values)
-          : await crearEstudio(values)
+      const result = await actualizarEstudio(defaultValues.id, values)
 
       if (!result.ok) {
         toastError(result.error)
         return
       }
 
-      toastSuccess(isEdit ? 'Configuración actualizada' : 'Estudio creado correctamente')
+      toastSuccess('Configuración actualizada')
       router.push(redirectTo)
     })
   }
@@ -70,11 +65,9 @@ export function EstudioForm({ defaultValues, redirectTo = '/sociedades' }: Estud
   return (
     <Card className="w-full max-w-2xl">
       <CardHeader className="pb-3">
-        <CardTitle>{isEdit ? 'Configuración del estudio' : 'Datos del estudio contable'}</CardTitle>
+        <CardTitle>Configuración del estudio</CardTitle>
         <p className="mt-1 text-sm text-slate-500">
-          {isEdit
-            ? 'Actualizá los datos de tu estudio o firma profesional.'
-            : 'Estos datos identifican al estudio o profesional que usa BalanceRT. Se usarán como configuración general del espacio de trabajo.'}
+          Actualizá los datos de tu estudio o firma profesional.
         </p>
       </CardHeader>
 
@@ -237,13 +230,11 @@ export function EstudioForm({ defaultValues, redirectTo = '/sociedades' }: Estud
         </CardContent>
 
         <CardFooter className="flex justify-end gap-3">
-          {isEdit && (
-            <Button type="button" variant="secondary" onClick={() => router.back()}>
-              Cancelar
-            </Button>
-          )}
+          <Button type="button" variant="secondary" onClick={() => router.back()}>
+            Cancelar
+          </Button>
           <Button type="submit" disabled={isPending}>
-            {isPending ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Guardar y continuar'}
+            {isPending ? 'Guardando...' : 'Guardar cambios'}
           </Button>
         </CardFooter>
       </form>

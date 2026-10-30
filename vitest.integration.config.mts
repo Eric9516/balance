@@ -17,7 +17,7 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.itest.ts'],
     globalSetup: ['./src/test/integration.setup.ts'],
-    setupFiles: ['./src/test/plataforma-por-defecto.ts'],
+    setupFiles: ['./src/test/contexto-pruebas.ts'],
     env: { DATABASE_URL: TEST_DATABASE_URL, NODE_ENV: 'test' },
     fileParallelism: false,
     testTimeout: 30_000,

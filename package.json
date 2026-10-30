@@ -25,6 +25,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
+    "usuarios:crear": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/crear-usuario.mjs",
     "postinstall": "prisma generate",
     "prepare": "husky"
   },

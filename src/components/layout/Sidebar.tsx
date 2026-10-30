@@ -2,8 +2,18 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Building2, Users, Settings, Scale, BookOpen, Tags } from 'lucide-react'
+import { Building2, Users, Settings, Scale, BookOpen, Tags, LogOut } from 'lucide-react'
+import type { RolUsuario } from '@prisma/client'
 import { cn } from '@/lib/utils'
+import { salirAction } from '@/modules/acceso/actions/acceso.actions'
+
+export type UsuarioDeLaSesion = { nombre: string; rol: RolUsuario }
+
+const NOMBRE_DEL_ROL: Record<RolUsuario, string> = {
+  DUENO: 'Dueño',
+  CONTADOR: 'Contador',
+  ASISTENTE: 'Asistente',
+}
 
 const NAV_TRABAJO = [{ href: '/sociedades', label: 'Sociedades', icon: Building2 }]
 
@@ -40,7 +50,7 @@ function NavItem({
   )
 }
 
-export function Sidebar() {
+export function Sidebar({ usuario }: { usuario: UsuarioDeLaSesion }) {
   const pathname = usePathname()
 
   const isActive = (href: string) => {
@@ -88,6 +98,26 @@ export function Sidebar() {
       {/* Footer */}
       <div className="border-t border-slate-700/60 px-3 py-4">
         <NavItem href="/ayuda" label="Ayuda" icon={BookOpen} active={isActive('/ayuda')} />
+      </div>
+
+      {/* Quién está usando la app */}
+      <div className="flex items-center gap-2 border-t border-slate-700/60 px-3 py-3">
+        <div className="min-w-0 flex-1 px-2">
+          <p className="truncate text-sm font-medium text-white" title={usuario.nombre}>
+            {usuario.nombre}
+          </p>
+          <p className="text-xs text-slate-400">{NOMBRE_DEL_ROL[usuario.rol]}</p>
+        </div>
+        <form action={salirAction}>
+          <button
+            type="submit"
+            title="Salir"
+            aria-label="Salir"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-slate-300 hover:bg-slate-700/60 hover:text-white focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </form>
       </div>
     </aside>
   )

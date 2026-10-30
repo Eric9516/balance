@@ -8,18 +8,24 @@ import { esUuid } from './utils/uuid'
  *   migración 20261030150000_separacion_por_estudio).
  * - La plataforma: sin reglas. Solo para lo que es de toda la plataforma a propósito (saber si ya
  *   hay estudios, preparar las pruebas). Nunca para atender a un usuario.
- * - Nada declarado: el rol de la app sin estudio. Si la base tiene un solo estudio, la base usa ese
- *   (mientras no haya login); si tiene más, no se ve nada.
+ * - Sin estudio: el rol de la app sin estudio. No se ve nada (por ejemplo, alguien sin sesión).
  *
- * pool-pg.ts lo lee al entregar cada conexión y se lo dice a la base.
+ * Si nadie lo declaró, sale del pedido en curso: la app registra cómo leerlo de la sesión de la
+ * cookie (src/lib/sesion.ts). Fuera de un pedido (pruebas, comandos), el de las pruebas o ninguno.
+ *
+ * pool-pg.ts lo pide al entregar cada conexión y se lo dice a la base.
  */
-export type ContextoBase = { estudioId: string } | { plataforma: true }
+export type ContextoBase = { estudioId: string } | { plataforma: true } | { sinEstudio: true }
+
+/** Cómo sale el contexto del pedido en curso; null si no hay un pedido (pruebas, comandos). */
+type ContextoDelPedido = () => Promise<ContextoBase | null>
 
 // En globalThis: Next carga este módulo más de una vez (servidor, acciones) y todas las copias
 // tienen que compartir el mismo contexto que lee el pool.
 const global_ = globalThis as typeof globalThis & {
   __contextoBase?: AsyncLocalStorage<ContextoBase>
   __contextoBasePorDefecto?: ContextoBase
+  __contextoDelPedido?: ContextoDelPedido
 }
 const almacen = (global_.__contextoBase ??= new AsyncLocalStorage<ContextoBase>())
 
@@ -43,8 +49,26 @@ export function comoPlataforma<T>(fn: () => Promise<T>): Promise<T> {
   return dentroDe({ plataforma: true }, fn)
 }
 
-export function contextoActual(): ContextoBase | null {
-  return almacen.getStore() ?? global_.__contextoBasePorDefecto ?? null
+/** Ejecuta `fn` sin ningún estudio: la base no muestra nada (por ejemplo, para leer una sesión). */
+export function sinEstudio<T>(fn: () => Promise<T>): Promise<T> {
+  return dentroDe({ sinEstudio: true }, fn)
+}
+
+/** La app registra cómo sacar el contexto del pedido en curso (de su sesión). */
+export function registrarContextoDelPedido(fn: ContextoDelPedido): void {
+  global_.__contextoDelPedido = fn
+}
+
+/**
+ * El contexto para la base: el declarado; si no, el del pedido en curso; si no, el de las pruebas.
+ * Se llama sin esperar en el contexto de quien pide la conexión (el declarado y el pedido de Next se
+ * leen ahí); sin nada, ninguno: la base no muestra nada.
+ */
+export async function contextoParaLaBase(): Promise<ContextoBase | null> {
+  const declarado = almacen.getStore()
+  if (declarado) return declarado
+  const delPedido = global_.__contextoDelPedido ? await global_.__contextoDelPedido() : null
+  return delPedido ?? global_.__contextoBasePorDefecto ?? null
 }
 
 /**
