@@ -119,3 +119,15 @@ La velocidad local no cambió de forma medible: a esta escala todo entra en memo
 - Operaciones de escritura además de la importación: clasificar cuentas, guardar anexos y confirmar estados.
 - Borrar un rubro y una importación con datos grandes.
 - Correr la escala rápida en la CI en cada cambio.
+
+## El estudio en cada tabla (2026-10-29, escala media)
+
+Ver [0011](decisiones/0011-una-sola-base-para-todos-los-estudios.md). Las 13 tablas que cuelgan de un ejercicio llevan `estudio_id`, y un disparador por tabla completa el estudio desde el dato al que apunta y rechaza los vínculos a otro estudio. Misma siembra (1,6 millones de cuentas):
+
+| Medida | 19/10 | 29/10 | Cambio |
+|---|---|---|---|
+| Importar 800 cuentas (reemplazo), mediana local | 155,6 ms | 153,1 ms | sin diferencia medible |
+| `cuentas_contables` con índices | 467 MB | 490 MB | +5% (16 bytes por cuenta) |
+| Base completa | 504 MB | 530 MB | +5% |
+
+Los disparadores corren adentro de la base: no suman viajes. Hay más viajes que el 19/10 en el documento imprimible (de 9 a 13) y en el paso Estados (de 7 a 8) por lo que se agregó desde entonces (Nota 1, flujo de efectivo), no por este cambio: conviene agruparlos, aunque con la app y la base en el mismo servidor cada viaje deja de costar decenas de milisegundos.

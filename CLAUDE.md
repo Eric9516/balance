@@ -85,6 +85,7 @@ Toda modificación de base de datos debe cuidar:
 - **Nombres:** tablas y columnas en snake_case. Cada campo camelCase de `schema.prisma` lleva `@map("snake_case")`; el SQL escrito a mano usa los nombres de columna (ver `docs/decisiones/0007`).
 - **Identificadores:** UUIDv7 generado por la base: `id String @id @default(dbgenerated("uuidv7()")) @db.Uuid`, y toda referencia `@db.Uuid`. Las búsquedas por identificador que reciben datos de afuera (dirección de una página, formulario) validan con `esUuid` (`src/lib/utils/uuid.ts`) y responden "no encontrado" (ver `docs/decisiones/0008`).
 - **Conexiones:** toda conexión a la base se crea con `crearPoolPg` (`src/lib/pool-pg.ts`), que fija la sesión en UTC. El adaptador de Prisma lo necesita para leer y escribir bien los instantes.
+- **El estudio en cada tabla:** toda tabla nueva con datos de un estudio lleva `estudioId String @default(dbgenerated("estudio_de_la_sesion()")) @map("estudio_id") @db.Uuid` y su migración termina con `SELECT public._estudio_en_la_tabla('public.<tabla>');`. Ese disparador completa el estudio desde el dato al que apunta, rechaza un vínculo a otro estudio y que una fila cambie de estudio (ver la migración `20261029150000_estudio_en_cada_tabla`). `estudio-en-cada-tabla.itest.ts` falla si falta, y también si la base no coincide con `schema.prisma`.
 
 ### Seguridad
 
