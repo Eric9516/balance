@@ -275,6 +275,12 @@ describe('Siempre un dueño', () => {
 
 describe('Código del celular', () => {
   const AHORA = 1_900_000_000_000
+  const obligatorio = (si: boolean) =>
+    comoPlataforma(
+      () => db.$executeRaw`UPDATE acceso.ajustes SET codigo_obligatorio_duenos = ${si}`,
+    )
+  beforeAll(() => obligatorio(true))
+  afterAll(() => obligatorio(false))
   const codigoEn = (secreto: Buffer, ms: number) => codigoDelPaso(secreto, pasoDe(ms))
   let secreto: Buffer
 
@@ -348,6 +354,19 @@ describe('Código del celular', () => {
     await borrarIntentos()
   })
 
+  it('con el interruptor apagado, el dueño que no lo configuró entra sin código', async () => {
+    await obligatorio(false)
+    const r = await entrar(pedido('dueno.b@acceso.test'))
+    if (!r.ok) throw new Error(r.error.mensaje)
+    expect(r).toMatchObject({ faltaCodigo: false, codigoConfigurado: false })
+    // El que ya lo tiene configurado lo sigue usando
+    const a = await entrar(pedido('dueno.a@acceso.test'))
+    if (!a.ok) throw new Error(a.error.mensaje)
+    expect(a).toMatchObject({ faltaCodigo: true, codigoConfigurado: true })
+    await obligatorio(true)
+    await borrarIntentos()
+  })
+
   it('contadores y asistentes entran sin código (salvo que lo activen)', async () => {
     const r = await entrar(
       pedido('contador.a@acceso.test', { contrasena: 'la nueva clave del contador' }),
@@ -364,7 +383,7 @@ describe('El esquema acceso, cerrado para la app', () => {
     await c.connect()
     try {
       await c.query("SELECT set_config('role', 'balancert_app', false)")
-      for (const t of ['contrasenas', 'sesiones', 'intentos', 'codigos']) {
+      for (const t of ['contrasenas', 'sesiones', 'intentos', 'codigos', 'ajustes']) {
         await expect(c.query(`SELECT 1 FROM acceso.${t} LIMIT 1`), t).rejects.toThrow(
           /permission denied/,
         )

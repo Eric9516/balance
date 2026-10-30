@@ -15,7 +15,7 @@ Decisiones del dueño del producto (2026-10-30):
 - **Una cuenta por estudio:** el correo es único en toda la plataforma. Al entrar, la app ya sabe de qué estudio es la persona.
 - **Tres roles:** dueño (todo, incluso la gente y la configuración del estudio), contador (arma, confirma y cierra los balances) y asistente (carga datos y avisa que terminó, pero no confirma ni cierra). El aviso del asistente aparece solo en la app: no hay correos.
 - **Sesión:** se cierra a las 8 horas sin uso. Con "recordar este equipo", dura 30 días en esa computadora.
-- **Código del celular** (TOTP, segundo paso): obligatorio para los dueños. Contadores y asistentes lo pueden activar, y el dueño puede exigírselo a todo su estudio.
+- **Código del celular** (TOTP, segundo paso): obligatorio para los dueños. Contadores y asistentes lo pueden activar, y el dueño puede exigírselo a todo su estudio. **Por ahora apagado** (decisión del dueño del producto, 2026-10-30, hasta que la app se use con más estudios): es un interruptor de la plataforma (`acceso.ajustes.codigo_obligatorio_duenos`, migración `20261030230000`); quien ya lo configuró lo sigue usando.
 - **Contraseña olvidada:** como no hay correo, el dueño le genera una provisoria a su gente, que la cambia al entrar. Al dueño se la genera la plataforma.
 
 Cómo (patrón de Gestión empresarial, migración `20261030180000_login_propio`):

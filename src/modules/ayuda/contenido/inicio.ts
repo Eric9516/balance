@@ -68,7 +68,7 @@ export const INICIO: ArticuloAyuda[] = [
     titulo: 'El código del celular',
     categoria: 'inicio',
     resumen:
-      'Un segundo paso al entrar: además de la contraseña, el número de 6 cifras que muestra la app de tu celular. Es obligatorio para los dueños.',
+      'Un segundo paso al entrar: además de la contraseña, el número de 6 cifras que muestra la app de tu celular. Cuando la plataforma lo activa, es obligatorio para los dueños.',
     claves: [
       'codigo',
       'celular',
@@ -81,7 +81,7 @@ export const INICIO: ArticuloAyuda[] = [
     ],
     bloques: [
       p(
-        'Aunque alguien robe o adivine una contraseña, no puede entrar sin el celular de su dueño. El dueño puede hacer todo en su estudio, por eso lo usa siempre.',
+        'Aunque alguien robe o adivine una contraseña, no puede entrar sin el celular de su dueño. El dueño puede hacer todo en su estudio, por eso, cuando la plataforma lo activa, lo usa siempre. Por ahora está apagado.',
       ),
       pasos(
         'Instalá Google Authenticator o Microsoft Authenticator (gratis) en tu celular.',

@@ -466,6 +466,10 @@ async function entrarComoDueno(
   )
 
   await comoPlataforma(() => db.usuario.deleteMany({ where: { email } }))
+  // La auditoría prueba el recorrido completo, con el código del celular obligatorio para dueños
+  await comoPlataforma(
+    () => db.$executeRaw`UPDATE acceso.ajustes SET codigo_obligatorio_duenos = true`,
+  )
   const alta = await darDeAltaUsuario({
     estudioId,
     email,
