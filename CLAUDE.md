@@ -97,6 +97,7 @@ Toda modificación de base de datos debe cuidar:
 - **Un ejercicio CERRADO no se modifica.** Reabrirlo solo con una función que exige dueño y motivo, y que queda auditada.
 - **Sin borrado físico de datos contables:** se archivan.
 - **Secretos** (claves, tokens, contraseñas, `DATABASE_URL`) nunca en el repositorio ni en el chat.
+- **Contraseñas y sesiones** solo en el esquema `acceso`, que la app no lee: se usan sus funciones (`@/modules/acceso`). Contraseñas con Argon2id (`infra/contrasenas.ts`), nunca otro método; de las sesiones, solo la huella sha-256 del número de la cookie.
 
 ### Velocidad y escala
 
@@ -157,7 +158,7 @@ Actualizar esta lista al terminar cada fase. Cada fase se hace en avances chicos
 - **Hecho, 2026-10-19:** Fase 0, paso 5: importes con aritmética exacta en todo el código, sin redondeos, y columnas de importes e índices sin escala en la base (antes redondeaban a 2 y 6 decimales al guardar).
 - **Fase 0, decisiones irreversibles** mientras hay pocos datos: claves UUIDv7, fechas contables sin hora, un tipo de importe con margen amplio, columnas en snake_case, catálogo RT 54 versionado y registro de decisiones de arquitectura.
 - **Fase 1a, varios estudios en una base** (antes del login, decidido 2026-10-29): `estudio_id` en cada tabla, regla restrictiva forzada, claves compuestas, rol de la app sin bypass y prueba de espionaje (ver `docs/decisiones/0011`). Etapa 1 hecha (2026-10-30, en producción): el estudio en cada tabla con su control de vínculos y el catálogo propio de cada estudio (`docs/decisiones/0012`). Etapa 2 hecha en la copia de trabajo (2026-10-30, sin aplicar en producción): rol de la app sin bypass, regla restrictiva forzada en cada tabla, estudio declarado por conexión y prueba de espionaje. Falta: que el estudio salga del login.
-- **Fase 1, login:** login propio con el patrón de Gestión empresarial (o Better Auth, a evaluar), roles, cuenta nueva bloqueada, nunca sin dueño, doble factor para dueños y administradores, sesiones cortas y puerta única en cada acción del servidor.
+- **Fase 1, login** (`docs/decisiones/0013`): login propio con el patrón de Gestión empresarial, tres roles (dueño, contador y asistente), nunca sin dueño, código del celular para dueños, sesiones de 8 horas o 30 días y puerta única en cada acción del servidor. Paso 1 hecho en la copia de trabajo (2026-10-30): usuarios, esquema `acceso` cerrado para la app (contraseñas Argon2id, sesiones e intentos) y su servicio. Faltan la pantalla de entrada, el código del celular, los permisos de cada rol, el aviso "listo para revisar" y la puerta única.
 - **Fase 2, la base como última barrera:** roles de base separados, reglas por fila, CHECK, ejercicio cerrado inmutable, control de versión en lo editable permisos por defecto de funciones cerrados y clave foránea del ejercicio a su sociedad que incluya el estudio (hoy `crearEjercicio` usa el primer estudio activo y puede dejar un ejercicio con un estudio distinto al de su sociedad).
 - **Fase 3, auditoría legal:** historial solo de agregado, particionado por mes, cadena de hashes, retención de 10 años y versión emitida con su hash.
 - **Fase 4, rendimiento y escala:** metas de volumen escritas y medidas con datos sintéticos.

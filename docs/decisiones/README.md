@@ -24,3 +24,4 @@ Cada decisión de arquitectura que sea cara de cambiar después queda escrita ac
 | [0010](0010-catalogo-rt54-versionado.md) | Catálogo RT 54 versionado | Propuesta |
 | [0011](0011-una-sola-base-para-todos-los-estudios.md) | Una sola app y una sola base para todos los estudios, con la separación impuesta por la base | Aceptada |
 | [0012](0012-catalogo-propio-de-cada-estudio.md) | Cada estudio con su propio catálogo de clasificaciones, copiado del oficial al crearse | Aceptada |
+| [0013](0013-login-propio.md) | Login propio sin Supabase: una cuenta por estudio, tres roles, sesiones de 8 horas o 30 días y código del celular para dueños | Aceptada |

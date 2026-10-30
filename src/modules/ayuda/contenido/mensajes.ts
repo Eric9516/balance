@@ -381,6 +381,35 @@ const MENSAJES: Mensaje[] = [
     significa: 'Lo que intentaste no es de tu estudio o no tenés permiso para hacerlo.',
     solucion: ['Verificá que estés en el estudio correcto.', 'Recargá la página.'],
   },
+  {
+    codigo: 'AUTH-002',
+    titulo: 'Correo o contraseña incorrectos',
+    significa:
+      'No hay una cuenta con ese correo o la contraseña no coincide. Por seguridad, la app no dice cuál de las dos cosas falló.',
+    solucion: [
+      'Revisá que el correo esté bien escrito y que no esté activado el bloqueo de mayúsculas.',
+      'Si te olvidaste la contraseña, pedile al dueño de tu estudio una provisoria.',
+    ],
+    claves: ['entrar', 'login', 'contraseña', 'clave'],
+  },
+  {
+    codigo: 'AUTH-003',
+    titulo: 'Demasiados intentos',
+    significa:
+      'Hubo 5 intentos fallidos seguidos con ese correo (o 30 desde la misma conexión) en los últimos 15 minutos. La entrada se frena para que nadie pueda probar contraseñas.',
+    solucion: [
+      'Esperá 15 minutos y volvé a intentar.',
+      'Si te olvidaste la contraseña, pedile al dueño de tu estudio una provisoria.',
+    ],
+    claves: ['entrar', 'login', 'bloqueado', 'intentos'],
+  },
+  {
+    codigo: 'AUTH-004',
+    titulo: 'Cuenta desactivada',
+    significa: 'La contraseña es correcta, pero tu cuenta o tu estudio están desactivados.',
+    solucion: ['Pedile al dueño de tu estudio que active tu cuenta.'],
+    claves: ['entrar', 'login', 'desactivada', 'bloqueada'],
+  },
 ]
 
 export const MENSAJES_AYUDA: ArticuloAyuda[] = MENSAJES.map((m) => ({

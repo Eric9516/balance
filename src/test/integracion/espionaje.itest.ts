@@ -59,8 +59,13 @@ async function cargarEstudio(marca: string, anio: number, cuit: string): Promise
       }),
       db.rubroGrupo.create({ data: { estudioId: e, nombre: `Sección ${marca}`, orden: 1 } }),
       db.estudioConfiguracion.create({ data: { estudioId: e } }),
-      db.usuarioEstudio.create({
-        data: { estudioId: e, nombre: marca, email: `${marca.toLowerCase()}@espionaje.test` },
+      db.usuario.create({
+        data: {
+          estudioId: e,
+          nombre: marca,
+          email: `${marca.toLowerCase()}@espionaje.test`,
+          rol: 'DUENO',
+        },
       }),
       db.plantillaNota.create({
         data: { estudioId: e, titulo: `Plantilla ${marca}`, tipo: 'INFORMATIVA', orden: 1 },

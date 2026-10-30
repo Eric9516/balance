@@ -129,10 +129,11 @@ enum TipoValidacion {
   ANEXO_INCONSISTENTE     // totales de anexo no coinciden con estado
 }
 
-enum RolEstudio {
-  ADMIN
-  CONTADOR
-  JUNIOR
+// Rol de una persona dentro de su estudio (decisión del dueño del producto, 2026-10-30)
+enum RolUsuario {
+  DUENO // todo, incluso la gente y la configuración del estudio
+  CONTADOR // arma, confirma y cierra los balances
+  ASISTENTE // carga datos y avisa que terminó; no confirma ni cierra
 }
 
 enum TipoNota {
@@ -322,7 +323,7 @@ model Estudio {
   configuracion   EstudioConfiguracion?
   sociedades      Sociedad[]
   auditores       Auditor[]
-  usuarios        UsuarioEstudio[]
+  usuarios        Usuario[]
   plantillasNotas PlantillaNota[]
   mapeosExcel     MapeoExcel[]
   rubrosActivos   RubroActivoEstudio[]
@@ -354,20 +355,24 @@ model EstudioConfiguracion {
   @@map("estudio_configuracion")
 }
 
-model UsuarioEstudio {
-  id        String     @id @default(dbgenerated("uuidv7()")) @db.Uuid
-  estudioId String @map("estudio_id") @db.Uuid
-  nombre    String
-  email     String     @unique
-  rol       RolEstudio @default(JUNIOR)
-  activo    Boolean    @default(true)
-  createdAt DateTime   @default(now()) @db.Timestamptz(3) @map("created_at")
-  updatedAt DateTime   @updatedAt @db.Timestamptz(3) @map("updated_at")
+// Quién entra a la app. Una cuenta por estudio: el correo es único en toda la plataforma y se
+// guarda en minúsculas. La contraseña y las sesiones viven aparte, en el esquema acceso, cerrado
+// para la app (migración 20261030180000_login_propio). Siempre queda un dueño activo por estudio.
+model Usuario {
+  id            String     @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  estudioId     String     @default(dbgenerated("estudio_de_la_sesion()")) @map("estudio_id") @db.Uuid
+  email         String     @unique
+  nombre        String
+  rol           RolUsuario
+  activo        Boolean    @default(true)
+  ultimoIngreso DateTime?  @db.Timestamptz(3) @map("ultimo_ingreso")
+  createdAt     DateTime   @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt     DateTime   @updatedAt @db.Timestamptz(3) @map("updated_at")
 
   estudio Estudio @relation(fields: [estudioId], references: [id], onDelete: Cascade)
 
   @@index([estudioId])
-  @@map("usuarios_estudio")
+  @@map("usuarios")
 }
 
 // ─── Sociedad / Auditor ───────────────────────────────────────────────────────

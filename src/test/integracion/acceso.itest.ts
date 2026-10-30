@@ -1,0 +1,291 @@
+/**
+ * Login propio (migración 20261030180000_login_propio): entrar, sesiones, freno a quien prueba
+ * contraseñas, cuentas desactivadas, cambio de contraseña, "siempre un dueño" y el esquema acceso
+ * cerrado para la app.
+ */
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
+import { Client } from 'pg'
+
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn(), refresh: vi.fn() }))
+
+import { db } from '@/lib/db'
+import { comoPlataforma, conEstudio } from '@/lib/contexto-base'
+import {
+  cambiarContrasena,
+  darDeAltaUsuario,
+  entrar,
+  salir,
+  sesionDelToken,
+  type PedidoDeEntrada,
+} from '@/modules/acceso/services/entrada.service'
+import { fijarContrasena } from '@/modules/acceso/repository/acceso.repository'
+import { huellaDeContrasena } from '@/modules/acceso/infra/contrasenas'
+
+const CLAVE = 'una clave larga de prueba'
+const ctx = { a: '', b: '', duenoA: '', contadorA: '', duenoB: '' }
+
+const pedido = (email: string, extra: Partial<PedidoDeEntrada> = {}): PedidoDeEntrada => ({
+  email,
+  contrasena: CLAVE,
+  recordar: false,
+  ip: '10.0.0.1',
+  navegador: 'pruebas',
+  ...extra,
+})
+
+async function alta(estudioId: string, email: string, rol: 'DUENO' | 'CONTADOR') {
+  const r = await darDeAltaUsuario({
+    estudioId,
+    email,
+    nombre: email,
+    rol,
+    contrasenaProvisoria: CLAVE,
+  })
+  if (!r.ok) throw new Error(r.error.mensaje)
+  return r.usuarioId
+}
+
+const borrarIntentos = () =>
+  comoPlataforma(() => db.$executeRaw`DELETE FROM acceso.intentos WHERE email LIKE '%@acceso.test'`)
+
+const codigo = async (p: Promise<{ ok: boolean; error?: { codigo: string } }>) => {
+  const r = await p
+  return r.ok ? 'ok' : r.error?.codigo
+}
+
+beforeAll(async () => {
+  const [a, b] = await comoPlataforma(() =>
+    Promise.all([
+      db.estudio.create({
+        data: {
+          nombre: 'Acceso A',
+          cuit: '30951000001',
+          razonSocial: 'Acceso A',
+          createdAt: new Date('2095-01-01T00:00:00Z'),
+        },
+      }),
+      db.estudio.create({
+        data: {
+          nombre: 'Acceso B',
+          cuit: '30952000001',
+          razonSocial: 'Acceso B',
+          createdAt: new Date('2096-01-01T00:00:00Z'),
+        },
+      }),
+    ]),
+  )
+  ctx.a = a.id
+  ctx.b = b.id
+  ctx.duenoA = await alta(a.id, 'dueno.a@acceso.test', 'DUENO')
+  ctx.contadorA = await alta(a.id, 'contador.a@acceso.test', 'CONTADOR')
+  ctx.duenoB = await alta(b.id, 'dueno.b@acceso.test', 'DUENO')
+})
+
+afterAll(async () => {
+  await borrarIntentos()
+  await comoPlataforma(() => db.estudio.deleteMany({ where: { id: { in: [ctx.a, ctx.b] } } }))
+})
+
+describe('Entrar', () => {
+  it('con la contraseña correcta: la sesión dice quién es, de qué estudio y con qué rol', async () => {
+    const r = await entrar(pedido('  Dueno.A@Acceso.TEST '))
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    const horas = (r.vence.getTime() - Date.now()) / 3_600_000
+    expect(horas).toBeGreaterThan(7.9)
+    expect(horas).toBeLessThan(8.1)
+    expect(await sesionDelToken(r.token)).toEqual({
+      usuarioId: ctx.duenoA,
+      estudioId: ctx.a,
+      rol: 'DUENO',
+      contrasenaProvisoria: true,
+    })
+    const u = await comoPlataforma(() =>
+      db.usuario.findUniqueOrThrow({ where: { id: ctx.duenoA } }),
+    )
+    expect(u.ultimoIngreso).not.toBeNull()
+  })
+
+  it('"recordar este equipo" deja la sesión 30 días', async () => {
+    const r = await entrar(pedido('dueno.a@acceso.test', { recordar: true }))
+    if (!r.ok) throw new Error(r.error.mensaje)
+    const dias = (r.vence.getTime() - Date.now()) / 86_400_000
+    expect(dias).toBeGreaterThan(29.9)
+    expect(dias).toBeLessThan(30.1)
+  })
+
+  it('contraseña equivocada o correo inexistente: el mismo mensaje', async () => {
+    expect(
+      await codigo(entrar(pedido('dueno.a@acceso.test', { contrasena: 'otra clave larga' }))),
+    ).toBe('AUTH-002')
+    expect(await codigo(entrar(pedido('nadie@acceso.test')))).toBe('AUTH-002')
+    expect(await codigo(entrar(pedido('', { contrasena: '' })))).toBe('AUTH-002')
+    await borrarIntentos()
+  })
+
+  it('después de 5 fallos seguidos se frena, aunque la contraseña sea correcta', async () => {
+    const email = 'contador.a@acceso.test'
+    for (let i = 0; i < 5; i++)
+      expect(await codigo(entrar(pedido(email, { contrasena: `equivocada numero ${i}` })))).toBe(
+        'AUTH-002',
+      )
+    expect(await codigo(entrar(pedido(email)))).toBe('AUTH-003')
+    // Desde otra dirección también: el freno es por correo
+    expect(await codigo(entrar(pedido(email, { ip: '10.0.0.2' })))).toBe('AUTH-003')
+    await borrarIntentos()
+    expect(await codigo(entrar(pedido(email)))).toBe('ok')
+  })
+
+  it('30 fallos desde una misma dirección frenan cualquier correo', async () => {
+    const ip = '10.9.9.9'
+    for (let i = 0; i < 30; i++)
+      await entrar(pedido(`nadie${i}@acceso.test`, { ip, contrasena: 'equivocada larga' }))
+    expect(await codigo(entrar(pedido('dueno.a@acceso.test', { ip })))).toBe('AUTH-003')
+    expect(await codigo(entrar(pedido('dueno.a@acceso.test', { ip: '10.0.0.3' })))).toBe('ok')
+    await borrarIntentos()
+  })
+
+  it('cuenta o estudio desactivado: lo dice solo con la contraseña correcta, y corta la sesión', async () => {
+    const abierta = await entrar(pedido('contador.a@acceso.test'))
+    if (!abierta.ok) throw new Error(abierta.error.mensaje)
+    await conEstudio(ctx.a, () =>
+      db.usuario.update({ where: { id: ctx.contadorA }, data: { activo: false } }),
+    )
+    expect(await sesionDelToken(abierta.token)).toBeNull()
+    expect(await codigo(entrar(pedido('contador.a@acceso.test')))).toBe('AUTH-004')
+    expect(
+      await codigo(entrar(pedido('contador.a@acceso.test', { contrasena: 'equivocada larga' }))),
+    ).toBe('AUTH-002')
+    await conEstudio(ctx.a, () =>
+      db.usuario.update({ where: { id: ctx.contadorA }, data: { activo: true } }),
+    )
+
+    await comoPlataforma(() => db.estudio.update({ where: { id: ctx.b }, data: { activo: false } }))
+    expect(await codigo(entrar(pedido('dueno.b@acceso.test')))).toBe('AUTH-004')
+    await comoPlataforma(() => db.estudio.update({ where: { id: ctx.b }, data: { activo: true } }))
+    await borrarIntentos()
+  })
+})
+
+describe('Sesiones', () => {
+  it('salir la cierra; un número inventado o mal formado no es una sesión', async () => {
+    const r = await entrar(pedido('dueno.b@acceso.test'))
+    if (!r.ok) throw new Error(r.error.mensaje)
+    expect((await sesionDelToken(r.token))?.estudioId).toBe(ctx.b)
+    await salir(r.token)
+    expect(await sesionDelToken(r.token)).toBeNull()
+    expect(await sesionDelToken('A'.repeat(43))).toBeNull()
+    expect(await sesionDelToken("'; DROP TABLE usuarios; --")).toBeNull()
+    expect(await sesionDelToken(undefined)).toBeNull()
+  })
+
+  it('vencida, no sirve', async () => {
+    const r = await entrar(pedido('dueno.b@acceso.test'))
+    if (!r.ok) throw new Error(r.error.mensaje)
+    await comoPlataforma(
+      () =>
+        db.$executeRaw`UPDATE acceso.sesiones SET vence = now() - interval '1 second'
+                       WHERE usuario_id = ${ctx.duenoB}::uuid`,
+    )
+    expect(await sesionDelToken(r.token)).toBeNull()
+  })
+
+  it('la base guarda la huella del número, no el número', async () => {
+    const r = await entrar(pedido('dueno.b@acceso.test'))
+    if (!r.ok) throw new Error(r.error.mensaje)
+    const [fila] = await comoPlataforma(
+      () =>
+        db.$queryRaw<{ guardado: boolean }[]>`
+          SELECT EXISTS (SELECT 1 FROM acceso.sesiones
+                         WHERE huella = sha256(convert_to(${r.token}, 'UTF8'))) AS guardado`,
+    )
+    expect(fila?.guardado).toBe(true)
+  })
+})
+
+describe('Contraseñas', () => {
+  it('cambiarla la deja definitiva, cierra las sesiones abiertas y la vieja deja de servir', async () => {
+    const r = await entrar(pedido('contador.a@acceso.test'))
+    if (!r.ok) throw new Error(r.error.mensaje)
+    const sesion = (await sesionDelToken(r.token))!
+    expect(sesion.contrasenaProvisoria).toBe(true)
+    expect(await cambiarContrasena(sesion, 'corta')).toMatchObject({
+      ok: false,
+      error: { codigo: 'FORM-001' },
+    })
+    expect(await cambiarContrasena(sesion, 'la nueva clave del contador')).toEqual({ ok: true })
+    expect(await sesionDelToken(r.token)).toBeNull()
+    expect(await codigo(entrar(pedido('contador.a@acceso.test')))).toBe('AUTH-002')
+    const nueva = await entrar(
+      pedido('contador.a@acceso.test', { contrasena: 'la nueva clave del contador' }),
+    )
+    if (!nueva.ok) throw new Error(nueva.error.mensaje)
+    expect((await sesionDelToken(nueva.token))?.contrasenaProvisoria).toBe(false)
+    await borrarIntentos()
+  })
+
+  it('desde un estudio no se toca la contraseña de alguien de otro', async () => {
+    const huella = await huellaDeContrasena('una clave de intruso larga')
+    await expect(
+      conEstudio(ctx.a, () => fijarContrasena(ctx.duenoB, huella, false)),
+    ).rejects.toThrow()
+    expect(await codigo(entrar(pedido('dueno.b@acceso.test')))).toBe('ok')
+  })
+
+  it('el correo es uno solo en toda la plataforma', async () => {
+    await expect(alta(ctx.b, 'dueno.a@acceso.test', 'CONTADOR')).rejects.toThrow()
+  })
+})
+
+describe('Siempre un dueño', () => {
+  it('no se puede desactivar ni cambiar de rol al único dueño; con otro dueño, sí', async () => {
+    const actualizar = (id: string, data: { activo?: boolean; rol?: 'DUENO' | 'CONTADOR' }) =>
+      conEstudio(ctx.a, () => db.usuario.update({ where: { id }, data }))
+    await expect(actualizar(ctx.duenoA, { activo: false })).rejects.toThrow(/dueño activo/)
+    await expect(actualizar(ctx.duenoA, { rol: 'CONTADOR' })).rejects.toThrow(/dueño activo/)
+    await actualizar(ctx.contadorA, { rol: 'DUENO' })
+    await actualizar(ctx.duenoA, { activo: false })
+    await actualizar(ctx.duenoA, { activo: true })
+    await actualizar(ctx.contadorA, { rol: 'CONTADOR' })
+  })
+})
+
+describe('El esquema acceso, cerrado para la app', () => {
+  it('la app no lee ni escribe sus tablas', async () => {
+    const c = new Client({ connectionString: process.env.DATABASE_URL })
+    await c.connect()
+    try {
+      await c.query("SELECT set_config('role', 'balancert_app', false)")
+      for (const t of ['contrasenas', 'sesiones', 'intentos']) {
+        await expect(c.query(`SELECT 1 FROM acceso.${t} LIMIT 1`), t).rejects.toThrow(
+          /permission denied/,
+        )
+        await expect(c.query(`DELETE FROM acceso.${t}`), t).rejects.toThrow(/permission denied/)
+      }
+    } finally {
+      await c.end()
+    }
+  })
+
+  it('cada función corre como su dueño con su search_path, y la app ejecuta solo las de entrar', async () => {
+    const funciones = await comoPlataforma(
+      () =>
+        db.$queryRaw<{ nombre: string; especial: boolean; con_ruta: boolean; la_app: boolean }[]>`
+        SELECT p.proname AS nombre, p.prosecdef AS especial,
+               coalesce(array_to_string(p.proconfig, ',') LIKE '%search_path=%', false) AS con_ruta,
+               has_function_privilege('balancert_app', p.oid, 'EXECUTE') AS la_app
+        FROM pg_proc p WHERE p.pronamespace = 'acceso'::regnamespace ORDER BY 1`,
+    )
+    expect(funciones.every((f) => f.con_ruta)).toBe(true)
+    expect(funciones.filter((f) => f.la_app).map((f) => f.nombre)).toEqual([
+      'abrir_sesion',
+      'cerrar_sesion',
+      'datos_para_entrar',
+      'fijar_contrasena',
+      'puede_intentar',
+      'registrar_intento',
+      'sesion_activa',
+    ])
+    expect(funciones.filter((f) => f.la_app).every((f) => f.especial)).toBe(true)
+  })
+})
