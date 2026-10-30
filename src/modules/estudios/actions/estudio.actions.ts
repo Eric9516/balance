@@ -11,7 +11,7 @@ import {
   type CreateEstudioInput,
   type UpdateEstudioInput,
 } from '../schemas/estudio.schemas'
-import { createEstudio, updateEstudio } from '../repository/estudio.repository'
+import { createEstudio, hayEstudios, updateEstudio } from '../repository/estudio.repository'
 import type { EstudioDTO } from '../domain/types'
 
 export async function crearEstudio(input: CreateEstudioInput): Promise<ActionResult<EstudioDTO>> {
@@ -25,6 +25,14 @@ export async function crearEstudio(input: CreateEstudioInput): Promise<ActionRes
         mensaje: 'Datos inválidos',
         detalle: parsed.error.issues[0]?.message,
         campo: parsed.error.issues[0]?.path.join('.'),
+      })
+    }
+    if (await hayEstudios()) {
+      return actionError({
+        tipo: 'NEGOCIO',
+        severidad: 'MEDIO',
+        codigo: 'NEG-062',
+        mensaje: 'El estudio ya está configurado. Para cambiar sus datos, entrá en Configuración.',
       })
     }
     const estudio = await createEstudio(parsed.data)

@@ -156,11 +156,17 @@ export async function analizarPlanes(
   pg: Client,
   consultas: ConsultaCapturada[],
   filasPorTabla: Map<string, number>,
+  estudioId: string,
   umbralFilas = 10_000,
 ): Promise<HallazgoPlan[]> {
   const hallazgos: HallazgoPlan[] = []
   await pg.query('BEGIN')
   try {
+    // Los planes, como los ve la app: con su rol y las reglas de su estudio.
+    await pg.query(
+      "SELECT set_config('role', 'balancert_app', true), set_config('app.estudio', $1, true)",
+      [estudioId],
+    )
     for (const c of deDatos(consultas)) {
       let params: unknown[] = []
       try {

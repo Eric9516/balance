@@ -10,9 +10,6 @@
  */
 import { execSync } from 'node:child_process'
 import { Client } from 'pg'
-import { PrismaClient } from '@prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
-import { crearPoolPg } from '../lib/pool-pg'
 import { iniciarPostgresEmbebido, type PostgresEmbebido } from './postgres-embebido'
 
 const PUERTO_EMBEBIDO = 55435
@@ -72,13 +69,13 @@ export default async function setup() {
 
   // 3. Base limpia: los datos de corridas anteriores alterarían "el estudio activo". El catálogo
   //    de cada estudio se va con él; el oficial (catalogo_rubros) queda.
-  const prisma = new PrismaClient({
-    adapter: new PrismaPg(crearPoolPg({ connectionString: url }), { disposeExternalPool: true }),
-  })
+  //    Con una conexión propia, como dueño de la base: es tarea de la plataforma.
+  const base = new Client({ connectionString: url })
+  await base.connect()
   try {
-    await prisma.$executeRawUnsafe('TRUNCATE TABLE "estudios", "errores_tecnicos_log" CASCADE')
+    await base.query('TRUNCATE TABLE "estudios", "errores_tecnicos_log" CASCADE')
   } finally {
-    await prisma.$disconnect()
+    await base.end()
   }
 
   return async () => {

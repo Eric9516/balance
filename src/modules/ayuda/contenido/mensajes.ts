@@ -326,6 +326,16 @@ const MENSAJES: Mensaje[] = [
     solucion: ['Revisá los importes y los índices de inflación del ejercicio.'],
     relacionados: ['formato-importes', 'coeficiente'],
   },
+  {
+    codigo: 'NEG-062',
+    titulo: 'El estudio ya está configurado',
+    significa:
+      'Los datos del estudio se cargan una sola vez, al empezar a usar la app. Ya hay un estudio cargado, así que no se crea otro.',
+    solucion: [
+      'Para cambiar el nombre, el CUIT u otros datos del estudio, entrá en Configuración.',
+      'Para sumar otro estudio a la plataforma, pedíselo al administrador de BalanceRT.',
+    ],
+  },
   // ─── Técnicos y permisos ──────────────────────────────────────────────────
   {
     codigo: 'TECH-001',

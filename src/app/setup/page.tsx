@@ -1,13 +1,13 @@
 import { redirect } from 'next/navigation'
 import { Scale } from 'lucide-react'
-import { db } from '@/lib/db'
 import { EstudioForm } from '@/modules/estudios/components/EstudioForm'
+import { hayEstudios } from '@/modules/estudios/repository/estudio.repository'
 
 export const metadata = { title: 'Configurar estudio' }
 
 export default async function SetupPage() {
-  const existing = await db.estudio.findFirst({ where: { activo: true }, select: { id: true } })
-  if (existing) redirect('/sociedades')
+  // Cualquier estudio, aunque esté inactivo o la app no lo vea: el alta inicial es una sola vez.
+  if (await hayEstudios()) redirect('/sociedades')
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-12">

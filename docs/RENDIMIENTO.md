@@ -135,3 +135,18 @@ Los disparadores corren adentro de la base: no suman viajes. Hay más viajes que
 ## Cada estudio con su catálogo (2026-10-30, escala media)
 
 Ver [0012](decisiones/0012-catalogo-propio-de-cada-estudio.md). La medición siembra ahora dos estudios, cada uno con su catálogo (57 clasificaciones), y todas las lecturas del catálogo filtran por estudio. Resultado igual al 29/10: importar 800 cuentas 155 ms de mediana local, los mismos viajes en cada operación (Estados 8, documento imprimible 13), base de 530,7 MB, ninguna clave foránea sin índice y ninguna lectura completa de tablas grandes. Los saldos por código del paso Documentos leen ahora solo las clasificaciones que usan las cuentas del ejercicio (antes, el catálogo entero).
+
+## La base separa a los estudios (2026-10-30, escala media)
+
+Ver la migración `20261030150000_separacion_por_estudio`. La medición corre ahora como la app: con el rol `balancert_app`, el estudio declarado y la regla `solo_su_estudio` en cada tabla (también los planes de ejecución).
+
+| Medida | Sin reglas | Con reglas, primera versión | Con reglas, final |
+|---|---|---|---|
+| Importar 800 cuentas (reemplazo), mediana local | 155 ms | 202 ms | 159 ms |
+| Paso Estados, mediana local | 36 ms | 39 ms | 38 ms |
+| Documento imprimible, mediana local | 63 ms | 64 ms | 66 ms |
+
+- **La primera versión costaba un 30% al importar:** `estudio_de_la_sesion()` llevaba `SET search_path`, y así PostgreSQL la llamaba en cada fila (valor por defecto de `estudio_id` y control de cada vínculo). Sin esa línea, y con todo escrito con su esquema, la reemplaza por su expresión: volvió a 159 ms.
+- **Declarar el estudio no suma viajes:** el pool lo fija en la conexión solo cuando cambia (un viaje la primera vez que una conexión pasa a otro estudio). Medido aparte con la red simulada, una lista de 200 sociedades tarda lo mismo con reglas y sin ellas (49 ms y 48 ms). En la tabla de arriba, la cantidad de viajes de las operaciones de una o dos consultas varía en uno entre corridas: es el redondeo de la medición (los temporizadores de Windows tienen unos 15 ms de resolución), no la regla.
+- Ninguna lectura completa de tablas grandes y ninguna clave foránea sin índice. Base de 530,4 MB, igual que antes.
+

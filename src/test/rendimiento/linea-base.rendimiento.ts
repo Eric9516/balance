@@ -20,6 +20,7 @@ import { Client } from 'pg'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { crearPoolPg } from '@/lib/pool-pg'
+import { comoPlataforma, conEstudio } from '@/lib/contexto-base'
 
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
@@ -162,7 +163,8 @@ describe(`Rendimiento (escala ${ESCALA})`, () => {
       }),
     })
     try {
-      sembrado = await sembrar(sembrador, ESCALAS[ESCALA])
+      // La siembra es de la plataforma; lo que se mide, como la app: con las reglas del estudio.
+      sembrado = await comoPlataforma(() => sembrar(sembrador, ESCALAS[ESCALA]))
     } finally {
       await sembrador.$disconnect()
     }
@@ -191,7 +193,11 @@ describe(`Rendimiento (escala ${ESCALA})`, () => {
     // Ida y vuelta efectiva del intermediario: en Windows los temporizadores tienen unos 15 ms
     // de resolución, así que la demora real puede ser mayor que la pedida. Se mide con una
     // consulta mínima y con ese valor se cuentan los viajes de cada operación.
-    const consultaMinima = () => db.$queryRawUnsafe('SELECT 1')
+    const comoLaApp =
+      <T>(fn: () => Promise<T>) =>
+      () =>
+        conEstudio(sembrado.estudioId, fn)
+    const consultaMinima = comoLaApp(() => db.$queryRawUnsafe('SELECT 1'))
     intermediario.fijarLatencia(0)
     const sinRed = await cronometrar(consultaMinima, 20)
     intermediario.fijarLatencia(LATENCIA_MS)
@@ -200,13 +206,14 @@ describe(`Rendimiento (escala ${ESCALA})`, () => {
     const idaYVuelta = Math.max(1, conRed.mediana - sinRed.mediana)
 
     for (const op of operaciones(sembrado, ESCALAS[ESCALA].cuentasPorEjercicio)) {
+      const fn = comoLaApp(op.fn)
       intermediario.fijarLatencia(0)
-      const { consultas } = await captura.durante(op.fn)
-      const local = await cronometrar(op.fn, REPETICIONES)
+      const { consultas } = await captura.durante(fn)
+      const local = await cronometrar(fn, REPETICIONES)
       intermediario.fijarLatencia(LATENCIA_MS)
-      const remoto = await cronometrar(op.fn, REPETICIONES_CON_LATENCIA, 2)
+      const remoto = await cronometrar(fn, REPETICIONES_CON_LATENCIA, 2)
       intermediario.fijarLatencia(0)
-      const planes = await analizarPlanes(pg, consultas, filas)
+      const planes = await analizarPlanes(pg, consultas, filas, sembrado.estudioId)
 
       const deLaOperacion = deDatos(consultas)
       expect(deLaOperacion.length, `${op.nombre}: no se capturaron consultas`).toBeGreaterThan(0)
