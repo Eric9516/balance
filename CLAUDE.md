@@ -119,15 +119,19 @@ Toda modificación de base de datos debe cuidar:
 
 ## Modelo de despliegue (decidido)
 
-- **Un proyecto de Supabase por estudio** (base, login y archivos), creado con el correo del estudio y a su nombre. Puede vivir en la cuenta del estudio o en una organización propia: **el código es exactamente el mismo en los dos casos.**
-- **Una instalación de la app por estudio**, con el mismo código y la misma versión para todos. Todo lo propio del estudio sale de su configuración, nunca del código.
-- **Las protecciones no dependen de que el estudio no tenga las claves de administración** de su proyecto: los hashes de las versiones emitidas y del historial se guardan en un servicio central propio, la licencia se verifica en el servidor propio y un chequeo periódico compara cada base contra el esquema esperado.
-- **Actualizaciones por tandas:** primero un estudio de prueba, después uno o dos reales, después el resto. Un panel central registra qué versión tiene cada estudio.
+Decisión del dueño del producto (2026-10-29), ver `docs/decisiones/0011`. Reemplaza al modelo de un proyecto por estudio (0001).
+
+- **Una sola app y una sola base para todos los estudios**, con un único acceso. Todo lo propio del estudio sale de su configuración, nunca del código.
+- **La base separa a los estudios, no la app:** `estudio_id` obligatorio en cada tabla con datos de un estudio; regla por fila **restrictiva** `solo_su_estudio` con `force row level security`; vínculos con clave compuesta `(estudio_id, x_id) → (estudio_id, id)`; la app entra con un rol sin permisos propios ni bypass y declara el usuario y su estudio en cada transacción; las funciones `security definer` corren con un rol sin bypass.
+- **Prueba de espionaje obligatoria:** dos estudios; desde uno se intenta leer y cambiar lo del otro en cada tabla y con cada función. Toda tabla o función nueva la tiene que pasar.
+- **Plan dedicado:** el estudio que exija base propia la tiene con el mismo código.
+- **Velocidad:** índices que empiezan por `estudio_id` donde se filtra por estudio; las consultas de una pantalla van en una sola transacción (declarar el usuario suma idas a la base); `pnpm rendimiento` se mide con varios estudios.
 
 ## Proyecto de referencia
 
 `C:\Users\agus_\OneDrive\Desktop\Gestion empresarial` (en la computadora del dueño del proyecto) es la referencia de login, seguridad, robustez de la base y pruebas. Ver sus `docs/SEGURIDAD.md`, `docs/AUDITORIA-BASE-DE-DATOS.md` y `docs/PRUEBAS.md`.
 
+- Desde el 2026-10-28 es una sola app Next y una sola base para todas las empresas: sus patrones de "varias empresas" (`supabase/componentes/base/*varias_empresas*`, prueba de espionaje), de conexión como el usuario (`web/src/lib/db.ts`), de login (`web/db/02-sesiones.sql`, `web/src/lib/sesion.ts`) y de puerta de cada acción (`web/src/lib/entrada.ts`) son la referencia.
 - Se copian **patrones**, no tablas de negocio.
 - **Nunca se modifica** ese proyecto.
 
@@ -149,7 +153,8 @@ Actualizar esta lista al terminar cada fase. Cada fase se hace en avances chicos
 - **Hecho, 2026-10-19:** Fase 0, paso 4: claves UUIDv7 generadas por la base (base 19% más chica en la escala media).
 - **Hecho, 2026-10-19:** Fase 0, paso 5: importes con aritmética exacta en todo el código, sin redondeos, y columnas de importes e índices sin escala en la base (antes redondeaban a 2 y 6 decimales al guardar).
 - **Fase 0, decisiones irreversibles** mientras hay pocos datos: claves UUIDv7, fechas contables sin hora, un tipo de importe con margen amplio, columnas en snake_case, catálogo RT 54 versionado y registro de decisiones de arquitectura.
-- **Fase 1, login:** Supabase Auth, roles, cuenta nueva bloqueada, nunca sin dueño y doble factor para dueños y administradores.
+- **Fase 1a, varios estudios en una base** (antes del login, decidido 2026-10-29): `estudio_id` en cada tabla, regla restrictiva forzada, claves compuestas, rol de la app sin bypass y prueba de espionaje (ver `docs/decisiones/0011`).
+- **Fase 1, login:** login propio con el patrón de Gestión empresarial (o Better Auth, a evaluar), roles, cuenta nueva bloqueada, nunca sin dueño, doble factor para dueños y administradores, sesiones cortas y puerta única en cada acción del servidor.
 - **Fase 2, la base como última barrera:** roles de base separados, reglas por fila, CHECK, ejercicio cerrado inmutable, control de versión en lo editable permisos por defecto de funciones cerrados y clave foránea del ejercicio a su sociedad que incluya el estudio (hoy `crearEjercicio` usa el primer estudio activo y puede dejar un ejercicio con un estudio distinto al de su sociedad).
 - **Fase 3, auditoría legal:** historial solo de agregado, particionado por mes, cadena de hashes, retención de 10 años y versión emitida con su hash.
 - **Fase 4, rendimiento y escala:** metas de volumen escritas y medidas con datos sintéticos.

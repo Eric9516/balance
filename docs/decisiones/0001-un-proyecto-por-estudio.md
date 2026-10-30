@@ -1,6 +1,6 @@
 # 0001. Un proyecto de Supabase y una instalación de la app por estudio
 
-- **Estado:** Aceptada
+- **Estado:** Reemplazada por [0011](0011-una-sola-base-para-todos-los-estudios.md) (2026-10-29)
 - **Fecha:** 2026-10-18
 
 ## Contexto

@@ -12,7 +12,7 @@ Cada decisión de arquitectura que sea cara de cambiar después queda escrita ac
 
 | N° | Decisión | Estado |
 |---|---|---|
-| [0001](0001-un-proyecto-por-estudio.md) | Un proyecto de Supabase y una instalación de la app por estudio | Aceptada |
+| [0001](0001-un-proyecto-por-estudio.md) | Un proyecto de Supabase y una instalación de la app por estudio | Reemplazada por 0011 |
 | [0002](0002-la-base-como-ultima-barrera.md) | La base hace cumplir permisos, invariantes, inmutabilidad y auditoría; los cálculos contables quedan en TypeScript | Aceptada |
 | [0003](0003-base-cerrada-por-defecto.md) | La base nace cerrada a los roles de la API de Supabase | Aceptada |
 | [0004](0004-pnpm-y-cadena-de-suministro.md) | pnpm con controles de cadena de suministro | Aceptada |
@@ -22,3 +22,4 @@ Cada decisión de arquitectura que sea cara de cambiar después queda escrita ac
 | [0008](0008-claves-uuid-v7.md) | Claves UUIDv7 generadas por la base | Aceptada |
 | [0009](0009-importes-exactos.md) | Importes con aritmética exacta | Aceptada |
 | [0010](0010-catalogo-rt54-versionado.md) | Catálogo RT 54 versionado | Propuesta |
+| [0011](0011-una-sola-base-para-todos-los-estudios.md) | Una sola app y una sola base para todos los estudios, con la separación impuesta por la base | Aceptada |
