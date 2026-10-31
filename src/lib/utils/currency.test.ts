@@ -6,13 +6,15 @@ describe('formatCurrency (formato AR)', () => {
     [1234567.891, '1.234.567,89'],
     [0, '0,00'],
     [-1234.5, '(1.234,50)'],
-    ['999.995', '1.000,00'],
+    ['999.995', '999,99'],
+    ['1234.567', '1.234,56'],
+    [-1234.567, '(1.234,56)'],
   ])('%s → %s', (valor, esperado) => {
     expect(formatCurrency(valor)).toBe(esperado)
   })
 
   it('respeta opciones de decimales, símbolo y cero como guion', () => {
-    expect(formatCurrency(1234.5, { decimales: 0 })).toBe('1.235')
+    expect(formatCurrency(1234.5, { decimales: 0 })).toBe('1.234')
     expect(formatCurrency(10, { mostrarSimbolo: true })).toBe('$ 10,00')
     expect(formatCurrency(0, { ceroComoGuion: true })).toBe('-')
     expect(formatCurrency(null)).toBe('-')

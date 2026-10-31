@@ -70,10 +70,10 @@ describe('Nota 1: bases de preparación', () => {
     expect(n.advertencias).toEqual([])
   })
 
-  it('variación del índice con el coeficiente completo, mostrada con 2 decimales', () => {
+  it('variación del índice con el coeficiente completo, mostrada con 2 decimales cortados', () => {
     expect(armarNotaUno(base()).texto).toContain('fue del 31,55%.')
     expect(armarNotaUno(base({ indiceInflacionActual: 131.556 })).texto).toContain(
-      'fue del 31,56%.',
+      'fue del 31,55%.',
     )
   })
 

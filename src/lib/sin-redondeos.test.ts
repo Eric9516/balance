@@ -35,16 +35,9 @@ const PERMITIDOS: Permitido[] = [
   },
   {
     archivo: 'src/lib/utils/currency.ts',
-    linea:
-      "const absVal = d.abs().toFixed(decimales === 'todos' ? Math.max(2, d.decimalPlaces()) : decimales)",
+    linea: 'const absVal = d.abs().toFixed(cifras, Decimal.ROUND_DOWN)',
     motivo:
-      "Solo presentación: el dueño del producto decidió (2026-10-19) que la pantalla y el documento muestran 2 decimales. Cálculos y base conservan el valor completo; con decimales 'todos' (mensajes de control) no redondea.",
-  },
-  {
-    archivo: 'src/lib/utils/currency.ts',
-    linea: "const [entero, fraccion = ''] = new Decimal(String(coeficiente)).toFixed().split('.')",
-    motivo:
-      'toFixed() sin argumento no redondea: escribe el número completo sin notación exponencial. El coeficiente se corta después, sin redondear, para mostrar 2 u 8 decimales (decisión del dueño del producto, 2026-10-31).',
+      'Solo presentación y sin redondear: corta los decimales de más (ROUND_DOWN), por decisión del dueño del producto (2026-10-31). Cálculos y base conservan el valor completo.',
   },
   {
     archivo: 'src/modules/estudios/domain/preferencias.ts',

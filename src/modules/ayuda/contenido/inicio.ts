@@ -171,7 +171,7 @@ export const INICIO: ArticuloAyuda[] = [
       ),
       lista(
         'La barra de progreso del ejercicio muestra en qué paso estás y qué falta.',
-        'Nada se redondea: los cálculos usan el importe completo y la pantalla lo muestra con 2 decimales.',
+        'Nada se redondea: los cálculos usan el importe completo y la pantalla lo muestra con 2 decimales, cortados.',
         'La app propone y controla; las decisiones contables son siempre del contador.',
       ),
     ],

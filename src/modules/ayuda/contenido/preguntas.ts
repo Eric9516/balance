@@ -190,11 +190,12 @@ export const PREGUNTAS: ArticuloAyuda[] = [
     id: 'pregunta-centavos',
     titulo: 'Sumo los importes de la pantalla y no me da el total',
     categoria: 'preguntas',
-    resumen: 'La pantalla muestra 2 decimales, pero los totales suman los importes completos.',
+    resumen:
+      'La pantalla muestra 2 decimales cortados, pero los totales suman los importes completos.',
     claves: ['no coincide la suma', 'diferencia de centavos', 'total mal', 'suma a mano'],
     bloques: [
       p(
-        'Cada importe se muestra con 2 decimales, pero se guarda y se suma completo. Si algún importe tiene más decimales (por ejemplo, uno reexpresado), la suma de lo que se ve puede diferir en centavos del total, que es el correcto. Al editar una celda se ve el importe completo.',
+        'Cada importe se muestra con 2 decimales, cortados sin redondear, pero se guarda y se suma completo. Si algún importe tiene más decimales (por ejemplo, uno reexpresado), la suma de lo que se ve suele quedar unos centavos por debajo del total, que es el correcto. Al editar una celda se ve el importe completo.',
       ),
     ],
     relacionados: ['importes-redondeo'],

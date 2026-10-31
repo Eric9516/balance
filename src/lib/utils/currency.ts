@@ -3,8 +3,10 @@ import Decimal from 'decimal.js'
 /**
  * Formato argentino: punto de miles, coma decimal y paréntesis para los negativos.
  * Por defecto muestra 2 decimales: decisión del dueño del producto (2026-10-19) para pantalla y
- * documento. Es solo presentación; los cálculos y la base conservan el valor completo.
- * `decimales: 'todos'` muestra el valor completo, SIN redondear (mínimo 2 decimales):
+ * documento. Los decimales de más se cortan, sin redondear: 1.234,567 se ve 1.234,56 (decisión del
+ * dueño del producto, 2026-10-31). Es solo presentación; los cálculos y la base conservan el valor
+ * completo.
+ * `decimales: 'todos'` muestra el valor completo (mínimo 2 decimales):
  * es lo que corresponde en mensajes de control, donde la diferencia puede estar en el tercer decimal.
  */
 export function formatCurrency(
@@ -23,7 +25,8 @@ export function formatCurrency(
 
   if (ceroComoGuion && d.isZero()) return '-'
 
-  const absVal = d.abs().toFixed(decimales === 'todos' ? Math.max(2, d.decimalPlaces()) : decimales)
+  const cifras = decimales === 'todos' ? Math.max(2, d.decimalPlaces()) : decimales
+  const absVal = d.abs().toFixed(cifras, Decimal.ROUND_DOWN)
   const [entero = '0', fraccion] = absVal.split('.')
 
   const enteroFormateado = entero.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
@@ -33,19 +36,13 @@ export function formatCurrency(
   return d.isNegative() ? `(${conSimbolo})` : conSimbolo
 }
 
-/** El coeficiente cortado en esos decimales: no redondea el último dígito que se ve. */
-function coeficienteCortado(coeficiente: number, decimales: number): string {
-  const [entero, fraccion = ''] = new Decimal(String(coeficiente)).toFixed().split('.')
-  return formatCurrency(`${entero}.${fraccion.slice(0, decimales)}`, { decimales })
-}
-
 /**
- * Coeficiente de reexpresión para mostrar: 2 decimales cortados, sin redondear (1,31 si es
- * 1,3154...; decisión del dueño del producto, 2026-10-31). Es solo presentación: el cálculo usa
- * siempre el coeficiente completo (`dividir` de `@/lib/importe`), nunca el valor mostrado.
+ * Coeficiente de reexpresión para mostrar: 2 decimales cortados, como todo importe (1,31 si es
+ * 1,3154...). Es solo presentación: el cálculo usa siempre el coeficiente completo (`dividir` de
+ * `@/lib/importe`), nunca el valor mostrado.
  */
 export function formatCoeficiente(coeficiente: number): string {
-  return coeficienteCortado(coeficiente, 2)
+  return formatCurrency(coeficiente)
 }
 
 /**
@@ -53,5 +50,5 @@ export function formatCoeficiente(coeficiente: number): string {
  * contra los índices (decisión del dueño del producto, 2026-10-31). También cortados.
  */
 export function formatCoeficienteOchoDecimales(coeficiente: number): string {
-  return coeficienteCortado(coeficiente, 8)
+  return formatCurrency(coeficiente, { decimales: 8 })
 }
