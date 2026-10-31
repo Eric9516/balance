@@ -427,7 +427,7 @@ export const INICIO: ArticuloAyuda[] = [
         ['Denominación', 'Si la dejás vacía se arma sola: "Ejercicio al DD/MM/AAAA".'],
         [
           'Coeficiente',
-          'Índice actual ÷ índice anterior. Se muestra con 2 decimales y se calcula siempre con el valor completo.',
+          'Índice actual ÷ índice anterior. Se muestra con 8 decimales, cortados sin redondear, y se calcula siempre con el valor completo.',
         ],
         [
           'Ejercicio anterior',

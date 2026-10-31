@@ -41,6 +41,12 @@ const PERMITIDOS: Permitido[] = [
       "Solo presentación: el dueño del producto decidió (2026-10-19) que la pantalla y el documento muestran 2 decimales. Cálculos y base conservan el valor completo; con decimales 'todos' (mensajes de control) no redondea.",
   },
   {
+    archivo: 'src/lib/utils/currency.ts',
+    linea: "const [entero, fraccion = ''] = new Decimal(String(coeficiente)).toFixed().split('.')",
+    motivo:
+      'toFixed() sin argumento no redondea: escribe el número completo sin notación exponencial. El coeficiente se corta después, sin redondear, para mostrar 8 decimales (decisión del dueño del producto, 2026-10-31).',
+  },
+  {
     archivo: 'src/modules/estudios/domain/preferencias.ts',
     linea:
       'return `El color ${hex.toUpperCase()} es demasiado claro: el texto blanco sobre él tendría contraste ${c.toFixed(1)}:1 y el mínimo es ${CONTRASTE_MINIMO}:1. Elegí un tono más oscuro.`',

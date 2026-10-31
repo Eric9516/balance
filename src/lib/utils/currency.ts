@@ -41,3 +41,13 @@ export function formatCurrency(
 export function formatCoeficiente(coeficiente: number): string {
   return formatCurrency(coeficiente)
 }
+
+/**
+ * Coeficiente anual en los datos del ejercicio: 8 decimales, para controlarlo contra los índices
+ * (decisión del dueño del producto, 2026-10-31). Corta en el octavo decimal: no redondea el último
+ * dígito que se ve. Es solo presentación: el cálculo usa siempre el coeficiente completo.
+ */
+export function formatCoeficienteOchoDecimales(coeficiente: number): string {
+  const [entero, fraccion = ''] = new Decimal(String(coeficiente)).toFixed().split('.')
+  return formatCurrency(`${entero}.${fraccion.slice(0, 8)}`, { decimales: 8 })
+}

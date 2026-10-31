@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatCoeficiente, formatCurrency } from './currency'
+import { formatCoeficiente, formatCoeficienteOchoDecimales, formatCurrency } from './currency'
 
 describe('formatCurrency (formato AR)', () => {
   it.each([
@@ -34,5 +34,18 @@ describe('formatCoeficiente', () => {
     expect(formatCoeficiente(1.3155)).toBe('1,32')
     expect(formatCoeficiente(1)).toBe('1,00')
     expect(formatCoeficiente(12.345678)).toBe('12,35')
+  })
+})
+
+describe('formatCoeficienteOchoDecimales', () => {
+  it('muestra 8 decimales y corta el resto, sin redondear el último', () => {
+    expect(formatCoeficienteOchoDecimales(1.123456789)).toBe('1,12345678')
+    expect(formatCoeficienteOchoDecimales(1.999999999)).toBe('1,99999999')
+  })
+
+  it('completa con ceros y no se rompe con números muy chicos', () => {
+    expect(formatCoeficienteOchoDecimales(1)).toBe('1,00000000')
+    expect(formatCoeficienteOchoDecimales(1.5)).toBe('1,50000000')
+    expect(formatCoeficienteOchoDecimales(0.000000012)).toBe('0,00000001')
   })
 })

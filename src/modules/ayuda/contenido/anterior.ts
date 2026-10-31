@@ -182,7 +182,7 @@ export const ANTERIOR: ArticuloAyuda[] = [
         ],
         [
           'Coeficiente',
-          'Índice actual ÷ índice anterior. Se muestra con 2 decimales, pero se calcula siempre con el valor completo: nunca se multiplica por el número mostrado.',
+          'Índice actual ÷ índice anterior. En los datos del ejercicio se ve con 8 decimales, cortados sin redondear, y en el paso del anterior con 2. Se calcula siempre con el valor completo: nunca se multiplica por el número mostrado.',
         ],
         [
           'Dónde se aplica',
@@ -278,7 +278,7 @@ export const USO: ArticuloAyuda[] = [
         'La pantalla y el documento muestran 2 decimales: es solo cómo se ve.',
         'Por eso, si sumás a mano los importes que se ven, puede no darte exactamente el total: el total suma los importes completos.',
         'Los controles comparan exacto: una diferencia de una milésima es una diferencia. Los mensajes de control la muestran completa.',
-        'El coeficiente de reexpresión se muestra con 2 decimales y se aplica completo.',
+        'El coeficiente de reexpresión se ve con 8 decimales en los datos del ejercicio y con 2 en el paso del anterior, y se aplica completo.',
         'Un importe de más de 70 billones de pesos no se puede calcular con exactitud y la app lo avisa (NEG-060).',
       ),
     ],

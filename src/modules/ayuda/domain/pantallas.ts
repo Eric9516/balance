@@ -163,7 +163,7 @@ export const INFO_PANTALLAS = {
         'Ejercicio anterior: vinculado a uno cargado, carga manual o primer ejercicio.',
       ],
       formulas: [
-        'Coeficiente = índice actual ÷ índice anterior. Se muestra con 2 decimales y se calcula siempre completo.',
+        'Coeficiente = índice actual ÷ índice anterior. Se muestra con 8 decimales, cortados sin redondear, y se calcula siempre completo.',
       ],
       notes: [
         'Cambiar cómo se resuelve el ejercicio anterior anula la autorización y las confirmaciones; si se deja la carga manual, sus importes se borran (la app pide confirmación).',
