@@ -38,8 +38,8 @@ export function formatCurrency(
 
 /**
  * Coeficiente de reexpresión para mostrar: 2 decimales cortados, como todo importe (1,31 si es
- * 1,3154...). Es solo presentación: el cálculo usa siempre el coeficiente completo (`dividir` de
- * `@/lib/importe`), nunca el valor mostrado.
+ * 1,3154...). Es solo presentación: la reexpresión no pasa por el coeficiente, usa los dos índices
+ * (`reexpresar` de `@/modules/estados/lib/ajuste`).
  */
 export function formatCoeficiente(coeficiente: number): string {
   return formatCurrency(coeficiente)

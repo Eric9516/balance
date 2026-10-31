@@ -9,11 +9,10 @@
  * Modelo: Nota 1 de un balance real de un estudio de Córdoba (2025, primera aplicación).
  */
 import type { AdopcionRT54, CategoriaEnteRT54 } from '@prisma/client'
-import { multiplicar, restar } from '@/lib/importe'
+import { multiplicarYDividir, restar } from '@/lib/importe'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatFechaLarga } from '@/lib/utils/dates'
 import { CATEGORIA_ENTE_LABELS } from '@/modules/ejercicios/domain/types'
-import { getCoeficienteComparativo } from '@/modules/estados/lib/ajuste'
 import type { NotaTransicionGenerada } from '@/modules/transicion-rt54/lib/generarNota'
 
 export type EntradaNotaUno = {
@@ -145,8 +144,12 @@ export function armarNotaUno(e: EntradaNotaUno): NotaUno {
     'A efectos de expresar las partidas en moneda de cierre, la Entidad aplicó el proceso de reexpresión integral, que consiste en determinar el momento de origen de las partidas o de su último ajuste, calcular los coeficientes de reexpresión correspondientes y aplicarlos sobre aquellas partidas que no se encontraban expresadas en moneda de cierre. Para el cálculo de los coeficientes se utilizó la serie de índices definida por la FACPCE en la Resolución JG N° 539/2018 y sus modificatorias.',
   )
   if (ej.indiceInflacionAnterior && ej.indiceInflacionActual) {
-    // Variación con el coeficiente completo; se muestra con 2 decimales cortados (solo presentación).
-    const variacion = multiplicar(restar(getCoeficienteComparativo(ej), 1), 100)
+    // Variación con los índices completos; se muestra con 2 decimales cortados (solo presentación).
+    const variacion = multiplicarYDividir(
+      restar(ej.indiceInflacionActual, ej.indiceInflacionAnterior),
+      100,
+      ej.indiceInflacionAnterior,
+    )
     unidad.push(
       `La variación del índice utilizado para el ajuste de los estados contables correspondiente al ejercicio finalizado el ${cierre} fue del ${formatCurrency(variacion)}%.`,
     )

@@ -31,7 +31,7 @@ const anterior: EvolucionPNMovimientoDTO[] = [
 
 describe('derivarDesdeAnteriorPN', () => {
   it('saldo inicio = saldos al cierre del anterior por componente, sin coeficiente', () => {
-    const d = derivarDesdeAnteriorPN(anterior, 1.5)
+    const d = derivarDesdeAnteriorPN(anterior, { actual: 1.5, anterior: 1 })
     expect(d.saldoInicio).toEqual({
       capitalSuscripto: 1000,
       ajusteCapital: 300,
@@ -42,13 +42,13 @@ describe('derivarDesdeAnteriorPN', () => {
     })
   })
   it('columna anterior = total de cada fila × coeficiente', () => {
-    const d = derivarDesdeAnteriorPN(anterior, 1.5)
+    const d = derivarDesdeAnteriorPN(anterior, { actual: 1.5, anterior: 1 })
     expect(d.totalAnteriorByTipo?.SALDO_INICIO).toBe(1200 * 1.5)
     expect(d.totalAnteriorByTipo?.RESULTADO_EJERCICIO).toBe(400 * 1.5)
     expect(d.totalAnteriorByTipo?.DISTRIB_RESERVA_LEGAL).toBe(0)
   })
   it('sin filas anteriores no hay derivado', () => {
-    expect(derivarDesdeAnteriorPN([], 2)).toEqual(SIN_DERIVADO_PN)
+    expect(derivarDesdeAnteriorPN([], { actual: 2, anterior: 1 })).toEqual(SIN_DERIVADO_PN)
   })
 })
 
@@ -59,7 +59,7 @@ describe('aplicarArrastrePN', () => {
     mov('AJUSTE_INFLACION', { ajusteCapital: 77, totalAnterior: 1 }),
     mov('RESULTADO_EJERCICIO', { rdosNoAsignados: 500, totalAnterior: 1 }),
   ]
-  const derivado = derivarDesdeAnteriorPN(anterior, 1)
+  const derivado = derivarDesdeAnteriorPN(anterior, { actual: 1, anterior: 1 })
 
   it('VINCULADO con fuente: pisa SALDO_INICIO y totalAnterior, deja el resto', () => {
     const r = aplicarArrastrePN(cliente, derivado, 'VINCULADO')

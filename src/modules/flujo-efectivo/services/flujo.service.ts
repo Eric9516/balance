@@ -7,7 +7,7 @@
 import type { EjercicioContableDTO } from '@/modules/ejercicios/domain/types'
 import { idAnteriorDerivable, modoEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import type { EstadosData } from '@/modules/estados/domain/types'
-import { getCoeficienteComparativo } from '@/modules/estados/lib/ajuste'
+import { getIndicesReexpresion } from '@/modules/estados/lib/ajuste'
 import { findRubrosBase } from '@/modules/importaciones/repository/cuentas.repository'
 import { armarFlujo, efectivoDesdeSSP, type FlujoData } from '../domain/calculo'
 import type { FlujoGuardadoDTO } from '../domain/types'
@@ -35,6 +35,6 @@ export async function cargarFlujo(
     efectivo: efectivoDesdeSSP(estadosData.sspRubros, rubrosEfectivo),
     modo: modoEfectivo(ejercicio),
     flujoAnterior,
-    coeficiente: getCoeficienteComparativo(ejercicio),
+    indices: getIndicesReexpresion(ejercicio),
   })
 }

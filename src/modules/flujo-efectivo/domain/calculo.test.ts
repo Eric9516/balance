@@ -89,7 +89,7 @@ describe('armarFlujo: efectivo derivado del balance', () => {
       efectivo,
       modo: 'MANUAL',
       flujoAnterior: null,
-      coeficiente: 1,
+      indices: { actual: 1, anterior: 1 },
     })
     expect(r.guardado.saldoFinal).toBe(150_000)
     expect(r.guardado.saldoInicial).toBe(125_000)
@@ -108,7 +108,7 @@ describe('armarFlujo: efectivo derivado del balance', () => {
       efectivo,
       modo: 'SIN_ANTERIOR',
       flujoAnterior: null,
-      coeficiente: 1,
+      indices: { actual: 1, anterior: 1 },
     })
     expect(r.guardado.saldoInicial).toBe(10)
     expect(r.bloqueo.saldoInicial).toBe(false)
@@ -130,7 +130,7 @@ describe('armarFlujo: efectivo derivado del balance', () => {
       efectivo,
       modo: 'MANUAL',
       flujoAnterior: null,
-      coeficiente: 1,
+      indices: { actual: 1, anterior: 1 },
     })
     expect(ok.actual.variacionNeta).toBe(25_000)
     expect(ok.actual.porSeccion).toEqual({
@@ -145,7 +145,7 @@ describe('armarFlujo: efectivo derivado del balance', () => {
       efectivo,
       modo: 'MANUAL',
       flujoAnterior: null,
-      coeficiente: 1,
+      indices: { actual: 1, anterior: 1 },
     })
     expect(mal.actual.cuadra).toBe(false)
     expect(mal.actual.diferencia).toBe(35_000)
@@ -157,7 +157,7 @@ describe('armarFlujo: efectivo derivado del balance', () => {
       efectivo,
       modo: 'MANUAL',
       flujoAnterior: null,
-      coeficiente: 1,
+      indices: { actual: 1, anterior: 1 },
     })
     expect(r.actual.efectivoInicioModificado).toBe(130_000)
     expect(r.actual.variacionNeta).toBe(20_000)
@@ -191,7 +191,7 @@ describe('armarFlujo: escenario A (VINCULADO)', () => {
       efectivo,
       modo: 'VINCULADO',
       flujoAnterior: anterior,
-      coeficiente: 1.25,
+      indices: { actual: 1.25, anterior: 1 },
     })
     const a = r.guardado.items.find((i) => i.id === 'a')!
     expect(a.importeAnterior).toBe(250_000)
@@ -213,7 +213,7 @@ describe('armarFlujo: escenario A (VINCULADO)', () => {
       efectivo,
       modo: 'VINCULADO',
       flujoAnterior: null,
-      coeficiente: 1,
+      indices: { actual: 1, anterior: 1 },
     })
     expect(r.guardado.items[0]?.importeAnterior).toBe(0)
     expect(r.advertencias[0]).toMatch(/no tiene Estado de Flujo/)

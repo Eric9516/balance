@@ -16,7 +16,8 @@
  */
 
 import type { ModoAnteriorEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
-import { multiplicar, restar } from '@/lib/importe'
+import { restar } from '@/lib/importe'
+import { reexpresar, SIN_REEXPRESION, type IndicesReexpresion } from '@/modules/estados/lib/ajuste'
 import { formatCurrency } from '@/lib/utils/currency'
 import {
   calcularCierre,
@@ -38,7 +39,7 @@ export type ArrastreBDU = {
 /** Mapa categoría normalizada → valores de cierre del anterior. */
 export function derivarArrastreBienesDeUso(
   bienesAnterior: BienDeUsoDTO[],
-  coeficiente = 1,
+  indices: IndicesReexpresion = SIN_REEXPRESION,
 ): Map<string, ArrastreBDU> {
   const map = new Map<string, ArrastreBDU>()
   for (const b of bienesAnterior) {
@@ -46,7 +47,7 @@ export function derivarArrastreBienesDeUso(
     map.set(normalizarCategoria(b.categoria), {
       costoInicioReexpresado: costoFinReexpresado,
       depAcumInicio: depAcumFin,
-      netoResidualAnterior: multiplicar(netoResidual, coeficiente),
+      netoResidualAnterior: reexpresar(netoResidual, indices),
     })
   }
   return map

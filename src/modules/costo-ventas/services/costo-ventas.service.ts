@@ -12,7 +12,7 @@ import {
   editarAnteriorManual,
   resolverCostoVentasAnterior,
 } from '@/modules/comparativo-manual/lib/politica'
-import { ajustarCostoVentas, getCoeficienteComparativo } from '@/modules/estados/lib/ajuste'
+import { ajustarCostoVentas, getIndicesReexpresion } from '@/modules/estados/lib/ajuste'
 import {
   aplicarArrastreCostoVentas,
   existenciaFinalAnteriorDesdeNotas,
@@ -60,7 +60,7 @@ export async function cargarAnteriorCostoVentas(ejercicio: EjercicioContableDTO)
   ])
   const propuesta = manual ? existenciaFinalAnteriorDesdeNotas({ rubros, cuentas, notas }) : null
   const anterior = resolverCostoVentasAnterior(
-    ajustarCostoVentas(anteriorRaw, getCoeficienteComparativo(ejercicio)),
+    ajustarCostoVentas(anteriorRaw, getIndicesReexpresion(ejercicio)),
     modo,
     comparativos,
     ejercicio.id,

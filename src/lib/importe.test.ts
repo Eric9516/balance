@@ -2,6 +2,7 @@ import Decimal from 'decimal.js'
 import { describe, expect, it } from 'vitest'
 import {
   MAX_IMPORTE_EXACTO,
+  cocienteExacto,
   comparaImportes,
   dividir,
   importe,
@@ -158,5 +159,21 @@ describe('comparaImportes', () => {
     // Sin tolerancia: ni un centavo ni una milésima.
     expect(comparaImportes(100, 100.01)).toBe(false)
     expect(comparaImportes(100, 100.001)).toBe(false)
+  })
+})
+
+describe('cocienteExacto', () => {
+  it('conserva los 34 dígitos, aunque el dato venga de un Decimal común', () => {
+    const esperado = '0.3333333333333333333333333333333333'
+    expect(cocienteExacto(1, 3).toString()).toBe(esperado)
+    expect(cocienteExacto(new Decimal(1), new Decimal(3)).toString()).toBe(esperado)
+  })
+
+  it('multiplicar por el cociente no deja el resultado apenas abajo', () => {
+    expect(multiplicar(300, cocienteExacto(4, 3))).toBe(400)
+  })
+
+  it('dividir por cero corta con NEG-061', () => {
+    expect(() => cocienteExacto(1, 0)).toThrow()
   })
 })

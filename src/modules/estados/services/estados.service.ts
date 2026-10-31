@@ -41,6 +41,7 @@ import {
   ajustarCuentas,
   ajustarGastos,
   getCoeficienteComparativo,
+  getIndicesReexpresion,
 } from '../lib/ajuste'
 import { sumar, sumarPor } from '@/lib/importe'
 
@@ -59,7 +60,7 @@ export async function cargarEstadosConPN(
   const ejercicioId = ejercicio.id
   const modo = modoEfectivo(ejercicio)
   const anteriorId = idAnteriorDerivable(ejercicio)
-  const coeficiente = getCoeficienteComparativo(ejercicio)
+  const indices = getIndicesReexpresion(ejercicio)
 
   const [
     rubros,
@@ -91,7 +92,7 @@ export async function cargarEstadosConPN(
   ])
 
   const costoVentasAnt = resolverCostoVentasAnterior(
-    ajustarCostoVentas(costoVentasAntRaw, coeficiente),
+    ajustarCostoVentas(costoVentasAntRaw, indices),
     modo,
     comparativos,
     ejercicioId,
@@ -103,9 +104,9 @@ export async function cargarEstadosConPN(
   // Gastos: el Anexo III ya resuelto según el modo es la única fuente de las líneas de gasto
   // del EERR. En MANUAL sus totales del anterior por sección se calculan desde las filas
   // (resolverGastos); resolverEstados no vuelve a aplicar gastos.
-  const gastos = resolverGastos(ajustarGastos(gastosRaw, coeficiente), modo, comparativos)
+  const gastos = resolverGastos(ajustarGastos(gastosRaw, indices), modo, comparativos)
   const raw = buildEstadosData(cuentas, rubros, {
-    cuentasAnt: ajustarCuentas(cuentasAntRaw, coeficiente),
+    cuentasAnt: ajustarCuentas(cuentasAntRaw, indices),
     costoVentas,
     costoVentasAnt,
     gastosDinamicos: gastos,
@@ -131,11 +132,17 @@ export async function cargarEstadosConPN(
     guardados: movsActual,
     resultadoEjercicio: estadosData.eerr.utilidadEjercicio,
     modo,
-    derivado: derivarDesdeAnteriorPN(movsAnterior, coeficiente),
+    derivado: derivarDesdeAnteriorPN(movsAnterior, indices),
     resultadoAnterior: editarAnteriorManual(modo) ? estadosData.eerr.utilidadEjercicioAnt : null,
   })
 
-  return { estadosData, pnData, comparativos, coeficiente, anteriorId }
+  return {
+    estadosData,
+    pnData,
+    comparativos,
+    coeficiente: getCoeficienteComparativo(ejercicio),
+    anteriorId,
+  }
 }
 
 /** Totales de la columna "Ejercicio anterior" del SSP (para el cuadre del anterior). */

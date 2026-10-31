@@ -34,6 +34,8 @@ function error(codigo: 'NEG-060' | 'NEG-061', mensaje: string): AppError {
 
 function aExacto(valor: ValorImporte): Decimal {
   if (valor === null || valor === undefined) return new Exacto(0)
+  // Solo los de 34 dígitos: un Decimal común también es instanceof, pero calcula con 20
+  if (typeof valor === 'object' && valor.constructor === Exacto) return valor as Decimal
   if (typeof valor === 'number' && !Number.isFinite(valor)) {
     throw error('NEG-061', `Se intentó calcular con un importe que no es un número (${valor}).`)
   }
@@ -200,6 +202,28 @@ export function dividir(dividendo: ValorImporte, divisor: ValorImporte): number 
   const d = aExacto(divisor)
   if (d.isZero()) throw error('NEG-061', 'Se intentó dividir un importe por cero.')
   return aNumero(aExacto(dividendo).div(d))
+}
+
+/**
+ * dividendo ÷ divisor con sus 34 dígitos, sin pasar a `number`. Es el factor de la reexpresión: como
+ * `number` (unos 16 dígitos), un resultado que cae justo en centavos quedaría apenas abajo
+ * (91.660,71999999999 en vez de 91.660,72). Se calcula una vez y se pasa a `multiplicar`.
+ */
+export function cocienteExacto(dividendo: ValorImporte, divisor: ValorImporte): Decimal {
+  const d = aExacto(divisor)
+  if (d.isZero()) throw error('NEG-061', 'Se intentó dividir un importe por cero.')
+  return aExacto(dividendo).div(d)
+}
+
+/** valor × multiplicador ÷ divisor, en ese orden y sin pasar por el cociente. */
+export function multiplicarYDividir(
+  valor: ValorImporte,
+  multiplicador: ValorImporte,
+  divisor: ValorImporte,
+): number {
+  const d = aExacto(divisor)
+  if (d.isZero()) throw error('NEG-061', 'Se intentó dividir un importe por cero.')
+  return aNumero(aExacto(valor).times(aExacto(multiplicador)).div(d))
 }
 
 /** Iguales exactos: jamás se redondea, así que tampoco se tolera ninguna diferencia. */

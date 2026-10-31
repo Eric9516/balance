@@ -208,7 +208,7 @@ export function insumosPrueba(overrides: Partial<InsumosDocumento> = {}): Insumo
     efectivo: { actual: 300, anterior: conAnterior ? 250 : 0 },
     modo,
     flujoAnterior: null,
-    coeficiente: 1,
+    indices: { actual: 1, anterior: 1 },
   })
   return {
     sociedad: sociedadPrueba,

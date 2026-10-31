@@ -11,7 +11,7 @@ import {
 } from '@/modules/ejercicios/repository/ejercicio.repository'
 import { idAnteriorDerivable, modoEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import { compuertaAutorizacion } from '@/modules/ejercicios/services/autorizacion.service'
-import { getCoeficienteComparativo } from '@/modules/estados/lib/ajuste'
+import { getIndicesReexpresion } from '@/modules/estados/lib/ajuste'
 import { findMovimientosPN, guardarMovimientosPN } from '../repository/patrimonio-neto.repository'
 import { derivarDesdeAnteriorPN } from '../domain/saldosInicio'
 import { armarEvolucionPN, conResultado } from '../domain/evolucion'
@@ -50,7 +50,7 @@ export async function guardarEvolucionPNAction(
       anteriorId ? findMovimientosPN(anteriorId) : Promise.resolve([]),
       findMovimientosPN(ejercicioId),
     ])
-    const derivado = derivarDesdeAnteriorPN(movsAnterior, getCoeficienteComparativo(ejercicio))
+    const derivado = derivarDesdeAnteriorPN(movsAnterior, getIndicesReexpresion(ejercicio))
 
     const saneado = armarEvolucionPN({
       ejercicioId,

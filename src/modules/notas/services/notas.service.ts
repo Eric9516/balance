@@ -10,7 +10,7 @@
 import { usarDerivadoDelAnterior } from '@/modules/comparativo-manual/lib/politica'
 import { idAnteriorDerivable, modoEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import type { EjercicioContableDTO } from '@/modules/ejercicios/domain/types'
-import { ajustarCuentas, getCoeficienteComparativo } from '@/modules/estados/lib/ajuste'
+import { ajustarCuentas, getIndicesReexpresion } from '@/modules/estados/lib/ajuste'
 import { findCuentasByEjercicio } from '@/modules/importaciones/repository/cuentas.repository'
 import { findNotasByEjercicio } from '../repository/notas.repository'
 import { derivarAnteriorDeNotas } from '../domain/anteriorVinculado'
@@ -31,6 +31,6 @@ export async function cargarNotas(ejercicio: EjercicioContableDTO): Promise<Nota
   return derivarAnteriorDeNotas(
     notas,
     cuentas,
-    ajustarCuentas(cuentasAnt, getCoeficienteComparativo(ejercicio)),
+    ajustarCuentas(cuentasAnt, getIndicesReexpresion(ejercicio)),
   )
 }

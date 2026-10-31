@@ -11,7 +11,7 @@ import {
   derivarArrastreBienesDeUso,
   type ResultadoArrastreBDU,
 } from '../domain/saldosInicio'
-import { getCoeficienteComparativo } from '@/modules/estados/lib/ajuste'
+import { getIndicesReexpresion } from '@/modules/estados/lib/ajuste'
 import { findBienesDeUso } from '../repository/bienes-de-uso.repository'
 
 export async function cargarBienesDeUso(
@@ -25,7 +25,7 @@ export async function cargarBienesDeUso(
   return aplicarArrastreBienesDeUso(
     bienes,
     anteriorId
-      ? derivarArrastreBienesDeUso(bienesAnterior, getCoeficienteComparativo(ejercicio))
+      ? derivarArrastreBienesDeUso(bienesAnterior, getIndicesReexpresion(ejercicio))
       : null,
     modoEfectivo(ejercicio),
   )

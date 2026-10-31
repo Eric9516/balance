@@ -10,7 +10,7 @@
  *    En primer ejercicio o modo pendiente queda editable (normalmente 0).
  *  - Control: aumento (disminución) neta del efectivo = suma de las tres actividades.
  *  - Columna anterior: VINCULADO → del flujo del anterior, por sección y concepto,
- *    × coeficiente; toda la columna queda bloqueada (lo que no tiene fuente va en 0).
+ *    reexpresado; toda la columna queda bloqueada (lo que no tiene fuente va en 0).
  *    MANUAL → a mano; resto → no se muestra.
  */
 
@@ -22,7 +22,8 @@ import {
   type FlujoItemDTO,
   type SeccionFlujo,
 } from './types'
-import { multiplicar, restar, sumar, sumarPor } from '@/lib/importe'
+import { restar, sumar, sumarPor } from '@/lib/importe'
+import { reexpresar, type IndicesReexpresion } from '@/modules/estados/lib/ajuste'
 
 export function normalizarConcepto(s: string): string {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
@@ -157,9 +158,9 @@ export function armarFlujo(params: {
   modo: ModoAnteriorEfectivo
   /** Flujo guardado del ejercicio anterior (solo VINCULADO). */
   flujoAnterior: FlujoGuardadoDTO | null
-  coeficiente: number
+  indices: IndicesReexpresion
 }): FlujoData {
-  const { efectivo, modo, flujoAnterior, coeficiente } = params
+  const { efectivo, modo, flujoAnterior, indices } = params
   const base = params.guardado ?? FLUJO_VACIO
   const mostrarAnterior = modo === 'VINCULADO' || modo === 'MANUAL'
   const editarAnterior = modo === 'MANUAL'
@@ -179,12 +180,12 @@ export function armarFlujo(params: {
 
   if (modo === 'VINCULADO') {
     if (flujoAnterior) {
-      saldoInicialAnterior = multiplicar(flujoAnterior.saldoInicial, coeficiente)
-      modificacionesEjAntAnt = multiplicar(flujoAnterior.modificacionesEjAnt, coeficiente)
+      saldoInicialAnterior = reexpresar(flujoAnterior.saldoInicial, indices)
+      modificacionesEjAntAnt = reexpresar(flujoAnterior.modificacionesEjAnt, indices)
       const porClave = new Map(
         flujoAnterior.items.map((i) => [
           claveLinea(i.seccion, i.concepto),
-          multiplicar(i.importe, coeficiente),
+          reexpresar(i.importe, indices),
         ]),
       )
       const usadas = new Set<string>()
@@ -201,7 +202,7 @@ export function armarFlujo(params: {
           conceptosSoloAnterior.push({
             seccion: i.seccion,
             concepto: i.concepto,
-            importe: multiplicar(i.importe, coeficiente),
+            importe: reexpresar(i.importe, indices),
           })
         }
       }

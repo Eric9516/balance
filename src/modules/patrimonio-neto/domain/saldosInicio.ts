@@ -4,7 +4,7 @@
  *  - Saldos al inicio  = suma de TODAS las filas del E.E.P.N. anterior, por componente
  *                        (es decir, su "Saldos al cierre"), en moneda de cierre anterior.
  *                        La reexpresión va en la fila "Ajuste por inflación" del actual.
- *  - Columna anterior  = total de cada fila del E.E.P.N. anterior × coeficiente.
+ *  - Columna anterior  = total de cada fila del E.E.P.N. anterior, reexpresado.
  *
  * Regla de bloqueo: duro cuando hay fuente (el anterior tiene E.E.P.N. cargado);
  * si el anterior no tiene E.E.P.N., nada se pisa y queda editable con advertencia.
@@ -15,7 +15,8 @@
 import type { TipoMovimientoPN } from '@prisma/client'
 import type { ModoAnteriorEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import { totalMovimientoPN, type EvolucionPNMovimientoDTO } from './types'
-import { multiplicar, sumar } from '@/lib/importe'
+import { sumar } from '@/lib/importe'
+import { reexpresar, type IndicesReexpresion } from '@/modules/estados/lib/ajuste'
 
 export type ColumnasPN = Pick<
   EvolucionPNMovimientoDTO,
@@ -50,7 +51,7 @@ export function sumarColumnasPN(acc: ColumnasPN, mov: ColumnasPN): ColumnasPN {
 export type DerivadoPN = {
   /** Saldos al cierre del anterior por componente. null = el anterior no tiene E.E.P.N. */
   saldoInicio: ColumnasPN | null
-  /** Total de cada fila del anterior × coeficiente. null = sin E.E.P.N. anterior. */
+  /** Total de cada fila del anterior, reexpresado. null = sin E.E.P.N. anterior. */
   totalAnteriorByTipo: Partial<Record<TipoMovimientoPN, number>> | null
 }
 
@@ -58,14 +59,14 @@ export const SIN_DERIVADO_PN: DerivadoPN = { saldoInicio: null, totalAnteriorByT
 
 export function derivarDesdeAnteriorPN(
   movimientosAnterior: EvolucionPNMovimientoDTO[],
-  coeficiente: number,
+  indices: IndicesReexpresion,
 ): DerivadoPN {
   if (movimientosAnterior.length === 0) return SIN_DERIVADO_PN
   const saldoInicio = movimientosAnterior.reduce<ColumnasPN>(sumarColumnasPN, {
     ...COLUMNAS_PN_CERO,
   })
   const totalAnteriorByTipo = Object.fromEntries(
-    movimientosAnterior.map((mov) => [mov.tipo, multiplicar(totalMovimientoPN(mov), coeficiente)]),
+    movimientosAnterior.map((mov) => [mov.tipo, reexpresar(totalMovimientoPN(mov), indices)]),
   ) as Partial<Record<TipoMovimientoPN, number>>
   return { saldoInicio, totalAnteriorByTipo }
 }

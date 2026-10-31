@@ -14,7 +14,7 @@ vi.mock('next/cache', () => ({
 }))
 
 import { db } from '@/lib/db'
-import { dividir, importe } from '@/lib/importe'
+import { importe } from '@/lib/importe'
 import { CreateEjercicioSchema } from '@/modules/ejercicios/schemas/ejercicio.schemas'
 import { createEjercicio } from '@/modules/ejercicios/repository/ejercicio.repository'
 import { derivarDesdeAnteriorPN } from '@/modules/patrimonio-neto/domain/saldosInicio'
@@ -121,7 +121,7 @@ describe('la base guarda todos los decimales', () => {
           capitalSuscripto: 1000.01,
         },
       ],
-      dividir(125, 100),
+      { actual: 125, anterior: 100 },
     )
     const totalAnterior = derivado.totalAnteriorByTipo?.SALDO_INICIO
     expect(totalAnterior).toBe(1250.0125)

@@ -164,3 +164,24 @@ Las tres subieron parecido aunque el cambio no toca esos caminos: es la carga de
 
 - **Para tener en cuenta con muchas personas:** el pool fija el contexto en una conexión solo cuando cambia, y ahora el contexto incluye a la persona. Con varias personas del mismo estudio a la vez, una conexión que pasa de una a otra hace un viaje más para declararla. Con la app y la base en el mismo servidor ese viaje cuesta menos de un milisegundo; si se mide como un costo real, se puede declarar el contexto dentro de cada transacción en vez de por conexión.
 
+
+## Reexpresar sin el coeficiente en `number` (2026-10-31, escala media)
+
+Ver [0009](decisiones/0009-importes-exactos.md). Con los importes cortados en pantalla, el coeficiente de unos 16 dígitos dejaba un centavo de menos en resultados que caen justo en centavos. Se compararon tres formas (100.000 importes para el tiempo y 40.000 casos que caen justo en centavos para la exactitud):
+
+| Forma | Tiempo por importe | Casos con otro resultado |
+|---|---|---|
+| Coeficiente como `number` (antes) | 3,22 µs | 12.081 |
+| Multiplicar y dividir cada importe | 5,48 µs | 0 |
+| Cociente de 34 dígitos, calculado una vez | 2,60 µs | 0 |
+
+Se usa la tercera (`reexpresar`). La segunda se probó primero con `pnpm rendimiento` y dio mucho peor, aunque esa corrida tuvo a la máquina cargada: documento imprimible 227 ms y paso Anterior 166 ms.
+
+| Medida (mediana local) | Antes | Con el cociente |
+|---|---|---|
+| Importar 800 cuentas (no reexpresa: sirve de testigo) | 167 ms | 167 ms |
+| Paso Estados | 40 ms | 41 ms |
+| Paso Anterior con compuerta | 46 ms | 44 ms |
+| Documento imprimible | 70 ms | 78 ms |
+
+El documento quedó 8 ms arriba en esta corrida; no se investigó si es variación entre corridas. Ninguna lectura completa de tablas grandes.
