@@ -15,7 +15,11 @@ import { esUuid } from './utils/uuid'
  *
  * pool-pg.ts lo pide al entregar cada conexión y se lo dice a la base.
  */
-export type ContextoBase = { estudioId: string } | { plataforma: true } | { sinEstudio: true }
+/** Quién usa la app dentro de su estudio: la base limita por rol (migración 20261030235000). */
+export type Quien = { usuarioId: string; rol: 'DUENO' | 'CONTADOR' | 'ASISTENTE' }
+
+export type ContextoBase =
+  { estudioId: string; quien?: Quien } | { plataforma: true } | { sinEstudio: true }
 
 /** Cómo sale el contexto del pedido en curso; null si no hay un pedido (pruebas, comandos). */
 type ContextoDelPedido = () => Promise<ContextoBase | null>
@@ -38,10 +42,14 @@ function dentroDe<T>(contexto: ContextoBase, fn: () => Promise<T>): Promise<T> {
   return almacen.run(contexto, async () => await fn())
 }
 
-/** Ejecuta `fn` con la base limitada al estudio. */
-export function conEstudio<T>(estudioId: string, fn: () => Promise<T>): Promise<T> {
+/**
+ * Ejecuta `fn` con la base limitada al estudio y, si se dice quién es, a lo que su rol puede hacer.
+ * Sin `quien` (tareas internas de la app), la base no limita por rol.
+ */
+export function conEstudio<T>(estudioId: string, fn: () => Promise<T>, quien?: Quien): Promise<T> {
   if (!esUuid(estudioId)) throw new Error('Identificador de estudio inválido.')
-  return dentroDe({ estudioId }, fn)
+  if (quien && !esUuid(quien.usuarioId)) throw new Error('Identificador de usuario inválido.')
+  return dentroDe({ estudioId, quien }, fn)
 }
 
 /** Ejecuta `fn` sin las reglas de los estudios. Solo para tareas de la plataforma. */

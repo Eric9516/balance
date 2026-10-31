@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { RubroBaseForm } from '@/modules/rubros-base/components/RubroBaseForm'
 import { findAllRubroGrupos } from '@/modules/rubros-grupo/repository/rubro-grupo.repository'
-import { getCurrentEstudioId } from '@/lib/estudio-context'
+import { faltaPermiso, getCurrentEstudioId } from '@/lib/estudio-context'
+import { SinPermiso } from '@/components/shared/SinPermiso'
 
 export const metadata = { title: 'Nueva clasificación — BalanceRT' }
 
@@ -13,6 +14,8 @@ interface Props {
 }
 
 export default async function NuevoRubroPage({ searchParams }: Props) {
+  const sinPermiso = await faltaPermiso('configurar_criterios')
+  if (sinPermiso) return <SinPermiso error={sinPermiso} />
   const { volver, grupoId } = await searchParams
   const grupos = await findAllRubroGrupos(await getCurrentEstudioId())
   const volverHref = `/configuracion/rubros${volver ? `?volver=${encodeURIComponent(volver)}` : ''}`

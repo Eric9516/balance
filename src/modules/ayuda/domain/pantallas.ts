@@ -73,6 +73,33 @@ export const INFO_PANTALLAS = {
       ],
     },
   },
+  usuarios: {
+    articulo: 'usuarios',
+    info: {
+      title: 'Usuarios',
+      purpose:
+        'La gente del estudio y su rol. Solo el dueño la ve: agrega personas, cambia roles, da contraseñas provisorias y desactiva o elimina cuentas.',
+      sources: ['Las cuentas del estudio, con su rol, su estado y su último ingreso.'],
+      formulas: [SIN_CALCULOS],
+      notes: [
+        'La contraseña provisoria se muestra una sola vez: pasásela a la persona por un medio privado.',
+        'Nadie se cambia el rol, se desactiva ni se elimina a sí mismo, y a un dueño no se lo elimina: primero se le cambia el rol.',
+      ],
+    },
+  },
+  'mi-cuenta': {
+    articulo: 'mi-cuenta',
+    info: {
+      title: 'Mi cuenta',
+      purpose: 'Tu nombre, tu contraseña y las sesiones que dejaste abiertas en otros equipos.',
+      sources: ['Tu cuenta: nombre, correo, rol y estudio.'],
+      formulas: [SIN_CALCULOS],
+      notes: [
+        'Para cambiar la contraseña, la app pide la actual. Al cambiarla se cierra tu sesión en los demás equipos.',
+        'El correo y el rol los maneja el dueño del estudio.',
+      ],
+    },
+  },
   clasificaciones: {
     articulo: 'clasificaciones',
     info: {

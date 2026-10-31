@@ -407,13 +407,16 @@ describe('El esquema acceso, cerrado para la app', () => {
     expect(funciones.filter((f) => f.la_app).map((f) => f.nombre)).toEqual([
       'abrir_sesion',
       'aceptar_codigo',
+      'cerrar_otras_sesiones',
       'cerrar_sesion',
       'codigo_de_la_sesion',
       'codigo_fallido',
       'datos_para_entrar',
+      'estado_de_usuarios',
       'fijar_contrasena',
       'guardar_codigo',
       'puede_intentar',
+      'quitar_codigo',
       'registrar_intento',
       'sesion_activa',
     ])

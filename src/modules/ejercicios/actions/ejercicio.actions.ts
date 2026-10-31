@@ -34,6 +34,7 @@ import { findSociedadById } from '@/modules/sociedades/repository/sociedad.repos
 import { esAuditorDelEstudio } from '@/modules/auditores/repository/auditor.repository'
 import { ESTADO_LABELS, type EjercicioContableDTO } from '../domain/types'
 import type { EstadoEjercicio } from '@prisma/client'
+import { faltaPermiso } from '@/lib/estudio-context'
 
 const VALID_TRANSITIONS: Record<EstadoEjercicio, EstadoEjercicio[]> = {
   BORRADOR: ['EN_PROCESO'],
@@ -174,6 +175,11 @@ export async function avanzarEstadoEjercicio(
   nuevoEstado: EstadoEjercicio,
 ): Promise<ActionResult<EjercicioContableDTO>> {
   try {
+    // Más allá de empezar (Borrador → En proceso), cambiar de estado es confirmar o cerrar
+    if (!(estadoActual === 'BORRADOR' && nuevoEstado === 'EN_PROCESO')) {
+      const sinPermiso = await faltaPermiso('confirmar_y_cerrar')
+      if (sinPermiso) return actionError(sinPermiso)
+    }
     await assertEjercicioBelongsToCurrentEstudio(id)
     const existing = await findEjercicioById(id)
     if (!existing) return actionError(EJERCICIO_NO_ENCONTRADO)
@@ -223,6 +229,8 @@ export async function eliminarEjercicio(
   sociedadId: string,
 ): Promise<ActionResult<void>> {
   try {
+    const sinPermiso = await faltaPermiso('confirmar_y_cerrar')
+    if (sinPermiso) return actionError(sinPermiso)
     await assertEjercicioBelongsToCurrentEstudio(id)
     const existing = await findEjercicioById(id)
     if (!existing) return actionError(EJERCICIO_NO_ENCONTRADO)
@@ -282,6 +290,8 @@ export async function autorizarComparativoAction(
   autorizadoPor: string,
 ): Promise<ActionResult<void>> {
   try {
+    const sinPermiso = await faltaPermiso('confirmar_y_cerrar')
+    if (sinPermiso) return actionError(sinPermiso)
     await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
     const nombre = autorizadoPor.trim()
     if (!nombre) {

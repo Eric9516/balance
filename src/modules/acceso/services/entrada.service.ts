@@ -5,7 +5,7 @@
 import { createHash, randomBytes } from 'node:crypto'
 import type { RolUsuario } from '@prisma/client'
 import { db } from '@/lib/db'
-import { conEstudio } from '@/lib/contexto-base'
+import { conEstudio, type Quien } from '@/lib/contexto-base'
 import type { AppError } from '@/modules/errores/types'
 import {
   CONTRASENA_MAXIMO,
@@ -182,9 +182,13 @@ export type AltaDeUsuario = {
   contrasenaProvisoria: string
 }
 
-/** Da de alta a una persona en su estudio con una contraseña provisoria. */
+/**
+ * Da de alta a una persona en su estudio con una contraseña provisoria. `quien` es quien la da de
+ * alta (desde la app, el dueño: la base controla su rol); sin `quien`, la plataforma.
+ */
 export async function darDeAltaUsuario(
   alta: AltaDeUsuario,
+  quien?: Quien,
 ): Promise<{ ok: true; usuarioId: string } | { ok: false; error: AppError }> {
   const problema = errorDeContrasena(alta.contrasenaProvisoria)
   if (problema)
@@ -193,20 +197,23 @@ export async function darDeAltaUsuario(
       error: { tipo: 'FORMULARIO', severidad: 'BAJO', codigo: 'FORM-001', mensaje: problema },
     }
   const huella = await huellaDeContrasena(alta.contrasenaProvisoria)
-  const usuarioId = await conEstudio(alta.estudioId, () =>
-    db.$transaction(async (tx) => {
-      const u = await tx.usuario.create({
-        data: {
-          estudioId: alta.estudioId,
-          email: normalizarEmail(alta.email),
-          nombre: alta.nombre.trim(),
-          rol: alta.rol,
-        },
-        select: { id: true },
-      })
-      await tx.$executeRaw`SELECT acceso.fijar_contrasena(${u.id}::uuid, ${huella}, true)`
-      return u.id
-    }),
+  const usuarioId = await conEstudio(
+    alta.estudioId,
+    () =>
+      db.$transaction(async (tx) => {
+        const u = await tx.usuario.create({
+          data: {
+            estudioId: alta.estudioId,
+            email: normalizarEmail(alta.email),
+            nombre: alta.nombre.trim(),
+            rol: alta.rol,
+          },
+          select: { id: true },
+        })
+        await tx.$executeRaw`SELECT acceso.fijar_contrasena(${u.id}::uuid, ${huella}, true)`
+        return u.id
+      }),
+    quien,
   )
   return { ok: true, usuarioId }
 }

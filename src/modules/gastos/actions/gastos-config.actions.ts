@@ -10,6 +10,7 @@ import {
   toggleEsGastoGrupo,
   toggleAparecEnEERRGrupo,
 } from '@/modules/rubros-grupo/repository/rubro-grupo.repository'
+import { faltaPermiso } from '@/lib/estudio-context'
 
 function revalidate(sociedadId: string, ejercicioId: string) {
   revalidatePath(`/sociedades/${sociedadId}/ejercicios/${ejercicioId}/cuentas`)
@@ -22,6 +23,8 @@ export async function toggleGastoSeccionAction(
   ejercicioId: string,
 ): Promise<ActionResult<void>> {
   try {
+    const sinPermiso = await faltaPermiso('configurar_criterios')
+    if (sinPermiso) return actionError(sinPermiso)
     await toggleEsGastoGrupo(await getCurrentEstudioId(), grupoId, esGasto)
     revalidate(sociedadId, ejercicioId)
     return actionOk(undefined)
@@ -40,6 +43,8 @@ export async function toggleAparecEnEERRAction(
   ejercicioId: string,
 ): Promise<ActionResult<void>> {
   try {
+    const sinPermiso = await faltaPermiso('configurar_criterios')
+    if (sinPermiso) return actionError(sinPermiso)
     const estudioId = await getCurrentEstudioId()
     if (key.startsWith('grupo:')) {
       await toggleAparecEnEERRGrupo(estudioId, key.replace('grupo:', ''), aparecEnEERR)
@@ -67,6 +72,8 @@ export async function reordenarGastoSeccionAction(
   ejercicioId: string,
 ): Promise<ActionResult<void>> {
   try {
+    const sinPermiso = await faltaPermiso('configurar_criterios')
+    if (sinPermiso) return actionError(sinPermiso)
     const estudioId = await getCurrentEstudioId()
     const getOrden = async (key: string) => {
       if (key.startsWith('grupo:')) {

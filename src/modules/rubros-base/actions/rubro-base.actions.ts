@@ -14,6 +14,7 @@ import {
   findNextOrden,
 } from '../repository/rubro-base.repository'
 import type { RubroBaseDTO } from '../domain/types'
+import { faltaPermiso } from '@/lib/estudio-context'
 
 const NO_ENCONTRADA = {
   tipo: 'TECNICO',
@@ -26,6 +27,8 @@ export async function crearRubroBase(
   input: CreateRubroBaseInput,
 ): Promise<ActionResult<RubroBaseDTO>> {
   try {
+    const sinPermiso = await faltaPermiso('configurar_criterios')
+    if (sinPermiso) return actionError(sinPermiso)
     const parsed = CreateRubroBaseSchema.safeParse(input)
     if (!parsed.success) {
       return actionError({
@@ -49,6 +52,8 @@ export async function actualizarRubroBase(
   input: CreateRubroBaseInput,
 ): Promise<ActionResult<RubroBaseDTO>> {
   try {
+    const sinPermiso = await faltaPermiso('configurar_criterios')
+    if (sinPermiso) return actionError(sinPermiso)
     const parsed = CreateRubroBaseSchema.safeParse(input)
     if (!parsed.success) {
       return actionError({
@@ -82,6 +87,8 @@ export async function getSiguienteOrden(
 
 export async function eliminarRubroBase(id: string): Promise<ActionResult<void>> {
   try {
+    const sinPermiso = await faltaPermiso('configurar_criterios')
+    if (sinPermiso) return actionError(sinPermiso)
     const estudioId = await getCurrentEstudioId()
     if (!(await findRubroBaseById(estudioId, id))) return actionError(NO_ENCONTRADA)
     await deleteRubroBase(estudioId, id)

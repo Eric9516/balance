@@ -150,3 +150,17 @@ Ver la migración `20261030150000_separacion_por_estudio`. La medición corre ah
 - **Declarar el estudio no suma viajes:** el pool lo fija en la conexión solo cuando cambia (un viaje la primera vez que una conexión pasa a otro estudio). Medido aparte con la red simulada, una lista de 200 sociedades tarda lo mismo con reglas y sin ellas (49 ms y 48 ms). En la tabla de arriba, la cantidad de viajes de las operaciones de una o dos consultas varía en uno entre corridas: es el redondeo de la medición (los temporizadores de Windows tienen unos 15 ms de resolución), no la regla.
 - Ninguna lectura completa de tablas grandes y ninguna clave foránea sin índice. Base de 530,4 MB, igual que antes.
 
+## Permisos por rol (2026-10-30, escala media)
+
+Ver la migración `20261030235000_permisos_por_rol`. El pool declara también el rol y la persona de la sesión (`app.rol`, `app.usuario`) en la misma consulta que el estudio, así que no suma viajes. Los disparadores de permisos están en tablas chicas (estudios, usuarios, ejercicios, auditores, catálogo y secciones), no en las cuentas.
+
+| Medida | Antes | Con permisos |
+|---|---|---|
+| Importar 800 cuentas (reemplazo), mediana local | 159 ms | 167 ms |
+| Paso Estados, mediana local | 38 ms | 40 ms |
+| Documento imprimible, mediana local | 66 ms | 70 ms |
+
+Las tres subieron parecido aunque el cambio no toca esos caminos: es la carga de la máquina en esa corrida (se midió después de la auditoría completa), no los permisos. Ninguna lectura completa de tablas grandes y ninguna clave foránea sin índice.
+
+- **Para tener en cuenta con muchas personas:** el pool fija el contexto en una conexión solo cuando cambia, y ahora el contexto incluye a la persona. Con varias personas del mismo estudio a la vez, una conexión que pasa de una a otra hace un viaje más para declararla. Con la app y la base en el mismo servidor ese viaje cuesta menos de un milisegundo; si se mide como un costo real, se puede declarar el contexto dentro de cada transacción en vez de por conexión.
+

@@ -11,6 +11,8 @@ vi.mock('next/cache', () => ({
   refresh: vi.fn(),
 }))
 vi.mock('next/navigation', () => ({
+  // En las pruebas, redirect y notFound son errores comunes: no hay señales de Next que dejar pasar
+  unstable_rethrow: () => {},
   redirect: (url: string) => {
     throw new Error(`redirect:${url}`)
   },

@@ -4,11 +4,14 @@ import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { AuditorTable } from '@/modules/auditores/components/AuditorTable'
 import { findAuditoresByEstudio } from '@/modules/auditores/repository/auditor.repository'
-import { getCurrentEstudioId } from '@/lib/estudio-context'
+import { faltaPermiso, getCurrentEstudioId } from '@/lib/estudio-context'
+import { SinPermiso } from '@/components/shared/SinPermiso'
 
 export const metadata = { title: 'Auditores' }
 
 export default async function AuditoresPage() {
+  const sinPermiso = await faltaPermiso('configurar_criterios')
+  if (sinPermiso) return <SinPermiso error={sinPermiso} />
   const estudioId = await getCurrentEstudioId()
   const auditores = await findAuditoresByEstudio(estudioId)
 

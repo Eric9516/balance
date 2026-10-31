@@ -8,12 +8,15 @@ import { getCurrentEstudioId } from '@/lib/estudio-context'
 import { UpdateEstudioSchema, type UpdateEstudioInput } from '../schemas/estudio.schemas'
 import { updateEstudio } from '../repository/estudio.repository'
 import type { EstudioDTO } from '../domain/types'
+import { faltaPermiso } from '@/lib/estudio-context'
 
 export async function actualizarEstudio(
   id: string,
   input: UpdateEstudioInput,
 ): Promise<ActionResult<EstudioDTO>> {
   try {
+    const sinPermiso = await faltaPermiso('configurar_estudio')
+    if (sinPermiso) return actionError(sinPermiso)
     const parsed = UpdateEstudioSchema.safeParse(input)
     if (!parsed.success) {
       return actionError({

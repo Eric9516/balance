@@ -64,6 +64,45 @@ export const INICIO: ArticuloAyuda[] = [
     relacionados: ['entrar'],
   },
   {
+    id: 'mi-cuenta',
+    titulo: 'Mi cuenta: tu nombre y tu contraseña',
+    categoria: 'inicio',
+    resumen:
+      'Cada persona cambia ahí su nombre y su contraseña, y puede cerrar la sesión que dejó abierta en otro equipo.',
+    claves: [
+      'mi cuenta',
+      'cambiar contraseña',
+      'cambiar nombre',
+      'mis datos',
+      'perfil',
+      'cerrar sesion en otros equipos',
+    ],
+    bloques: [
+      p(
+        'Se entra tocando tu nombre, abajo de todo en la barra lateral. Cualquier rol la puede usar: cada uno ve y cambia solo lo suyo.',
+      ),
+      defs(
+        [
+          'Tus datos',
+          'El nombre se cambia ahí. El correo y el rol los maneja el dueño del estudio.',
+        ],
+        [
+          'Contraseña',
+          'Para cambiarla, la app pide la actual: así nadie la cambia si dejás la computadora abierta. Al guardarla se cierra tu sesión en los demás equipos; en este seguís adentro.',
+        ],
+        [
+          'Otros equipos',
+          'Si entraste desde otra computadora o un celular y no saliste, "Cerrar en los demás" cierra esas sesiones sin moverte de donde estás.',
+        ],
+      ),
+      lista(
+        'Si escribís mal la contraseña actual 5 veces seguidas, se frena 15 minutos, igual que al entrar.',
+        '¿No te acordás de la actual? Salí y pedile una provisoria al dueño de tu estudio.',
+      ),
+    ],
+    relacionados: ['entrar', 'nueva-contrasena', 'roles'],
+  },
+  {
     id: 'codigo-celular',
     titulo: 'El código del celular',
     categoria: 'inicio',
@@ -92,7 +131,7 @@ export const INICIO: ArticuloAyuda[] = [
       lista(
         'Con "recordar este equipo", el código se pide una vez cada 30 días en esa computadora.',
         'Si los códigos no coinciden, revisá que la hora del celular esté en automático.',
-        'Si perdiste o cambiaste el celular, pedile al administrador de BalanceRT que te borre el código: la próxima vez que entres lo configurás de nuevo.',
+        'Si perdiste o cambiaste el celular, pedile al dueño de tu estudio que te quite el código (Configuración → Usuarios): la próxima vez que entres lo configurás de nuevo. Si sos el dueño, pedíselo a otro dueño o al administrador de BalanceRT.',
       ),
     ],
     relacionados: ['entrar', 'auth-005', 'auth-006'],
@@ -256,6 +295,106 @@ export const INICIO: ArticuloAyuda[] = [
         'Si el color es muy claro, la app lo rechaza y te dice el contraste: el texto blanco encima tiene que leerse bien. Elegí un tono más oscuro.',
       ),
     ],
+  },
+  {
+    id: 'usuarios',
+    titulo: 'La gente del estudio (usuarios)',
+    categoria: 'configuracion',
+    resumen:
+      'El dueño agrega a cada persona con su rol, le da una contraseña provisoria y puede desactivar o eliminar su cuenta.',
+    claves: [
+      'usuarios',
+      'agregar persona',
+      'nuevo usuario',
+      'empleado',
+      'contraseña provisoria',
+      'desactivar',
+      'eliminar usuario',
+      'olvide la contraseña',
+      'perdi el celular',
+    ],
+    bloques: [
+      p(
+        'Configuración → Usuarios. Solo la ve el dueño del estudio. Cada persona tiene su propia cuenta: así se sabe quién hizo cada cosa y cada uno ve solo lo que su rol le permite.',
+      ),
+      pasos(
+        'Tocá "Agregar persona" y escribí su nombre, su correo y su rol.',
+        'La app crea una contraseña provisoria y te la muestra una sola vez. Pasásela por un medio privado: en persona, por teléfono o por mensaje.',
+        'Al entrar por primera vez, la persona elige su propia contraseña. Hasta entonces, en la lista figura "Con contraseña provisoria".',
+      ),
+      defs(
+        [
+          'Rol',
+          'Se cambia en la misma lista. Antes de confirmarlo, la app te dice qué va a poder hacer.',
+        ],
+        [
+          'Contraseña provisoria nueva',
+          'Para quien se olvidó la suya. Se le cierran las sesiones abiertas y la próxima vez que entra elige una nueva.',
+        ],
+        [
+          'Quitar el código del celular',
+          'Aparece si la persona configuró el código. Es para quien cambió o perdió el celular: la próxima vez que entra lo configura de nuevo.',
+        ],
+        [
+          'Desactivar',
+          'La persona deja de poder entrar al instante, aunque tenga la app abierta. Lo que cargó queda igual, y podés reactivar su cuenta cuando quieras.',
+        ],
+        [
+          'Eliminar',
+          'Borra la cuenta. Lo que cargó en los balances queda igual. Si solo querés que no entre por un tiempo, mejor desactivá su cuenta.',
+        ],
+      ),
+      aviso(
+        'Nadie se cambia el rol, se desactiva ni se elimina a sí mismo: lo hace otro dueño. A un dueño no se lo elimina: primero se le cambia el rol. Así el estudio nunca queda sin dueño. La base de datos lo controla también, no solo la pantalla.',
+      ),
+      lista(
+        'Cada correo es de un solo estudio. Si la app dice que ya hay una cuenta con ese correo, la persona tiene que usar otro.',
+        'Tu propia cuenta (nombre y contraseña) se maneja en Mi cuenta.',
+      ),
+    ],
+    relacionados: ['roles', 'mi-cuenta', 'entrar', 'codigo-celular'],
+  },
+  {
+    id: 'roles',
+    titulo: 'Qué puede hacer cada rol',
+    categoria: 'configuracion',
+    resumen:
+      'Dueño, contador y asistente: quién carga, quién confirma y cierra, y quién maneja el estudio y su gente.',
+    claves: [
+      'roles',
+      'permisos',
+      'dueño',
+      'contador',
+      'asistente',
+      'quien puede',
+      'no me deja',
+      'confirmar',
+      'cerrar balance',
+    ],
+    bloques: [
+      defs(
+        [
+          'Asistente',
+          'Carga datos: crea sociedades y ejercicios, importa el balance de sumas y saldos, clasifica cuentas y completa anexos, notas y la columna del ejercicio anterior. No confirma, no autoriza el comparativo, no pasa a revisión ni cierra, y no elimina ejercicios.',
+        ],
+        [
+          'Contador',
+          'Todo lo del asistente, y además confirma los estados y el E.E.P.N., autoriza el comparativo, pasa el ejercicio a revisión, lo cierra y lo elimina. También configura auditores, clasificaciones y secciones de gastos.',
+        ],
+        [
+          'Dueño',
+          'Todo lo del contador, y además maneja a la gente del estudio (Configuración → Usuarios) y los datos y la apariencia del estudio.',
+        ],
+      ),
+      p(
+        'La app muestra a cada uno solo lo que puede usar. Si alguien intenta algo que su rol no permite, la app le dice quién lo hace (AUTH-007). La base de datos controla los mismos permisos: aunque alguien saltee la pantalla, no puede hacerlo.',
+      ),
+      lista(
+        'Un asistente puede desconfirmar lo que cambió, para que lo revise el contador.',
+        'El rol de cada persona lo cambia el dueño en Configuración → Usuarios.',
+      ),
+    ],
+    relacionados: ['usuarios', 'mi-cuenta', 'auth-007'],
   },
   {
     id: 'crear-ejercicio',

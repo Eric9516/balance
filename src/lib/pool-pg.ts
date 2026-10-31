@@ -54,13 +54,17 @@ class PoolPorEstudio extends pg.Pool {
     const entregado = contextoParaLaBase().then(async (contexto) => {
       const rol = contexto && 'plataforma' in contexto ? 'none' : ROL_APP
       const estudio = contexto && 'estudioId' in contexto ? contexto.estudioId : ''
-      const clave = `${rol}|${estudio}`
+      const quien = contexto && 'estudioId' in contexto ? contexto.quien : undefined
+      const rolApp = quien?.rol ?? ''
+      const usuario = quien?.usuarioId ?? ''
+      const clave = `${rol}|${estudio}|${rolApp}|${usuario}`
       const cliente = await super.connect()
       if (estadoDe.get(cliente) !== clave) {
         try {
           await cliente.query(
-            "SELECT set_config('role', $1, false), set_config('app.estudio', $2, false)",
-            [rol, estudio],
+            `SELECT set_config('role', $1, false), set_config('app.estudio', $2, false),
+                    set_config('app.rol', $3, false), set_config('app.usuario', $4, false)`,
+            [rol, estudio, rolApp, usuario],
           )
         } catch (error) {
           // Una conexión que no se pudo preparar no vuelve al pool.

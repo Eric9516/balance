@@ -424,6 +424,26 @@ const MENSAJES: Mensaje[] = [
     claves: ['codigo', 'celular', 'bloqueado'],
     relacionados: ['codigo-celular'],
   },
+  {
+    codigo: 'AUTH-007',
+    titulo: 'Tu rol no permite hacerlo',
+    significa:
+      'Lo que intentaste lo hace otro rol del estudio. Por ejemplo, un asistente carga datos pero no confirma ni cierra un balance, y solo el dueño maneja a la gente y los datos del estudio.',
+    solucion: [
+      'Pedíselo a quien tiene ese rol: el mensaje dice quién lo hace.',
+      'Si tu rol tiene que cambiar, pedíselo al dueño del estudio (Configuración → Usuarios).',
+    ],
+    claves: ['permiso', 'rol', 'asistente', 'contador', 'dueño', 'no puedo'],
+    relacionados: ['roles'],
+  },
+  {
+    codigo: 'NEG-063',
+    titulo: 'La base no permite ese cambio',
+    significa:
+      'Lo que intentaste rompe una regla que controla la base de datos, por ejemplo dejar un estudio sin dueño activo o vincular un dato con otro estudio. El mensaje dice cuál.',
+    solucion: ['Seguí lo que indica el mensaje y volvé a intentar.'],
+    claves: ['regla', 'no se puede', 'dueño activo'],
+  },
 ]
 
 export const MENSAJES_AYUDA: ArticuloAyuda[] = MENSAJES.map((m) => ({

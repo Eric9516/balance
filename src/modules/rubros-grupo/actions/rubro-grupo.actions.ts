@@ -14,6 +14,7 @@ import {
   findNextOrdenGrupo,
 } from '../repository/rubro-grupo.repository'
 import type { RubroGrupoDTO } from '../domain/types'
+import { faltaPermiso } from '@/lib/estudio-context'
 
 function revalidate() {
   revalidatePath('/configuracion/rubros')
@@ -23,6 +24,8 @@ export async function crearRubroGrupo(
   input: CreateRubroGrupoInput,
 ): Promise<ActionResult<RubroGrupoDTO>> {
   try {
+    const sinPermiso = await faltaPermiso('configurar_criterios')
+    if (sinPermiso) return actionError(sinPermiso)
     const parsed = CreateRubroGrupoSchema.safeParse(input)
     if (!parsed.success) {
       return actionError({
@@ -46,6 +49,8 @@ export async function actualizarRubroGrupo(
   input: CreateRubroGrupoInput,
 ): Promise<ActionResult<RubroGrupoDTO>> {
   try {
+    const sinPermiso = await faltaPermiso('configurar_criterios')
+    if (sinPermiso) return actionError(sinPermiso)
     const parsed = CreateRubroGrupoSchema.safeParse(input)
     if (!parsed.success) {
       return actionError({
@@ -76,6 +81,8 @@ export async function actualizarRubroGrupo(
 
 export async function eliminarRubroGrupo(id: string): Promise<ActionResult<void>> {
   try {
+    const sinPermiso = await faltaPermiso('configurar_criterios')
+    if (sinPermiso) return actionError(sinPermiso)
     const estudioId = await getCurrentEstudioId()
     const existing = await findRubroGrupoById(estudioId, id)
     if (!existing)

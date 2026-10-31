@@ -1,10 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useMontado } from './useMontado'
-import { createPortal } from 'react-dom'
-import { X, AlertTriangle } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Dialogo } from './Dialogo'
 
 interface ConfirmModalProps {
   open: boolean
@@ -31,65 +29,14 @@ export function ConfirmModal({
   isPending = false,
   variant = 'destructive',
 }: ConfirmModalProps) {
-  const mounted = useMontado()
-
-  // Cerrar con Escape
-  useEffect(() => {
-    if (!open) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
-
-  // Bloquear scroll del body cuando está abierto
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [open])
-
-  if (!mounted || !open) return null
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Dialog */}
-      <div className="relative z-10 mx-4 w-full max-w-md rounded-2xl bg-white shadow-2xl">
-        {/* Header */}
-        <div className="flex items-start justify-between px-6 pt-6 pb-4">
-          <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-          <button
-            onClick={onClose}
-            disabled={isPending}
-            className="rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="space-y-3 px-6 pb-2">
-          <p className="text-sm text-slate-600">{description}</p>
-
-          {warning && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3">
-              <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
-              <p className="text-xs text-amber-700">{warning}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex justify-end gap-2.5 px-6 py-5">
+  return (
+    <Dialogo
+      open={open}
+      onClose={onClose}
+      title={title}
+      bloqueado={isPending}
+      footer={
+        <>
           <Button variant="secondary" onClick={onClose} disabled={isPending}>
             {cancelLabel}
           </Button>
@@ -100,9 +47,16 @@ export function ConfirmModal({
           >
             {isPending ? 'Procesando...' : confirmLabel}
           </Button>
+        </>
+      }
+    >
+      <p className="text-sm text-slate-600">{description}</p>
+      {warning && (
+        <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
+          <p className="text-xs text-amber-700">{warning}</p>
         </div>
-      </div>
-    </div>,
-    document.body,
+      )}
+    </Dialogo>
   )
 }

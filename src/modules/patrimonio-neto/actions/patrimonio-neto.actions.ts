@@ -17,6 +17,7 @@ import { derivarDesdeAnteriorPN } from '../domain/saldosInicio'
 import { armarEvolucionPN, conResultado } from '../domain/evolucion'
 import type { EvolucionPNData, EvolucionPNInput } from '../domain/types'
 import { restar } from '@/lib/importe'
+import { faltaPermiso } from '@/lib/estudio-context'
 
 /**
  * Guarda el E.E.P.N. Lo que manda el cliente se SANEA en el servidor:
@@ -88,6 +89,8 @@ export async function confirmarPNAction(
   confirmado: boolean,
 ): Promise<ActionResult<void>> {
   try {
+    const sinPermiso = await faltaPermiso('confirmar_y_cerrar')
+    if (sinPermiso) return actionError(sinPermiso)
     await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
     if (confirmado) {
       // El E.E.P.N. no depende del flujo de efectivo: su descuadre se exige al confirmar estados.

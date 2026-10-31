@@ -7,6 +7,7 @@ import { actionError, actionOk, type ActionResult } from '@/modules/errores/type
 import { errorHandler } from '@/modules/errores/handler'
 import { validarAcento, type PreferenciasEstudio } from '../domain/preferencias'
 import { guardarPreferenciasEstudio } from '../repository/preferencias.repository'
+import { faltaPermiso } from '@/lib/estudio-context'
 
 const PreferenciasSchema = z.object({
   colorPrimario: z.string().optional(),
@@ -21,6 +22,8 @@ export async function guardarPreferenciasAction(
   input: z.infer<typeof PreferenciasSchema>,
 ): Promise<ActionResult<PreferenciasEstudio>> {
   try {
+    const sinPermiso = await faltaPermiso('configurar_estudio')
+    if (sinPermiso) return actionError(sinPermiso)
     const parsed = PreferenciasSchema.safeParse(input)
     if (!parsed.success) {
       return actionError({

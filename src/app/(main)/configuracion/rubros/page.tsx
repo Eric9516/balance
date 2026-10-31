@@ -5,7 +5,8 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { RubroBaseTable } from '@/modules/rubros-base/components/RubroBaseTable'
 import { findAllRubrosBase } from '@/modules/rubros-base/repository/rubro-base.repository'
 import { findAllRubroGrupos } from '@/modules/rubros-grupo/repository/rubro-grupo.repository'
-import { getCurrentEstudioId } from '@/lib/estudio-context'
+import { faltaPermiso, getCurrentEstudioId } from '@/lib/estudio-context'
+import { SinPermiso } from '@/components/shared/SinPermiso'
 
 export const metadata = { title: 'Clasificaciones — BalanceRT' }
 
@@ -14,6 +15,8 @@ interface Props {
 }
 
 export default async function RubrosPage({ searchParams }: Props) {
+  const sinPermiso = await faltaPermiso('configurar_criterios')
+  if (sinPermiso) return <SinPermiso error={sinPermiso} />
   const { volver } = await searchParams
   const estudioId = await getCurrentEstudioId()
   const [rubros, grupos] = await Promise.all([

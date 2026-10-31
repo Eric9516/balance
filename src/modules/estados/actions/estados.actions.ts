@@ -7,6 +7,7 @@ import { actionOk, actionError } from '@/modules/errores/types'
 import { errorHandler } from '@/modules/errores/handler'
 import type { ActionResult } from '@/modules/errores/types'
 import { compuertaAutorizacion } from '@/modules/ejercicios/services/autorizacion.service'
+import { faltaPermiso } from '@/lib/estudio-context'
 
 /**
  * Confirmar los estados contables = autorización final. Pasa por la compuerta RT 54:
@@ -18,6 +19,8 @@ export async function confirmarEstadosAction(
   sociedadId: string,
 ): Promise<ActionResult<void>> {
   try {
+    const sinPermiso = await faltaPermiso('confirmar_y_cerrar')
+    if (sinPermiso) return actionError(sinPermiso)
     await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
     const bloqueo = await compuertaAutorizacion(ejercicioId)
     if (bloqueo) return actionError(bloqueo)

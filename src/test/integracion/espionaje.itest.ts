@@ -29,7 +29,12 @@ const SIN_ESTUDIO: Record<string, string[]> = {
   _prisma_migrations: [],
 }
 /** Las funciones que puede ejecutar la app; las demás, ninguna. */
-const FUNCIONES_DE_LA_APP = ['estudio_de_la_sesion', 'uuidv7']
+const FUNCIONES_DE_LA_APP = [
+  'estudio_de_la_sesion',
+  'rol_de_la_sesion',
+  'usuario_de_la_sesion',
+  'uuidv7',
+]
 /**
  * Las que corren con los permisos de su dueño (saltean las reglas a propósito). En public, ninguna:
  * las del login viven en el esquema acceso (ver acceso.itest.ts).

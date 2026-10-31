@@ -533,6 +533,8 @@ async function recorrerGestion(ctx: Contexto, page: import('playwright-core').Pa
     ['Auditores', '/auditores'],
     ['Estudio', '/configuracion'],
     ['Clasificaciones RT 54', '/configuracion/rubros'],
+    ['Usuarios', '/configuracion/usuarios'],
+    ['Mi cuenta', '/mi-cuenta'],
   ] as const) {
     const area = `Pantalla ${nombre}`
     const respuesta = await page.goto(`${URL_BASE}${ruta}`, {

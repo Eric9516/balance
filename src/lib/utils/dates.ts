@@ -12,6 +12,27 @@ export function formatDate(fecha: Date | string | null | undefined): string {
   })
 }
 
+const FECHA_Y_HORA = new Intl.DateTimeFormat('es-AR', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  timeZone: 'America/Argentina/Buenos_Aires',
+})
+
+/**
+ * Un instante (cuándo pasó algo, por ejemplo el último ingreso) en la hora de Buenos Aires:
+ * "30/10/2026, 14:32". Para fechas contables, formatFecha.
+ */
+export function formatFechaYHora(fecha: Date | string | null | undefined, fallback = '-'): string {
+  if (!fecha) return fallback
+  const d = typeof fecha === 'string' ? new Date(fecha) : fecha
+  if (isNaN(d.getTime())) return fallback
+  return FECHA_Y_HORA.format(d)
+}
+
 /**
  * Formatea una fecha de cierre como dd/mm/yyyy en UTC.
  * Usa UTC a propósito: las fechas contables se guardan como fecha (medianoche UTC),

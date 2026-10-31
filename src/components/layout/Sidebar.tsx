@@ -2,25 +2,37 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Building2, Users, Settings, Scale, BookOpen, Tags, LogOut } from 'lucide-react'
+import { Building2, Users, Settings, Scale, BookOpen, Tags, LogOut, UserCog } from 'lucide-react'
 import type { RolUsuario } from '@prisma/client'
 import { cn } from '@/lib/utils'
 import { salirAction } from '@/modules/acceso/actions/acceso.actions'
+import { NOMBRE_DEL_ROL, puede, type Permiso } from '@/modules/acceso/domain/permisos'
 
 export type UsuarioDeLaSesion = { nombre: string; rol: RolUsuario }
 
-const NOMBRE_DEL_ROL: Record<RolUsuario, string> = {
-  DUENO: 'Dueño',
-  CONTADOR: 'Contador',
-  ASISTENTE: 'Asistente',
-}
-
 const NAV_TRABAJO = [{ href: '/sociedades', label: 'Sociedades', icon: Building2 }]
 
-const NAV_CONFIGURACION = [
-  { href: '/auditores', label: 'Auditores', icon: Users },
-  { href: '/configuracion/rubros', label: 'Clasificaciones RT 54', icon: Tags },
-  { href: '/configuracion', label: 'Estudio', icon: Settings },
+// Cada uno ve solo lo que su rol usa (la base y cada pantalla lo controlan también)
+const NAV_CONFIGURACION: {
+  href: string
+  label: string
+  icon: React.ElementType
+  permiso: Permiso
+}[] = [
+  { href: '/auditores', label: 'Auditores', icon: Users, permiso: 'configurar_criterios' },
+  {
+    href: '/configuracion/rubros',
+    label: 'Clasificaciones RT 54',
+    icon: Tags,
+    permiso: 'configurar_criterios',
+  },
+  { href: '/configuracion', label: 'Estudio', icon: Settings, permiso: 'configurar_estudio' },
+  {
+    href: '/configuracion/usuarios',
+    label: 'Usuarios',
+    icon: UserCog,
+    permiso: 'gestionar_usuarios',
+  },
 ]
 
 function NavItem({
@@ -52,6 +64,7 @@ function NavItem({
 
 export function Sidebar({ usuario }: { usuario: UsuarioDeLaSesion }) {
   const pathname = usePathname()
+  const configuracion = NAV_CONFIGURACION.filter((item) => puede(usuario.rol, item.permiso))
 
   const isActive = (href: string) => {
     if (href === '/configuracion') {
@@ -85,14 +98,22 @@ export function Sidebar({ usuario }: { usuario: UsuarioDeLaSesion }) {
         </div>
 
         {/* Configuración */}
-        <div className="space-y-0.5">
-          <p className="mb-1.5 px-3 text-[10px] font-semibold tracking-widest text-slate-400 uppercase">
-            Configuración
-          </p>
-          {NAV_CONFIGURACION.map((item) => (
-            <NavItem key={item.href} {...item} active={isActive(item.href)} />
-          ))}
-        </div>
+        {configuracion.length > 0 && (
+          <div className="space-y-0.5">
+            <p className="mb-1.5 px-3 text-[10px] font-semibold tracking-widest text-slate-400 uppercase">
+              Configuración
+            </p>
+            {configuracion.map((item) => (
+              <NavItem
+                key={item.href}
+                href={item.href}
+                label={item.label}
+                icon={item.icon}
+                active={isActive(item.href)}
+              />
+            ))}
+          </div>
+        )}
       </nav>
 
       {/* Footer */}
@@ -102,12 +123,17 @@ export function Sidebar({ usuario }: { usuario: UsuarioDeLaSesion }) {
 
       {/* Quién está usando la app */}
       <div className="flex items-center gap-2 border-t border-slate-700/60 px-3 py-3">
-        <div className="min-w-0 flex-1 px-2">
-          <p className="truncate text-sm font-medium text-white" title={usuario.nombre}>
-            {usuario.nombre}
-          </p>
-          <p className="text-xs text-slate-400">{NOMBRE_DEL_ROL[usuario.rol]}</p>
-        </div>
+        <Link
+          href="/mi-cuenta"
+          title="Mi cuenta"
+          className={cn(
+            'min-w-0 flex-1 rounded-md px-2 py-1 hover:bg-slate-700/60',
+            isActive('/mi-cuenta') && 'bg-slate-700',
+          )}
+        >
+          <p className="truncate text-sm font-medium text-white">{usuario.nombre}</p>
+          <p className="text-xs text-slate-400">{NOMBRE_DEL_ROL[usuario.rol]} · Mi cuenta</p>
+        </Link>
         <form action={salirAction}>
           <button
             type="submit"

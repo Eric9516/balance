@@ -18,6 +18,7 @@ import {
   reactivateAuditor,
 } from '../repository/auditor.repository'
 import type { AuditorDTO } from '../domain/types'
+import { faltaPermiso } from '@/lib/estudio-context'
 
 const AUDITOR_NO_ENCONTRADO: AppError = {
   tipo: 'TECNICO',
@@ -28,6 +29,8 @@ const AUDITOR_NO_ENCONTRADO: AppError = {
 
 export async function crearAuditor(input: CreateAuditorInput): Promise<ActionResult<AuditorDTO>> {
   try {
+    const sinPermiso = await faltaPermiso('configurar_criterios')
+    if (sinPermiso) return actionError(sinPermiso)
     const parsed = CreateAuditorSchema.safeParse(input)
     if (!parsed.success) {
       return actionError({
@@ -53,6 +56,8 @@ export async function actualizarAuditor(
   input: UpdateAuditorInput,
 ): Promise<ActionResult<AuditorDTO>> {
   try {
+    const sinPermiso = await faltaPermiso('configurar_criterios')
+    if (sinPermiso) return actionError(sinPermiso)
     const parsed = UpdateAuditorSchema.safeParse(input)
     if (!parsed.success) {
       return actionError({
@@ -77,6 +82,8 @@ export async function actualizarAuditor(
 
 export async function desactivarAuditor(id: string): Promise<ActionResult<void>> {
   try {
+    const sinPermiso = await faltaPermiso('configurar_criterios')
+    if (sinPermiso) return actionError(sinPermiso)
     const estudioId = await getCurrentEstudioId()
     if (!(await deactivateAuditor(estudioId, id))) return actionError(AUDITOR_NO_ENCONTRADO)
     revalidatePath('/auditores')
@@ -88,6 +95,8 @@ export async function desactivarAuditor(id: string): Promise<ActionResult<void>>
 
 export async function reactivarAuditor(id: string): Promise<ActionResult<void>> {
   try {
+    const sinPermiso = await faltaPermiso('configurar_criterios')
+    if (sinPermiso) return actionError(sinPermiso)
     const estudioId = await getCurrentEstudioId()
     if (!(await reactivateAuditor(estudioId, id))) return actionError(AUDITOR_NO_ENCONTRADO)
     revalidatePath('/auditores')

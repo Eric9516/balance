@@ -106,5 +106,7 @@ registrarContextoDelPedido(async () => {
   }
   const sesion = await sesionRecordada(token)
   // A medio entrar (falta el código del celular): todavía no ve ningún dato
-  return sesion && !sesion.faltaCodigo ? { estudioId: sesion.estudioId } : { sinEstudio: true }
+  return sesion && !sesion.faltaCodigo
+    ? { estudioId: sesion.estudioId, quien: { usuarioId: sesion.usuarioId, rol: sesion.rol } }
+    : { sinEstudio: true }
 })

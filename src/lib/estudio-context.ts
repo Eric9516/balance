@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { sesionActual } from '@/lib/sesion'
 import type { SesionActiva } from '@/modules/acceso/repository/acceso.repository'
+import { puede, sinPermiso, type Permiso } from '@/modules/acceso/domain/permisos'
+import type { AppError } from '@/modules/errores/types'
 
 /**
  * La sesión de quien usa la pantalla o la acción. Sin sesión, a la pantalla de entrada; con una
@@ -27,3 +29,12 @@ export const getCurrentEstudio = cache(async () => {
   const id = await getCurrentEstudioId()
   return db.estudio.findUniqueOrThrow({ where: { id } })
 })
+
+/**
+ * Si el rol de la sesión no tiene el permiso, el error que lo explica; si lo tiene, null. Va al
+ * principio de cada acción que lo necesita (la base lo controla también).
+ */
+export async function faltaPermiso(permiso: Permiso): Promise<AppError | null> {
+  const sesion = await exigirSesion()
+  return puede(sesion.rol, permiso) ? null : sinPermiso(sesion.rol, permiso)
+}
