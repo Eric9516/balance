@@ -44,7 +44,7 @@ const PERMITIDOS: Permitido[] = [
     archivo: 'src/lib/utils/currency.ts',
     linea: "const [entero, fraccion = ''] = new Decimal(String(coeficiente)).toFixed().split('.')",
     motivo:
-      'toFixed() sin argumento no redondea: escribe el número completo sin notación exponencial. El coeficiente se corta después, sin redondear, para mostrar 8 decimales (decisión del dueño del producto, 2026-10-31).',
+      'toFixed() sin argumento no redondea: escribe el número completo sin notación exponencial. El coeficiente se corta después, sin redondear, para mostrar 2 u 8 decimales (decisión del dueño del producto, 2026-10-31).',
   },
   {
     archivo: 'src/modules/estudios/domain/preferencias.ts',

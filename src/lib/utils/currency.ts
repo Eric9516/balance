@@ -33,21 +33,25 @@ export function formatCurrency(
   return d.isNegative() ? `(${conSimbolo})` : conSimbolo
 }
 
-/**
- * Coeficiente de reexpresión para mostrar: 2 decimales en formato argentino (1,32).
- * Decisión del dueño del producto (2026-10-19): es solo presentación. El cálculo usa siempre el
- * coeficiente completo (`dividir` de `@/lib/importe`), nunca el valor mostrado.
- */
-export function formatCoeficiente(coeficiente: number): string {
-  return formatCurrency(coeficiente)
+/** El coeficiente cortado en esos decimales: no redondea el último dígito que se ve. */
+function coeficienteCortado(coeficiente: number, decimales: number): string {
+  const [entero, fraccion = ''] = new Decimal(String(coeficiente)).toFixed().split('.')
+  return formatCurrency(`${entero}.${fraccion.slice(0, decimales)}`, { decimales })
 }
 
 /**
- * Coeficiente anual en los datos del ejercicio: 8 decimales, para controlarlo contra los índices
- * (decisión del dueño del producto, 2026-10-31). Corta en el octavo decimal: no redondea el último
- * dígito que se ve. Es solo presentación: el cálculo usa siempre el coeficiente completo.
+ * Coeficiente de reexpresión para mostrar: 2 decimales cortados, sin redondear (1,31 si es
+ * 1,3154...; decisión del dueño del producto, 2026-10-31). Es solo presentación: el cálculo usa
+ * siempre el coeficiente completo (`dividir` de `@/lib/importe`), nunca el valor mostrado.
+ */
+export function formatCoeficiente(coeficiente: number): string {
+  return coeficienteCortado(coeficiente, 2)
+}
+
+/**
+ * Coeficiente anual en los datos del ejercicio: el único lugar con 8 decimales, para controlarlo
+ * contra los índices (decisión del dueño del producto, 2026-10-31). También cortados.
  */
 export function formatCoeficienteOchoDecimales(coeficiente: number): string {
-  const [entero, fraccion = ''] = new Decimal(String(coeficiente)).toFixed().split('.')
-  return formatCurrency(`${entero}.${fraccion.slice(0, 8)}`, { decimales: 8 })
+  return coeficienteCortado(coeficiente, 8)
 }

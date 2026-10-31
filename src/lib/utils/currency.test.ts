@@ -30,10 +30,11 @@ describe('formatCurrency (formato AR)', () => {
 })
 
 describe('formatCoeficiente', () => {
-  it('muestra 2 decimales en formato argentino', () => {
-    expect(formatCoeficiente(1.3155)).toBe('1,32')
+  it('muestra 2 decimales y corta el resto, sin redondear', () => {
+    expect(formatCoeficiente(1.3155)).toBe('1,31')
     expect(formatCoeficiente(1)).toBe('1,00')
-    expect(formatCoeficiente(12.345678)).toBe('12,35')
+    expect(formatCoeficiente(12.345678)).toBe('12,34')
+    expect(formatCoeficiente(1.999)).toBe('1,99')
   })
 })
 
