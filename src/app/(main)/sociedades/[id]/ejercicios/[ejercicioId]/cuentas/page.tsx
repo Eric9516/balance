@@ -62,6 +62,7 @@ import {
   mostrarColumnaAnterior,
 } from '@/modules/comparativo-manual/lib/politica'
 import { getCoeficienteComparativo } from '@/modules/estados/lib/ajuste'
+import { anteriorAjustado } from '@/modules/comparativo-manual/lib/ajuste'
 import { totalAnteriorFila } from '@/modules/patrimonio-neto/domain/evolucion'
 import { db } from '@/lib/db'
 
@@ -131,7 +132,8 @@ export default async function CuentasPage({ params, searchParams }: Props) {
   const modo = modoEfectivo(ejercicio)
   const anteriorId = idAnteriorDerivable(ejercicio)
   const mostrarAnterior = mostrarColumnaAnterior(modo)
-  const editarAnterior = editarAnteriorManual(modo)
+  // Ya ajustado, la columna anterior no se edita: se corrige desde el paso Ejercicio anterior.
+  const editarAnterior = editarAnteriorManual(modo) && !anteriorAjustado(ejercicio)
   const coeficiente = getCoeficienteComparativo(ejercicio)
   const esPrimeraAdopcion = ejercicio.adopcionRT54 === 'PRIMERA_ADOPCION'
 
@@ -154,6 +156,9 @@ export default async function CuentasPage({ params, searchParams }: Props) {
   const ejercicioAnterior =
     necesitaAnterior && anteriorId ? await findEjercicioById(anteriorId) : null
   // En carga manual, el cierre del anterior es, por definición, el día previo al inicio.
+  const origenAnterior = anteriorAjustado(ejercicio)
+    ? 'lo cargado a mano, ajustado por inflación'
+    : (ejercicioAnterior?.denominacion ?? null)
   const fechaCierreAnterior =
     ejercicioAnterior?.fechaCierre ??
     (mostrarAnterior ? diaAnteriorUTC(ejercicio.fechaInicio) : null)
@@ -194,7 +199,9 @@ export default async function CuentasPage({ params, searchParams }: Props) {
       tieneNotas ? findNotasByEjercicio(ejercicioId) : Promise.resolve([]),
     ])
     const evaluacion = await evaluarAutorizacionSinPersistir(ejercicio, { estados })
-    const cuadre = totalesAnteriorSSP(estados.estadosData, estados.pnData)
+    // Lo que se controla es lo cargado: los importes ajustados no se comparan exactos entre sí.
+    const delCuadre = estados.cargado ?? estados
+    const cuadre = totalesAnteriorSSP(delCuadre.estadosData, delCuadre.pnData)
     content = (
       <PasoAnteriorView
         ejercicio={ejercicio}
@@ -231,8 +238,8 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         }
         cuadre={{ ...cuadre, diferencia: cuadre.activo - (cuadre.pasivo + cuadre.patrimonioNeto) }}
         resultadoAnterior={{
-          eerr: estados.estadosData.eerr.utilidadEjercicioAnt,
-          eepn: totalAnteriorFila(estados.pnData.movimientos, 'RESULTADO_EJERCICIO'),
+          eerr: delCuadre.estadosData.eerr.utilidadEjercicioAnt,
+          eepn: totalAnteriorFila(delCuadre.pnData.movimientos, 'RESULTADO_EJERCICIO'),
         }}
         evaluacion={evaluacion}
         auditorNombre={ejercicio.auditorNombre}
@@ -258,6 +265,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         <BienesDeUsoView
           bienes={arrastre.bienes}
           netoAnteriorMap={arrastre.netoAnteriorMap}
+          netoCargadoMap={arrastre.netoCargadoMap}
           bloqueadas={Array.from(arrastre.bloqueadas)}
           advertencias={arrastre.advertencias}
           mostrarAnterior={mostrarAnterior}
@@ -281,6 +289,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
           mostrarAnterior={mostrarAnterior}
           editarAnterior={editarAnterior}
           conceptosExtra={costo.conceptosExtra}
+          cargado={costo.cargado}
           ejercicioId={ejercicioId}
           sociedadId={id}
           fechaCierre={ejercicio.fechaCierre}
@@ -341,7 +350,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
           fechaCierreAnterior={fechaCierreAnterior}
           mostrarAnterior={mostrarAnterior}
           editarAnterior={editarAnterior}
-          origenAnterior={ejercicioAnterior?.denominacion ?? null}
+          origenAnterior={origenAnterior}
           tieneCuentasClasificadas={totalCuentas > sinClasificar}
           configNotaI={{
             adopcionRT54: ejercicio.adopcionRT54 ?? null,
@@ -385,7 +394,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
     )
   } else if (paso === 'patrimonio-neto') {
     const cuentas = await findCuentasByEjercicio(ejercicioId)
-    const { pnData } = await cargarEstadosConPN(ejercicio, cuentas)
+    const { pnData, cargado } = await cargarEstadosConPN(ejercicio, cuentas)
     content = (
       <PatrimonioNetoView
         data={pnData}
@@ -394,14 +403,15 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         fechaCierre={ejercicio.fechaCierre}
         fechaCierreAnterior={fechaCierreAnterior}
         mostrarAnterior={mostrarAnterior}
-        anteriorDenominacion={ejercicioAnterior?.denominacion ?? null}
+        anteriorDenominacion={origenAnterior}
         pnConfirmado={pnConfirmado}
+        cargado={cargado?.pnData.movimientos}
       />
     )
   } else if (paso === 'estados') {
     const cuentas = await findCuentasByEjercicio(ejercicioId)
-    const { estadosData, pnData } = await cargarEstadosConPN(ejercicio, cuentas)
-    const flujo = await cargarFlujo(ejercicio, estadosData)
+    const { estadosData, pnData, cargado } = await cargarEstadosConPN(ejercicio, cuentas)
+    const flujo = await cargarFlujo(ejercicio, estadosData, undefined, cargado?.estadosData)
     content = (
       <EstadosView
         data={{
@@ -416,6 +426,13 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         fechaCierre={ejercicio.fechaCierre}
         fechaCierreAnterior={fechaCierreAnterior}
         anteriorDenominacion={ejercicioAnterior?.denominacion ?? null}
+        cargado={
+          cargado && {
+            ...cargado.estadosData,
+            patrimonioNetoFinal: cargado.pnData.totalActual,
+            patrimonioNetoFinalAnt: cargado.pnData.totalAnterior,
+          }
+        }
         flujo={
           <FlujoEfectivoView
             data={flujo}
@@ -424,7 +441,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
             fechaInicio={ejercicio.fechaInicio}
             fechaCierre={ejercicio.fechaCierre}
             fechaCierreAnterior={fechaCierreAnterior}
-            anteriorDenominacion={ejercicioAnterior?.denominacion ?? null}
+            anteriorDenominacion={origenAnterior}
           />
         }
       />

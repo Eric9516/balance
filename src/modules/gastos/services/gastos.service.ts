@@ -8,6 +8,10 @@ import { idAnteriorDerivable, modoEfectivo } from '@/modules/ejercicios/domain/e
 import type { ComparativoManualDTO } from '@/modules/comparativo-manual/domain/types'
 import { findComparativoByEjercicio } from '@/modules/comparativo-manual/repository/comparativo.repository'
 import { editarAnteriorManual, resolverGastos } from '@/modules/comparativo-manual/lib/politica'
+import {
+  ajustarComparativos,
+  indicesDelAnteriorManual,
+} from '@/modules/comparativo-manual/lib/ajuste'
 import { ajustarGastos, getIndicesReexpresion } from '@/modules/estados/lib/ajuste'
 import { findGastosDinamicos, type GastosSecciones } from '../repository/gastos-dinamico.repository'
 
@@ -22,5 +26,8 @@ export async function cargarGastos(ejercicio: EjercicioContableDTO): Promise<Gas
         )
       : Promise.resolve([] as ComparativoManualDTO[]),
   ])
-  return resolverGastos(ajustarGastos(gastos, getIndicesReexpresion(ejercicio)), modo, comparativos)
+  const manual = indicesDelAnteriorManual(ejercicio)
+  const base = ajustarGastos(gastos, getIndicesReexpresion(ejercicio))
+  const resuelto = resolverGastos(base, modo, ajustarComparativos(comparativos, manual))
+  return manual ? { ...resuelto, cargado: resolverGastos(base, modo, comparativos) } : resuelto
 }

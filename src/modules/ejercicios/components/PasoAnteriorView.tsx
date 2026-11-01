@@ -18,14 +18,19 @@ import {
 } from 'lucide-react'
 import type { EstadoEjercicio } from '@prisma/client'
 import { cn } from '@/lib/utils'
-import { formatCoeficiente, formatCurrency } from '@/lib/utils/currency'
+import {
+  formatCoeficiente,
+  formatCoeficienteOchoDecimales,
+  formatCurrency,
+} from '@/lib/utils/currency'
 import { formatFecha } from '@/lib/utils/dates'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useMontado } from '@/components/shared/useMontado'
 import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
 import { toastSuccess } from '@/modules/errores/components/Toast'
-import { autorizarComparativoAction } from '../actions/ejercicio.actions'
+import { autorizarComparativoAction, corregirAnteriorAction } from '../actions/ejercicio.actions'
+import { ConfirmModal } from '@/components/shared/ConfirmModal'
 import type { ModoAnteriorEfectivo } from '../domain/ejercicioAnterior'
 import type { ItemValidacion } from '../domain/autorizacion'
 import type { BloqueComparativo } from '../lib/bloquesComparativo'
@@ -144,6 +149,7 @@ function ModalAutorizar({
   onConfirm,
   nombreInicial,
   fechaCierreAnterior,
+  coeficiente,
   isPending,
 }: {
   open: boolean
@@ -151,6 +157,7 @@ function ModalAutorizar({
   onConfirm: (nombre: string) => void
   nombreInicial: string
   fechaCierreAnterior: Date | null
+  coeficiente: number
   isPending: boolean
 }) {
   const mounted = useMontado()
@@ -183,6 +190,16 @@ function ModalAutorizar({
             estados, anexos y notas corresponden a los estados contables de la sociedad al{' '}
             <strong>{formatFecha(fechaCierreAnterior, 'cierre del ejercicio anterior')}</strong>, y
             que fueron revisados para su presentación comparativa según la RT 54.
+          </p>
+          <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-sm text-blue-900">
+            Al autorizar, cada importe se ajusta por inflación con el coeficiente{' '}
+            <strong className="font-mono">{formatCoeficienteOchoDecimales(coeficiente)}</strong>. Lo
+            cargado no se pisa: se puede ver y corregir.
+          </p>
+          <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            Si cargaste los importes ya ajustados, no autorices: se ajustarían dos veces. Cargá los
+            valores sin ajustar.
           </p>
           <div className="space-y-1.5">
             <label htmlFor="autorizadoPor" className="text-xs font-medium text-slate-600">
@@ -245,9 +262,22 @@ export function PasoAnteriorView({
 }: Props) {
   const router = useRouter()
   const [modalOpen, setModalOpen] = useState(false)
+  const [corrigiendo, setCorrigiendo] = useState(false)
   const { isPending, ejecutar } = useGuardarAccion()
   const editarHref = `/sociedades/${sociedadId}/ejercicios/${ejercicio.id}/editar`
   const autorizado = ejercicio.comparativoAutorizadoEn !== null
+  const ajustado = ejercicio.anteriorAjustadoEn !== null
+
+  function corregir() {
+    ejecutar(
+      () => corregirAnteriorAction(ejercicio.id, sociedadId),
+      () => {
+        setCorrigiendo(false)
+        toastSuccess('Podés corregir los saldos del ejercicio anterior')
+        router.refresh()
+      },
+    )
+  }
 
   function autorizar(nombre: string) {
     ejecutar(
@@ -429,6 +459,46 @@ export function PasoAnteriorView({
       )}
 
       {/* ── MANUAL ─────────────────────────────────────────────────────────── */}
+      {modo === 'MANUAL' && autorizado && (
+        <div
+          className={cn(
+            'flex items-start justify-between gap-4 rounded-xl border px-4 py-3.5',
+            ajustado ? 'border-blue-200 bg-blue-50' : 'border-amber-200 bg-amber-50',
+          )}
+        >
+          <div className="text-sm">
+            {ajustado ? (
+              <>
+                <p className="font-medium text-blue-900">
+                  Ajustado por inflación con el coeficiente{' '}
+                  <span className="font-mono">{formatCoeficienteOchoDecimales(coeficiente)}</span>
+                </p>
+                <p className="mt-0.5 text-blue-800">
+                  En cada estado, anexo y nota, el botón &quot;Ver lo cargado&quot; muestra al lado
+                  lo que se había escrito. Esa columna no sale en el balance.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-medium text-amber-900">Estos saldos no están ajustados</p>
+                <p className="mt-0.5 text-amber-800">
+                  Se autorizaron antes de que el ajuste fuera automático y salen en el balance como
+                  se cargaron. Para ajustarlos, quitá la autorización y autorizá de nuevo.
+                </p>
+              </>
+            )}
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setCorrigiendo(true)}
+            disabled={isPending}
+          >
+            {ajustado ? 'Corregir lo cargado' : 'Quitar la autorización'}
+          </Button>
+        </div>
+      )}
       {modo === 'MANUAL' && (
         <>
           <Seccion titulo="Carga por bloque">
@@ -542,6 +612,22 @@ export function PasoAnteriorView({
         onConfirm={autorizar}
         nombreInicial={auditorNombre ?? ''}
         fechaCierreAnterior={fechaCierreAnterior}
+        coeficiente={coeficiente}
+        isPending={isPending}
+      />
+      <ConfirmModal
+        open={corrigiendo}
+        onClose={() => !isPending && setCorrigiendo(false)}
+        onConfirm={corregir}
+        title={ajustado ? 'Corregir lo cargado' : 'Quitar la autorización'}
+        description={
+          ajustado
+            ? 'Se quitan el ajuste y la autorización, y vuelven a verse los importes como se cargaron, para editarlos en cada estado, anexo y nota. Cuando termines, autorizá de nuevo y se vuelven a ajustar.'
+            : 'Se quita la autorización y podés revisar los importes en cada estado, anexo y nota. Al autorizar de nuevo, se ajustan por inflación.'
+        }
+        warning="Los estados y el E.E.P.N. confirmados se tienen que volver a confirmar."
+        confirmLabel={ajustado ? 'Corregir' : 'Quitar la autorización'}
+        variant="default"
         isPending={isPending}
       />
     </div>

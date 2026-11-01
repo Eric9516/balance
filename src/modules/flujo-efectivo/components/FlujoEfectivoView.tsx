@@ -1,5 +1,10 @@
 'use client'
 
+import {
+  BotonVerCargado,
+  TdCargado,
+  ThCargado,
+} from '@/modules/comparativo-manual/components/ColumnaCargado'
 import { useState } from 'react'
 import { CheckCircle2, AlertTriangle, History, Plus, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -68,6 +73,9 @@ export function FlujoEfectivoView({
   const { isPending: isPendingAcciones, ejecutar } = useGuardarAccion()
   const isPending = edicion.isPending || isPendingAcciones
   const { actual, anterior } = totalesFlujo(flujo, mostrarAnterior)
+  const [verCargado, setVerCargado] = useState(false)
+  const cargado = verCargado ? data.cargado : null
+  const totalesCargado = cargado ? totalesFlujo(cargado, true).anterior : null
   const vinculado = mostrarAnterior && !editarAnterior
 
   function setCampo(campo: keyof Omit<FlujoGuardadoDTO, 'id' | 'items'>, v: number) {
@@ -107,7 +115,7 @@ export function FlujoEfectivoView({
     )
   }
 
-  const columnas = 2 + (mostrarAnterior ? 1 : 0) + (editando ? 1 : 0)
+  const columnas = 2 + (mostrarAnterior ? 1 : 0) + (editando ? 1 : 0) + (cargado ? 1 : 0)
   const th = 'celda border-b border-linea text-right align-bottom text-tabla-sm font-medium'
 
   /** Celda de la columna anterior: a mano (MANUAL), con candado (VINCULADO con fuente) o en 0. */
@@ -158,6 +166,9 @@ export function FlujoEfectivoView({
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <ToggleDensidad />
+          {data.cargado && (
+            <BotonVerCargado visible={verCargado} onToggle={() => setVerCargado((v) => !v)} />
+          )}
           <BotonEditar
             editando={editando}
             onEditar={edicion.iniciarEdicion}
@@ -209,6 +220,7 @@ export function FlujoEfectivoView({
                     )}
                   </th>
                 )}
+                {cargado && <ThCargado />}
                 {editando && <th className="w-10 border-b border-linea" />}
               </tr>
             </thead>
@@ -236,6 +248,7 @@ export function FlujoEfectivoView({
                     )}
                   </td>
                 )}
+                {cargado && <TdCargado valor={cargado.saldoInicialAnterior} />}
                 {editando && <td />}
               </tr>
               <tr>
@@ -255,12 +268,14 @@ export function FlujoEfectivoView({
                     )}
                   </td>
                 )}
+                {cargado && <TdCargado valor={cargado.modificacionesEjAntAnt} />}
                 {editando && <td />}
               </tr>
               <FilaTotal
                 label={TEXTOS_FLUJO.efectivoInicioModificado}
                 actual={actual.efectivoInicioModificado}
                 anterior={anterior?.efectivoInicioModificado}
+                cargado={totalesCargado?.efectivoInicioModificado}
                 editando={editando}
               />
               <tr>
@@ -269,12 +284,14 @@ export function FlujoEfectivoView({
                 {mostrarAnterior && (
                   <td className="celda">{calculado(flujo.saldoFinalAnterior, ORIGEN_BALANCE)}</td>
                 )}
+                {cargado && <TdCargado valor={cargado.saldoFinalAnterior} />}
                 {editando && <td />}
               </tr>
               <FilaTotal
                 label={TEXTOS_FLUJO.variacionNeta}
                 actual={actual.variacionNeta}
                 anterior={anterior?.variacionNeta}
+                cargado={totalesCargado?.variacionNeta}
                 editando={editando}
                 fuerte
               />
@@ -293,6 +310,12 @@ export function FlujoEfectivoView({
                     isPending={isPending}
                     subtotal={actual.porSeccion[seccion]}
                     subtotalAnterior={anterior?.porSeccion[seccion]}
+                    subtotalCargado={totalesCargado?.porSeccion[seccion]}
+                    cargadoDe={
+                      cargado
+                        ? (id) => cargado.items.find((x) => x.id === id)?.importeAnterior ?? 0
+                        : undefined
+                    }
                     celdaAnterior={(i) =>
                       celdaAnterior(i.importeAnterior, bloqueo.lineasAnterior.has(i.id), (v) =>
                         setItem(i.id, { importeAnterior: v }),
@@ -311,6 +334,7 @@ export function FlujoEfectivoView({
                 label={TEXTOS_FLUJO.variacionNeta}
                 actual={actual.sumaActividades}
                 anterior={anterior?.sumaActividades}
+                cargado={totalesCargado?.sumaActividades}
                 editando={editando}
                 fuerte
                 doble
@@ -345,10 +369,12 @@ function FilaTotal({
   editando,
   fuerte = false,
   doble = false,
+  cargado,
 }: {
   label: string
   actual: number
   anterior?: number
+  cargado?: number
   editando: boolean
   fuerte?: boolean
   doble?: boolean
@@ -373,6 +399,7 @@ function FilaTotal({
       </td>
       {celda(actual)}
       {anterior !== undefined && celda(anterior)}
+      {cargado !== undefined && <TdCargado valor={cargado} fuerte className={borde} />}
       {editando && <td className={borde} />}
     </tr>
   )
@@ -387,6 +414,8 @@ function SeccionFlujoFilas({
   isPending,
   subtotal,
   subtotalAnterior,
+  subtotalCargado,
+  cargadoDe,
   celdaAnterior,
   onConcepto,
   onImporte,
@@ -401,6 +430,8 @@ function SeccionFlujoFilas({
   isPending: boolean
   subtotal: number
   subtotalAnterior?: number
+  subtotalCargado?: number
+  cargadoDe?: (id: string) => number
   celdaAnterior: (i: FlujoItemDTO) => React.ReactNode
   onConcepto: (id: string, concepto: string) => void
   onImporte: (id: string, importe: number) => void
@@ -445,6 +476,7 @@ function SeccionFlujoFilas({
             />
           </td>
           {mostrarAnterior && <td className="celda">{celdaAnterior(l)}</td>}
+          {cargadoDe && <TdCargado valor={cargadoDe(l.id)} />}
           {editando && (
             <td className="celda text-center">
               <button
@@ -472,6 +504,7 @@ function SeccionFlujoFilas({
         label={SECCION_FLUJO_SUBTOTAL[seccion]}
         actual={subtotal}
         anterior={subtotalAnterior}
+        cargado={subtotalCargado}
         editando={editando}
       />
     </>

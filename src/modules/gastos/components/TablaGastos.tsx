@@ -1,3 +1,4 @@
+import { TdCargado, ThCargado } from '@/modules/comparativo-manual/components/ColumnaCargado'
 import { AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
@@ -27,6 +28,7 @@ export function TablaGastos({
   comparativo,
   ejercicioId,
   sociedadId,
+  cargado = null,
 }: {
   secciones: GastosSecciones['secciones']
   huerfanas?: GastosSecciones['secciones']
@@ -39,6 +41,8 @@ export function TablaGastos({
   comparativo: ReturnType<typeof useComparativoLote>
   ejercicioId: string
   sociedadId: string
+  /** Anterior manual ya ajustado, con la columna visible: lo cargado de cada fila y el total. */
+  cargado?: { porFila: Map<string, number>; total: number } | null
 }) {
   // Sin comparativo tampoco hay edición del anterior, aunque el padre la habilite.
   const editandoAnt = conComparativo && editarAnterior && comparativo.editando
@@ -80,7 +84,7 @@ export function TablaGastos({
     ? sumarPor(filasVivas, (f) => f.totalAnterior)
     : totalAnteriorPorSeccion
   const colAnteriorPorFila = conComparativo
-  const colSpanTotal = cols.length + (colAnteriorPorFila ? 2 : 1)
+  const colSpanTotal = cols.length + (colAnteriorPorFila ? 2 : 1) + (cargado ? 1 : 0)
   const advertencia =
     conComparativo && editarAnterior ? advertenciaFilasSinSeccion(filasVivas) : null
 
@@ -140,6 +144,7 @@ export function TablaGastos({
                   Total Ejercicio Anterior
                 </th>
               )}
+              {cargado && <ThCargado />}
             </tr>
           </thead>
           <tbody>
@@ -204,6 +209,7 @@ export function TablaGastos({
                     )}
                   </td>
                 )}
+                {cargado && <TdCargado valor={cargado.porFila.get(fila.clave) ?? 0} />}
               </tr>
             ))}
 
@@ -266,6 +272,7 @@ export function TablaGastos({
                     : '–'}
                 </td>
               )}
+              {cargado && <TdCargado valor={cargado.total} fuerte oscuro />}
             </tr>
             {/* Fila 2: Total Ejercicio Anterior por sección (calculado; va al Estado de Resultados) */}
             {conComparativo && (
@@ -290,6 +297,7 @@ export function TablaGastos({
                     : '–'}
                 </td>
                 {colAnteriorPorFila && <td className="border-l border-slate-600" />}
+                {cargado && <td />}
               </tr>
             )}
           </tfoot>

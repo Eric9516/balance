@@ -37,7 +37,16 @@ async function assertModoManual(ejercicioId: string): Promise<AppError | null> {
       mensaje: 'Ejercicio no encontrado',
     }
   }
-  if (cfg.modoAnterior === 'MANUAL') return null
+  if (cfg.modoAnterior === 'MANUAL') {
+    if (!cfg.anteriorAjustadoEn) return null
+    return {
+      tipo: 'NEGOCIO',
+      severidad: 'MEDIO',
+      codigo: 'NEG-065',
+      mensaje:
+        'Estos saldos ya están autorizados y ajustados por inflación. Para cambiarlos, tocá "Corregir lo cargado" en el paso Ejercicio anterior.',
+    }
+  }
   return {
     tipo: 'NEGOCIO',
     severidad: 'MEDIO',

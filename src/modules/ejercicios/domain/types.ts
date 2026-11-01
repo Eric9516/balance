@@ -21,6 +21,7 @@ export type EjercicioContableDTO = {
   modoAnterior: ModoEjercicioAnterior | null
   comparativoAutorizadoEn: Date | null
   comparativoAutorizadoPor: string | null
+  anteriorAjustadoEn: Date | null
   categoriaEnte: CategoriaEnteRT54 | null
   numeroEjercicio: number | null
   fechaInicio: Date
@@ -116,6 +117,7 @@ export function toEjercicioDTO(e: WithAuditor): EjercicioContableDTO {
     modoAnterior: e.modoAnterior ?? null,
     comparativoAutorizadoEn: e.comparativoAutorizadoEn ?? null,
     comparativoAutorizadoPor: e.comparativoAutorizadoPor ?? null,
+    anteriorAjustadoEn: e.anteriorAjustadoEn ?? null,
     categoriaEnte: e.categoriaEnte ?? null,
     numeroEjercicio: e.numeroEjercicio,
     fechaInicio: e.fechaInicio,

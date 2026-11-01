@@ -1,5 +1,7 @@
 'use client'
 
+import { TdCargado, ThCargado } from '@/modules/comparativo-manual/components/ColumnaCargado'
+import { sumarPor } from '@/lib/importe'
 import { useState } from 'react'
 import { PlusCircle, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -117,6 +119,7 @@ export function NotaCuantitativa({
   mostrarAnterior,
   editarAnterior = false,
   origenAnterior = null,
+  verCargado = false,
   ejercicioId,
   sociedadId,
   onChange,
@@ -129,6 +132,8 @@ export function NotaCuantitativa({
   /** MANUAL: la columna anterior se carga a mano. Si no, viene del ejercicio vinculado. */
   editarAnterior?: boolean
   origenAnterior?: string | null
+  /** Anterior manual ya ajustado: agrega la columna con lo cargado. */
+  verCargado?: boolean
   ejercicioId: string
   sociedadId: string
   /**
@@ -289,6 +294,7 @@ export function NotaCuantitativa({
                 atenuado
               />
             )}
+            {verCargado && <ThCargado className="w-36 px-3 py-1.5" />}
             <th className="w-8" />
           </tr>
         </thead>
@@ -335,6 +341,9 @@ export function NotaCuantitativa({
                   )}
                 </td>
               )}
+              {verCargado && (
+                <TdCargado valor={det.anteriorCargado ?? 0} className="w-36 px-3 py-1.5" />
+              )}
               <td className="w-8 px-3 py-1.5 text-center">
                 {editando && !esFilaSoloAnterior(det) && (
                   <button
@@ -362,6 +371,16 @@ export function NotaCuantitativa({
               <td className="w-36 px-3 py-2 text-right font-mono text-sm font-bold text-slate-700 tabular-nums">
                 {formatCurrency(totalAnterior, { decimales: 2 })}
               </td>
+            )}
+            {verCargado && (
+              <TdCargado
+                valor={sumarPor(
+                  nota.detalles.filter((d) => !d.esTotal),
+                  (d) => d.anteriorCargado,
+                )}
+                fuerte
+                className="w-36 px-3"
+              />
             )}
             <td className="w-8" />
           </tr>

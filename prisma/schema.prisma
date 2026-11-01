@@ -472,6 +472,8 @@ model EjercicioContable {
   // Cualquier escritura posterior sobre comparativos la vuelve a null.
   comparativoAutorizadoEn     DateTime? @db.Timestamptz(3) @map("comparativo_autorizado_en")
   comparativoAutorizadoPor    String? @map("comparativo_autorizado_por")
+  // Cuándo se ajustó por inflación el anterior cargado a mano. Null = se muestra lo cargado.
+  anteriorAjustadoEn          DateTime? @db.Timestamptz(3) @map("anterior_ajustado_en")
   // Categoría del ente según RT 54 para este ejercicio (puede diferir de la sociedad).
   categoriaEnte               CategoriaEnteRT54? @map("categoria_ente")
   // Legacy (reemplazados por modoAnterior; se eliminan en una migración posterior)

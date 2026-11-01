@@ -159,6 +159,18 @@ export async function actualizarEjercicio(
       { modoAnterior: ejercicio.modoAnterior, ejercicioAnteriorId: ejercicio.ejercicioAnteriorId },
     )
     await aplicarEfectosCambioModo(id, efectos)
+    // Con otros índices cambia el ajuste: lo autorizado se vuelve a revisar y a autorizar.
+    if (
+      existing.anteriorAjustadoEn &&
+      (existing.indiceInflacionAnterior !== ejercicio.indiceInflacionAnterior ||
+        existing.indiceInflacionActual !== ejercicio.indiceInflacionActual)
+    ) {
+      await aplicarEfectosCambioModo(id, {
+        limpiarComparativosManuales: false,
+        anularAutorizacion: true,
+        desconfirmar: true,
+      })
+    }
 
     revalidatePath(`/sociedades/${sociedadId}/ejercicios`)
     revalidatePath(`/sociedades/${sociedadId}/ejercicios/${id}/cuentas`)
@@ -284,6 +296,41 @@ export async function evaluarAutorizacionAction(
  * corresponden a los estados contables del período previo. Solo en modo MANUAL y
  * solo si el anterior cuadra y es consistente (misma compuerta, sin exigirse a sí misma).
  */
+/**
+ * Quita la autorización y el ajuste del anterior cargado a mano, para corregir lo cargado. Después
+ * se autoriza de nuevo. Lo que se había confirmado se confirma de nuevo: sus números cambian.
+ */
+export async function corregirAnteriorAction(
+  ejercicioId: string,
+  sociedadId: string,
+): Promise<ActionResult<void>> {
+  try {
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    const ejercicio = await findEjercicioById(ejercicioId)
+    if (!ejercicio) return actionError(EJERCICIO_NO_ENCONTRADO)
+    if (ejercicio.estado === 'CERRADO') {
+      return actionError({
+        tipo: 'NEGOCIO',
+        severidad: 'MEDIO',
+        codigo: 'NEG-065',
+        mensaje: 'Este ejercicio está cerrado: no se pueden corregir los saldos del anterior.',
+      })
+    }
+    await aplicarEfectosCambioModo(ejercicioId, {
+      limpiarComparativosManuales: false,
+      anularAutorizacion: true,
+      desconfirmar: true,
+    })
+    await evaluarAutorizacionEjercicio(ejercicioId)
+    revalidatePath(`/sociedades/${sociedadId}/ejercicios/${ejercicioId}/cuentas`)
+    return actionOk(undefined)
+  } catch (error) {
+    return actionError(
+      errorHandler(error, { modulo: 'ejercicios', operacion: 'corregir_anterior' }),
+    )
+  }
+}
+
 export async function autorizarComparativoAction(
   ejercicioId: string,
   sociedadId: string,
@@ -314,10 +361,26 @@ export async function autorizarComparativoAction(
           'La autorización de saldos solo aplica cuando el ejercicio anterior se carga manualmente.',
       })
     }
-    const bloqueo = await compuertaAutorizacion(ejercicioId, { ignorarCodigos: ['AUT-010'] })
+    if (!ejercicio.indiceInflacionAnterior || !ejercicio.indiceInflacionActual) {
+      return actionError({
+        tipo: 'NEGOCIO',
+        severidad: 'MEDIO',
+        codigo: 'NEG-064',
+        mensaje:
+          'No se pueden autorizar los saldos del ejercicio anterior porque faltan los índices de inflación, y sin ellos no se pueden ajustar. Cargalos en "Editar ejercicio".',
+      })
+    }
+    // El flujo de este año (AUT-050) parte del efectivo del anterior: se controla ya ajustado.
+    const bloqueo = await compuertaAutorizacion(ejercicioId, {
+      ignorarCodigos: ['AUT-010', 'AUT-050'],
+    })
     if (bloqueo) return actionError(bloqueo)
 
-    await autorizarComparativo(ejercicioId, nombre)
+    await autorizarComparativo(
+      ejercicioId,
+      nombre,
+      ejercicio.indiceInflacionAnterior !== ejercicio.indiceInflacionActual,
+    )
     // Dejar el checklist consistente (AUT-010 desaparece).
     await evaluarAutorizacionEjercicio(ejercicioId)
     revalidatePath(`/sociedades/${sociedadId}/ejercicios/${ejercicioId}/cuentas`)

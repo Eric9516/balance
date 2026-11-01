@@ -59,6 +59,8 @@ export type ResultadoArrastreBDU = {
   bloqueadas: Set<string>
   /** categorías del actual sin contraparte en el anterior (editables, con aviso) */
   sinDato: string[]
+  /** Anterior manual ya ajustado: el neto que se había cargado de cada categoría. */
+  netoCargadoMap?: Map<string, number>
   /** neto residual anterior por categoría (nombre tal cual del actual) */
   netoAnteriorMap: Map<string, number>
   advertencias: string[]

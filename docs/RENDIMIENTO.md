@@ -185,3 +185,16 @@ Se usa la tercera (`reexpresar`). La segunda se probó primero con `pnpm rendimi
 | Documento imprimible | 70 ms | 78 ms |
 
 El documento quedó 8 ms arriba en esta corrida; no se investigó si es variación entre corridas. Ninguna lectura completa de tablas grandes.
+
+## Anterior manual ajustado (2026-11-01, escala media)
+
+Ver la migración `20261101120000_anterior_ajustado`. Un ejercicio con el anterior manual ya ajustado arma los estados dos veces con las mismas lecturas (ajustados y con lo cargado), así que no suma viajes.
+
+| Medida (mediana local) | Antes | Después |
+|---|---|---|
+| Importar 800 cuentas (no cambia: sirve de testigo) | 167 ms | 179 ms |
+| Paso Estados | 41 ms | 55 ms |
+| Paso Anterior con compuerta | 44 ms | 47 ms |
+| Documento imprimible | 78 ms | 76 ms |
+
+La medición no siembra ejercicios ajustados: esos números son de ejercicios sin ajustar, cuyo camino no suma trabajo. El Paso Estados subió más que el testigo y no se investigó si es variación entre corridas. Queda pendiente medir un ejercicio ajustado.

@@ -1,6 +1,7 @@
 import { Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { calcularCierre, netoAnteriorManualBDU, type BienDeUsoDTO } from '../domain/types'
+import { TdCargado } from '@/modules/comparativo-manual/components/ColumnaCargado'
 import { totalColumnaBDU, type ColumnaBDU } from '../domain/columnas'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
 import { CeldaBloqueada } from '@/components/shared/CeldaBloqueada'
@@ -20,6 +21,7 @@ export function FilaCategoria({
   bloqueada,
   mostrarAnterior,
   editarAnterior,
+  netoCargado,
   editando,
   onGuardarCampo,
   onGuardarCategoria,
@@ -34,6 +36,8 @@ export function FilaCategoria({
   /** Las columnas de inicio vienen del ejercicio anterior vinculado (candado). */
   bloqueada: boolean
   mostrarAnterior: boolean
+  /** Anterior manual ya ajustado, con la columna visible: el neto que se había cargado. */
+  netoCargado?: number
   /** Modo MANUAL: el neto residual anterior se carga a mano en el borrador. */
   editarAnterior: boolean
   editando: boolean
@@ -111,7 +115,7 @@ export function FilaCategoria({
               dense
             />
           </td>
-        ) : bloqueada ? (
+        ) : bloqueada || netoAnterior !== null ? (
           <td className={cn(TD, TD_CALC)}>
             <CeldaBloqueada value={netoAnterior ?? 0} dense />
           </td>
@@ -123,6 +127,7 @@ export function FilaCategoria({
             —
           </td>
         ))}
+      {netoCargado !== undefined && <TdCargado valor={netoCargado} />}
 
       <td className="w-12 border-b border-linea px-2 text-center">
         <button
@@ -143,12 +148,14 @@ export function FilaTotal({
   bienes,
   columnas,
   netoAnteriorMap,
+  netoCargado,
   mostrarAnterior,
   editarAnterior,
 }: {
   bienes: BienDeUsoDTO[]
   columnas: ColumnaBDU[]
   netoAnteriorMap: Map<string, number>
+  netoCargado?: number
   mostrarAnterior: boolean
   editarAnterior: boolean
 }) {
@@ -192,6 +199,7 @@ export function FilaTotal({
           {hayNetoAnterior ? num(totNetoAnterior) : <span className="text-slate-300">—</span>}
         </td>
       )}
+      {netoCargado !== undefined && <TdCargado valor={netoCargado} fuerte />}
       <td className="border-t-2 border-t-slate-800 bg-slate-50" />
     </tr>
   )

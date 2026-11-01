@@ -30,6 +30,7 @@ import { db } from '@/lib/db'
 import {
   actualizarEjercicio,
   autorizarComparativoAction,
+  corregirAnteriorAction,
   avanzarEstadoEjercicio,
   crearEjercicio,
   eliminarEjercicio,
@@ -591,21 +592,24 @@ describe('Escenario B — saldos del ejercicio anterior cargados a mano', () => 
     ok(await confirmarEstadosAction(ejM, ctx.sociedadB))
   })
 
-  it('editar la columna anterior anula la autorización y la confirmación', async () => {
-    ok(
-      await guardarLoteComparativoAction(ejM, ctx.sociedadB, [
-        {
-          modulo: 'SSP',
-          clave: caja(),
-          label: 'Caja',
-          valor: 410_000,
-          esHuerfano: false,
-          orden: 0,
-        },
-      ]),
-    )
+  it('corregir lo cargado anula la autorización y la confirmación', async () => {
+    const cambio = [
+      {
+        modulo: 'SSP' as const,
+        clave: caja(),
+        label: 'Caja',
+        valor: 410_000,
+        esHuerfano: false,
+        orden: 0,
+      },
+    ]
+    // Ya autorizado y ajustado, la columna no se edita: primero hay que corregir
+    fail(await guardarLoteComparativoAction(ejM, ctx.sociedadB, cambio), 'NEG-065')
+    ok(await corregirAnteriorAction(ejM, ctx.sociedadB))
+    ok(await guardarLoteComparativoAction(ejM, ctx.sociedadB, cambio))
     const e = await findEjercicioById(ejM)
     expect(e?.comparativoAutorizadoEn).toBeNull()
+    expect(e?.anteriorAjustadoEn).toBeNull()
     expect(e?.estadosConfirmado).toBe(false)
     expect(fail(await confirmarEstadosAction(ejM, ctx.sociedadB), 'NEG-030')).toMatch(
       /autorizados|no cuadra/,

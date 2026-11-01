@@ -1,5 +1,10 @@
 'use client'
 
+import {
+  BotonVerCargado,
+  TdCargado,
+  ThCargado,
+} from '@/modules/comparativo-manual/components/ColumnaCargado'
 import { useState } from 'react'
 import { CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -45,6 +50,8 @@ interface Props {
   /** Denominación del ejercicio anterior vinculado (origen de los valores con candado). */
   anteriorDenominacion: string | null
   pnConfirmado?: boolean
+  /** Anterior manual ya ajustado: las mismas filas con lo cargado, para mostrarlo al lado. */
+  cargado?: EvolucionPNMovimientoDTO[] | null
 }
 
 export function PatrimonioNetoView({
@@ -56,7 +63,10 @@ export function PatrimonioNetoView({
   mostrarAnterior,
   anteriorDenominacion,
   pnConfirmado: initialConfirmado = false,
+  cargado = null,
 }: Props) {
+  const [verCargado, setVerCargado] = useState(false)
+  const movsCargados = verCargado ? cargado : null
   const {
     valor: data,
     editando,
@@ -97,7 +107,11 @@ export function PatrimonioNetoView({
   const { bloqueo } = data
   const movimientos = data.movimientos
   const totalColumnas =
-    1 + columnasDe('aportes').length + columnasDe('resultados').length + (mostrarAnterior ? 2 : 1)
+    1 +
+    columnasDe('aportes').length +
+    columnasDe('resultados').length +
+    (mostrarAnterior ? 2 : 1) +
+    (movsCargados ? 1 : 0)
 
   function setField(index: number, campo: CampoPN | 'totalAnterior', value: number) {
     actualizar((prev) => ({
@@ -156,7 +170,11 @@ export function PatrimonioNetoView({
     )
   }
 
-  function celdasPN(mov: Mov, index: number, opts: { editable: boolean; fuerte?: boolean }) {
+  function celdasPN(
+    mov: Mov,
+    index: number,
+    opts: { editable: boolean; fuerte?: boolean; cargado?: number },
+  ) {
     return (
       <>
         <td className={cn(tdNum, tdCalc, 'border-l border-l-slate-300')}>
@@ -185,6 +203,14 @@ export function PatrimonioNetoView({
             )}
           </td>
         )}
+        {movsCargados && (
+          <TdCargado
+            valor={
+              opts.cargado ?? movsCargados.find((m) => m.tipo === mov.tipo)?.totalAnterior ?? 0
+            }
+            fuerte={opts.fuerte}
+          />
+        )}
       </>
     )
   }
@@ -211,7 +237,7 @@ export function PatrimonioNetoView({
     )
   }
 
-  function filaDerivada(label: string, mov: Mov, final = false) {
+  function filaDerivada(label: string, mov: Mov, final = false, cargadoFila?: number) {
     return (
       <tr
         className={cn(
@@ -225,7 +251,7 @@ export function PatrimonioNetoView({
         {GRUPOS.map((g) =>
           columnasDe(g).map((col) => celda(col, mov, -1, { editable: false, fuerte: true })),
         )}
-        {celdasPN(mov, -1, { editable: false, fuerte: true })}
+        {celdasPN(mov, -1, { editable: false, fuerte: true, cargado: cargadoFila })}
       </tr>
     )
   }
@@ -259,6 +285,9 @@ export function PatrimonioNetoView({
             onExpandir={grupos.expandirTodos}
             disabled={editando}
           />
+          {cargado && (
+            <BotonVerCargado visible={verCargado} onToggle={() => setVerCargado((v) => !v)} />
+          )}
           <BotonEditar
             editando={editando}
             onEditar={iniciarEdicion}
@@ -336,7 +365,10 @@ export function PatrimonioNetoView({
                     </th>
                   )
                 })}
-                <th colSpan={mostrarAnterior ? 2 : 1} className={cn(thGrupo, 'border-l-slate-300')}>
+                <th
+                  colSpan={(mostrarAnterior ? 2 : 1) + (movsCargados ? 1 : 0)}
+                  className={cn(thGrupo, 'border-l-slate-300')}
+                >
                   Patrimonio neto
                 </th>
               </tr>
@@ -367,13 +399,19 @@ export function PatrimonioNetoView({
                     )}
                   </th>
                 )}
+                {movsCargados && <ThCargado />}
               </tr>
             </thead>
             <tbody className={cn(isPending && 'opacity-60')}>
               {filaMovimiento('SALDO_INICIO', 'Saldos al inicio del ejercicio')}
               {filaMovimiento('AJUSTE_INFLACION', 'Ajuste por inflación del ejercicio')}
               {filaMovimiento('MODIFICACION_INICIO', 'Modificación de saldos al inicio (Nota 1.6)')}
-              {filaDerivada('Saldos al inicio modificados', inicioModificado)}
+              {filaDerivada(
+                'Saldos al inicio modificados',
+                inicioModificado,
+                false,
+                movsCargados ? saldoInicioModificadoPN(movsCargados).totalAnterior : undefined,
+              )}
               <tr>
                 <td
                   colSpan={totalColumnas}
@@ -390,7 +428,12 @@ export function PatrimonioNetoView({
               {filaMovimiento('RESULTADO_EJERCICIO', 'Resultado del ejercicio', {
                 resultado: true,
               })}
-              {filaDerivada('Saldos al cierre del ejercicio', saldoCierre, true)}
+              {filaDerivada(
+                'Saldos al cierre del ejercicio',
+                saldoCierre,
+                true,
+                movsCargados ? saldoCierrePN(movsCargados).totalAnterior : undefined,
+              )}
             </tbody>
           </table>
         </div>

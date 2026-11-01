@@ -137,7 +137,7 @@ describe('instantes (TIMESTAMPTZ)', () => {
 
   it('los instantes que pone la base (now) y la app (new Date) son el momento actual', async () => {
     const antes = Date.now()
-    await autorizarComparativo(ctx.ejercicioId, 'prueba')
+    await autorizarComparativo(ctx.ejercicioId, 'prueba', false)
     const e = (await findEjercicioById(ctx.ejercicioId))!
     const margen = 2 * 60_000 // reloj de la base y del proceso en la misma máquina
     expect(Math.abs(e.comparativoAutorizadoEn!.getTime() - antes)).toBeLessThan(margen)

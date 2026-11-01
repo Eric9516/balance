@@ -190,12 +190,18 @@ export async function actualizarDetalleAction(
           'La columna "Ejercicio anterior" de las notas solo se carga a mano cuando el ejercicio está en modo "Carga manual". Si está vinculado, sale del ejercicio anterior.',
       })
     }
-    if (!(await updateDetalle(ejercicioId, detalleId, parsed.data))) {
+    // Ya ajustado, lo que manda la pantalla es el valor ajustado: lo cargado no se toca.
+    const importeAnterior =
+      parsed.data.importeAnterior !== undefined &&
+      (await findConfigAnterior(ejercicioId))?.anteriorAjustadoEn
+        ? undefined
+        : parsed.data.importeAnterior
+    if (!(await updateDetalle(ejercicioId, detalleId, { ...parsed.data, importeAnterior }))) {
       return actionError(DETALLE_NO_ENCONTRADO)
     }
     // La columna "ejercicio anterior" de una nota forma parte del comparativo: tocarla
     // invalida la autorización de saldos del ejercicio anterior.
-    if (parsed.data.importeAnterior !== undefined) await marcarComparativoModificado(ejercicioId)
+    if (importeAnterior !== undefined) await marcarComparativoModificado(ejercicioId)
     revalPath(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {

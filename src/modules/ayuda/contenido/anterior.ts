@@ -100,8 +100,29 @@ export const ANTERIOR: ArticuloAyuda[] = [
       ),
       pasos(
         'Con todo cargado, abrí el paso "Ejercicio anterior" y revisá el cuadre.',
-        'Hacé clic en "Autorizar". Queda registrado quién y cuándo.',
+        'Hacé clic en "Autorizar". Queda registrado quién y cuándo, y los importes se ajustan por inflación con el coeficiente.',
         'Si después cambiás algo de la columna anterior, la autorización se anula y hay que autorizar de nuevo (AUT-010).',
+      ),
+      aviso(
+        'Cargá los importes tal como salieron en el balance anterior, sin ajustar. Al autorizar se ajustan todos juntos; si ya estaban ajustados, se ajustarían dos veces.',
+      ),
+      defs(
+        [
+          'Qué se ajusta',
+          'La columna "Ejercicio anterior" de los estados, el Anexo II, el Anexo III, las notas, el neto anterior del Anexo I, el E.E.P.N. y el flujo de efectivo. El valor y la amortización al comienzo del Anexo I y los saldos al inicio del E.E.P.N. no: su reexpresión se carga en "Ajuste por inflación". Igual que con el anterior vinculado.',
+        ],
+        [
+          'Ver lo cargado',
+          'Ya ajustado, el botón "Ver lo cargado" agrega al lado una columna con lo que se escribió, sin ajustar, y "Ocultar lo cargado" la saca. Es solo para ver en pantalla: no sale en el balance.',
+        ],
+        [
+          'Corregir lo cargado',
+          'En el paso Ejercicio anterior. Quita el ajuste y la autorización, y vuelven a verse los importes como se cargaron para editarlos. Cuando termines, autorizá de nuevo. Los estados y el E.E.P.N. confirmados se confirman otra vez.',
+        ],
+        [
+          'Saldos que ya estaban autorizados',
+          'Los que se autorizaron antes de que existiera este ajuste siguen sin ajustar, y el paso lo avisa. Para ajustarlos, quitá la autorización y autorizá de nuevo.',
+        ],
       ),
     ],
     relacionados: ['paso-anterior', 'aut-010', 'aut-011', 'aut-012', 'paso-notas'],
@@ -182,7 +203,7 @@ export const ANTERIOR: ArticuloAyuda[] = [
         ],
         [
           'Coeficiente',
-          'Índice actual ÷ índice anterior. En los datos del ejercicio se ve con 8 decimales y en el paso del anterior con 2, siempre cortados, sin redondear. Cada importe se reexpresa con los dos índices completos (importe × índice actual ÷ índice anterior): nunca se multiplica por el número mostrado.',
+          'Índice actual ÷ índice anterior. Con el anterior vinculado, y con el manual al autorizarlo, se ajustan los importes. En los datos del ejercicio se ve con 8 decimales y en el paso del anterior con 2, siempre cortados, sin redondear. Cada importe se reexpresa con los dos índices completos (importe × índice actual ÷ índice anterior): nunca se multiplica por el número mostrado.',
         ],
         [
           'Dónde se aplica',

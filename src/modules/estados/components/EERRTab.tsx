@@ -9,6 +9,7 @@ import {
   EliminarFilaAnterior,
   useComparativoLote,
 } from '@/modules/comparativo-manual/components/CeldaAnteriorEditable'
+import { TdCargado } from '@/modules/comparativo-manual/components/ColumnaCargado'
 import { EncabezadosEjercicio } from './SSPTab'
 
 function EERRAmount({ value, deduccion }: { value: number; deduccion?: boolean }) {
@@ -30,6 +31,7 @@ function EERRLine({
   ejercicioId,
   sociedadId,
   esHuerfano = false,
+  cargado,
 }: {
   label: string
   value: number
@@ -44,6 +46,7 @@ function EERRLine({
   ejercicioId?: string
   sociedadId?: string
   esHuerfano?: boolean
+  cargado?: number
 }) {
   const editable =
     editarAnterior && !!modulo && !!claveAnterior && !!ejercicioId && !!sociedadId && !!comparativo
@@ -94,6 +97,7 @@ function EERRLine({
           )}
         </td>
       )}
+      {cargado !== undefined && <TdCargado valor={cargado} />}
     </tr>
   )
 }
@@ -104,12 +108,14 @@ function EERRTotalLine({
   valueAnt,
   conComparativo,
   variant = 'bloque',
+  cargado,
 }: {
   label: string
   value: number
   valueAnt: number
   conComparativo: boolean
   variant?: 'bloque' | 'final'
+  cargado?: number
 }) {
   const final = variant === 'final'
   return (
@@ -143,6 +149,7 @@ function EERRTotalLine({
           {formatCurrency(valueAnt)}
         </td>
       )}
+      {cargado !== undefined && <TdCargado valor={cargado} fuerte oscuro={final} />}
     </tr>
   )
 }
@@ -158,6 +165,7 @@ export function EERRTab({
   fechaCierreAnterior,
   anteriorBloqueado,
   anteriorDenominacion,
+  cargado = null,
 }: {
   eerr: EERRData
   conComparativo: boolean
@@ -170,6 +178,8 @@ export function EERRTab({
   /** Columna anterior tomada del ejercicio vinculado (candado en el encabezado). */
   anteriorBloqueado: boolean
   anteriorDenominacion: string | null
+  /** Anterior manual ya ajustado, con la columna visible: el mismo estado con lo cargado. */
+  cargado?: EERRData | null
 }) {
   const resultadoPeriodo = eerr.utilidadEjercicio
 
@@ -206,6 +216,7 @@ export function EERRTab({
                 mostrarAnterior={conComparativo}
                 anteriorBloqueado={anteriorBloqueado}
                 anteriorDenominacion={anteriorDenominacion}
+                verCargado={Boolean(cargado)}
               />
             </tr>
           </thead>
@@ -219,6 +230,7 @@ export function EERRTab({
               editarAnterior={editarAnterior}
               modulo="EERR"
               claveAnterior="INGRESOS"
+              cargado={cargado?.ingresosAnt}
               comparativo={comparativo}
               ejercicioId={ejercicioId}
               sociedadId={sociedadId}
@@ -235,6 +247,7 @@ export function EERRTab({
               editarAnterior={editarAnterior}
               modulo="EERR"
               claveAnterior="COSTO_VENTAS"
+              cargado={cargado?.costoVentasAnt}
               comparativo={comparativo}
               ejercicioId={ejercicioId}
               sociedadId={sociedadId}
@@ -244,6 +257,7 @@ export function EERRTab({
               value={eerr.utilidadBruta}
               valueAnt={eerr.utilidadBrutaAnt}
               conComparativo={conComparativo}
+              cargado={cargado?.utilidadBrutaAnt}
             />
             {/* Los gastos del ejercicio anterior no se cargan acá: salen del Anexo III, donde se
                 cargan fila por fila y se suman solos por columna (una sola fuente). */}
@@ -256,6 +270,11 @@ export function EERRTab({
                 deduccion
                 conComparativo={conComparativo}
                 esHuerfano={esRubroHuerfano(s.key)}
+                cargado={
+                  cargado
+                    ? (cargado.seccionesGasto.find((c) => c.key === s.key)?.totalAnt ?? 0)
+                    : undefined
+                }
               />
             ))}
             {editarAnterior && conComparativo && eerr.seccionesGasto.length > 0 && (
@@ -274,6 +293,7 @@ export function EERRTab({
               editarAnterior={editarAnterior}
               modulo="EERR"
               claveAnterior="RESULTADOS_FINANCIEROS"
+              cargado={cargado?.resultadosFinancierosAnt}
               comparativo={comparativo}
               ejercicioId={ejercicioId}
               sociedadId={sociedadId}
@@ -283,6 +303,7 @@ export function EERRTab({
               value={eerr.resultadoAntesIG}
               valueAnt={eerr.resultadoAntesIGAnt}
               conComparativo={conComparativo}
+              cargado={cargado?.resultadoAntesIGAnt}
             />
             <EERRLine
               label={ETIQUETAS_EERR.impuestoGanancias}
@@ -293,6 +314,7 @@ export function EERRTab({
               editarAnterior={editarAnterior}
               modulo="EERR"
               claveAnterior="IMPUESTO_GANANCIAS"
+              cargado={cargado?.impuestoGananciasAnt}
               comparativo={comparativo}
               ejercicioId={ejercicioId}
               sociedadId={sociedadId}
@@ -305,6 +327,7 @@ export function EERRTab({
               valueAnt={Math.abs(eerr.utilidadEjercicioAnt)}
               conComparativo={conComparativo}
               variant="final"
+              cargado={cargado ? Math.abs(cargado.utilidadEjercicioAnt) : undefined}
             />
           </tfoot>
         </table>

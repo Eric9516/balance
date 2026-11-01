@@ -44,6 +44,15 @@ import {
   getIndicesReexpresion,
 } from '../lib/ajuste'
 import { sumar, sumarPor } from '@/lib/importe'
+import {
+  ajustarComparativos,
+  ajustarMovimientosPN,
+  ajustarNetosAnexoI,
+  ajustarNotas,
+  indicesDelAnteriorManual,
+} from '@/modules/comparativo-manual/lib/ajuste'
+import type { NotaDTO } from '@/modules/notas/domain/types'
+import type { EvolucionPNMovimientoDTO } from '@/modules/patrimonio-neto/domain/types'
 
 export type EstadosConPN = {
   estadosData: EstadosData
@@ -51,6 +60,8 @@ export type EstadosConPN = {
   comparativos: ComparativoManualDTO[]
   coeficiente: number
   anteriorId: string | null
+  /** Anterior manual ya ajustado: los mismos estados con lo cargado, para mostrarlo al lado. */
+  cargado: { estadosData: EstadosData; pnData: EvolucionPNData } | null
 }
 
 export async function cargarEstadosConPN(
@@ -91,50 +102,72 @@ export async function cargarEstadosConPN(
       : Promise.resolve([] as BienDeUsoDTO[]),
   ])
 
-  const costoVentasAnt = resolverCostoVentasAnterior(
-    ajustarCostoVentas(costoVentasAntRaw, indices),
-    modo,
-    comparativos,
-    ejercicioId,
-    editarAnteriorManual(modo)
-      ? existenciaFinalAnteriorDesdeNotas({ rubros, cuentas, notas })
-      : null,
+  // Una sola lectura: con el anterior ajustado se arma dos veces, ajustado y con lo cargado.
+  const armar = (
+    comparativos: ComparativoManualDTO[],
+    notas: NotaDTO[],
+    bienesDeUso: BienDeUsoDTO[],
+    movsActual: EvolucionPNMovimientoDTO[],
+  ) => {
+    const costoVentasAnt = resolverCostoVentasAnterior(
+      ajustarCostoVentas(costoVentasAntRaw, indices),
+      modo,
+      comparativos,
+      ejercicioId,
+      editarAnteriorManual(modo)
+        ? existenciaFinalAnteriorDesdeNotas({ rubros, cuentas, notas })
+        : null,
+    )
+
+    // Gastos: el Anexo III ya resuelto según el modo es la única fuente de las líneas de gasto
+    // del EERR. En MANUAL sus totales del anterior por sección se calculan desde las filas
+    // (resolverGastos); resolverEstados no vuelve a aplicar gastos.
+    const gastos = resolverGastos(ajustarGastos(gastosRaw, indices), modo, comparativos)
+    const raw = buildEstadosData(cuentas, rubros, {
+      cuentasAnt: ajustarCuentas(cuentasAntRaw, indices),
+      costoVentas,
+      costoVentasAnt,
+      gastosDinamicos: gastos,
+      notas,
+      hayEjercicioAnterior: mostrarColumnaAnterior(modo),
+    })
+    // Dónde se carga el anterior de cada rubro con detalle: su nota (con la nota, si ya se generó)
+    // o, bienes de uso, el Anexo I (los rubros que sugieren ese anexo).
+    const notaDeRubro = notaPorRubro(cuentas, notas)
+    const rubrosAnexoI = new Set(REGLA_POR_CLAVE.get('ANEXO_BIENES_USO')?.rubros ?? [])
+    const estadosData = resolverEstados(raw, modo, comparativos, {
+      notas: new Map(
+        rubros.filter(generaNotaCuantitativa).map((r) => [r.id, notaDeRubro.get(r.id) ?? null]),
+      ),
+      bienesDeUso: {
+        rubroIds: new Set(rubros.filter((r) => rubrosAnexoI.has(r.codigo)).map((r) => r.id)),
+        categorias: bienesDeUso,
+      },
+    })
+
+    const pnData = armarEvolucionPN({
+      ejercicioId,
+      guardados: movsActual,
+      resultadoEjercicio: estadosData.eerr.utilidadEjercicio,
+      modo,
+      derivado: derivarDesdeAnteriorPN(movsAnterior, indices),
+      resultadoAnterior: editarAnteriorManual(modo) ? estadosData.eerr.utilidadEjercicioAnt : null,
+    })
+    return { estadosData, pnData }
+  }
+
+  const manual = indicesDelAnteriorManual(ejercicio)
+  const { estadosData, pnData: pnAjustado } = armar(
+    ajustarComparativos(comparativos, manual),
+    ajustarNotas(notas, manual),
+    ajustarNetosAnexoI(bienesDeUso, manual),
+    ajustarMovimientosPN(movsActual, manual),
   )
 
-  // Gastos: el Anexo III ya resuelto según el modo es la única fuente de las líneas de gasto
-  // del EERR. En MANUAL sus totales del anterior por sección se calculan desde las filas
-  // (resolverGastos); resolverEstados no vuelve a aplicar gastos.
-  const gastos = resolverGastos(ajustarGastos(gastosRaw, indices), modo, comparativos)
-  const raw = buildEstadosData(cuentas, rubros, {
-    cuentasAnt: ajustarCuentas(cuentasAntRaw, indices),
-    costoVentas,
-    costoVentasAnt,
-    gastosDinamicos: gastos,
-    notas,
-    hayEjercicioAnterior: mostrarColumnaAnterior(modo),
-  })
-  // Dónde se carga el anterior de cada rubro con detalle: su nota (con la nota, si ya se generó)
-  // o, bienes de uso, el Anexo I (los rubros que sugieren ese anexo).
-  const notaDeRubro = notaPorRubro(cuentas, notas)
-  const rubrosAnexoI = new Set(REGLA_POR_CLAVE.get('ANEXO_BIENES_USO')?.rubros ?? [])
-  const estadosData = resolverEstados(raw, modo, comparativos, {
-    notas: new Map(
-      rubros.filter(generaNotaCuantitativa).map((r) => [r.id, notaDeRubro.get(r.id) ?? null]),
-    ),
-    bienesDeUso: {
-      rubroIds: new Set(rubros.filter((r) => rubrosAnexoI.has(r.codigo)).map((r) => r.id)),
-      categorias: bienesDeUso,
-    },
-  })
-
-  const pnData = armarEvolucionPN({
-    ejercicioId,
-    guardados: movsActual,
-    resultadoEjercicio: estadosData.eerr.utilidadEjercicio,
-    modo,
-    derivado: derivarDesdeAnteriorPN(movsAnterior, indices),
-    resultadoAnterior: editarAnteriorManual(modo) ? estadosData.eerr.utilidadEjercicioAnt : null,
-  })
+  // Ya ajustado, la columna anterior del E.E.P.N. no se edita: se corrige desde el paso del anterior.
+  const pnData = manual
+    ? { ...pnAjustado, bloqueo: { ...pnAjustado.bloqueo, totalAnterior: true } }
+    : pnAjustado
 
   return {
     estadosData,
@@ -142,6 +175,7 @@ export async function cargarEstadosConPN(
     comparativos,
     coeficiente: getCoeficienteComparativo(ejercicio),
     anteriorId,
+    cargado: manual ? armar(comparativos, notas, bienesDeUso, movsActual) : null,
   }
 }
 

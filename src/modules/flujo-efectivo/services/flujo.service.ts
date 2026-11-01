@@ -8,6 +8,7 @@ import type { EjercicioContableDTO } from '@/modules/ejercicios/domain/types'
 import { idAnteriorDerivable, modoEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import type { EstadosData } from '@/modules/estados/domain/types'
 import { getIndicesReexpresion } from '@/modules/estados/lib/ajuste'
+import { ajustarFlujo, indicesDelAnteriorManual } from '@/modules/comparativo-manual/lib/ajuste'
 import { findRubrosBase } from '@/modules/importaciones/repository/cuentas.repository'
 import { armarFlujo, efectivoDesdeSSP, type FlujoData } from '../domain/calculo'
 import type { FlujoGuardadoDTO } from '../domain/types'
@@ -22,16 +23,29 @@ export async function cargarFlujo(
   ejercicio: EjercicioContableDTO,
   estadosData: EstadosData,
   guardado?: FlujoGuardadoDTO | null,
+  /** Anterior manual ya ajustado: los estados con lo cargado, para la columna de lo cargado. */
+  estadosCargados?: EstadosData | null,
 ): Promise<FlujoData> {
   const anteriorId = idAnteriorDerivable(ejercicio)
-  const [rubros, base, flujoAnterior] = await Promise.all([
+  // Lo que viene de un guardado queda tal cual: lo ajustado se calcula solo para mostrar.
+  const manual = indicesDelAnteriorManual(ejercicio)
+  const [rubros, cargado, flujoAnterior] = await Promise.all([
     findRubrosBase(ejercicio.estudioId),
     guardado !== undefined ? Promise.resolve(guardado) : findFlujo(ejercicio.id),
     anteriorId ? findFlujo(anteriorId) : Promise.resolve(null),
   ])
   const rubrosEfectivo = new Set(rubros.filter((r) => r.esEfectivo).map((r) => r.id))
   return armarFlujo({
-    guardado: base,
+    guardado: guardado !== undefined ? guardado : ajustarFlujo(cargado, manual),
+    cargado:
+      manual && cargado
+        ? {
+            ...cargado,
+            saldoFinalAnterior: estadosCargados
+              ? efectivoDesdeSSP(estadosCargados.sspRubros, rubrosEfectivo).anterior
+              : cargado.saldoFinalAnterior,
+          }
+        : null,
     efectivo: efectivoDesdeSSP(estadosData.sspRubros, rubrosEfectivo),
     modo: modoEfectivo(ejercicio),
     flujoAnterior,

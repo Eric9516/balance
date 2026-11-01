@@ -147,11 +147,13 @@ export async function findResumenById(id: string): Promise<EjercicioResumen | nu
 }
 
 /** Modo y vínculo actuales de un ejercicio. */
-export async function findConfigAnterior(id: string): Promise<ConfigAnterior | null> {
+export async function findConfigAnterior(
+  id: string,
+): Promise<(ConfigAnterior & { anteriorAjustadoEn: Date | null }) | null> {
   if (!esUuid(id)) return null
   return db.ejercicioContable.findUnique({
     where: { id },
-    select: { modoAnterior: true, ejercicioAnteriorId: true },
+    select: { modoAnterior: true, ejercicioAnteriorId: true, anteriorAjustadoEn: true },
   })
 }
 
@@ -297,16 +299,27 @@ export async function desconfirmarPN(ejercicioId: string): Promise<void> {
 }
 
 /** Autorización explícita de los saldos del ejercicio anterior cargados a mano. */
-export async function autorizarComparativo(ejercicioId: string, por: string): Promise<void> {
+export async function autorizarComparativo(
+  ejercicioId: string,
+  por: string,
+  /** Si el ajuste cambia los importes, lo que ya se había confirmado se confirma de nuevo. */
+  desconfirmar: boolean,
+): Promise<void> {
+  const ahora = new Date()
   await db.ejercicioContable.update({
     where: { id: ejercicioId },
-    data: { comparativoAutorizadoEn: new Date(), comparativoAutorizadoPor: por },
+    data: {
+      comparativoAutorizadoEn: ahora,
+      comparativoAutorizadoPor: por,
+      anteriorAjustadoEn: ahora,
+      ...(desconfirmar ? { estadosConfirmado: false, pnConfirmado: false } : {}),
+    },
   })
 }
 
 /**
  * Cualquier escritura sobre la columna "Ejercicio anterior" invalida la autorización
- * y la confirmación de estados (sus números cambiaron).
+ * y la confirmación de estados (sus números cambiaron). La base quita también el ajuste.
  */
 export async function marcarComparativoModificado(ejercicioId: string): Promise<void> {
   await db.ejercicioContable.update({

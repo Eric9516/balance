@@ -14,6 +14,11 @@ import {
 } from '@/modules/comparativo-manual/lib/politica'
 import { ajustarCostoVentas, getIndicesReexpresion } from '@/modules/estados/lib/ajuste'
 import {
+  ajustarComparativos,
+  ajustarNotas,
+  indicesDelAnteriorManual,
+} from '@/modules/comparativo-manual/lib/ajuste'
+import {
   aplicarArrastreCostoVentas,
   existenciaFinalAnteriorDesdeNotas,
   type ResultadoArrastreCV,
@@ -33,6 +38,8 @@ export type CostoVentasCargado = ResultadoArrastreCV & {
   conceptosExtra: ComparativoManualDTO[]
   /** Carga manual: existencia final del año anterior propuesta desde la nota de bienes de cambio. */
   existenciaFinalAnteriorPropuesta: number | null
+  /** Anterior manual ya ajustado: lo que se había cargado, para mostrarlo al lado. */
+  cargado: { anterior: CostoVentasDTO | null; conceptosExtra: ComparativoManualDTO[] } | null
 }
 
 /**
@@ -44,6 +51,7 @@ export async function cargarAnteriorCostoVentas(ejercicio: EjercicioContableDTO)
   anterior: CostoVentasDTO | null
   comparativos: ComparativoManualDTO[]
   propuesta: number | null
+  cargado: CostoVentasCargado['cargado']
 }> {
   const modo = modoEfectivo(ejercicio)
   const anteriorId = idAnteriorDerivable(ejercicio)
@@ -58,21 +66,45 @@ export async function cargarAnteriorCostoVentas(ejercicio: EjercicioContableDTO)
     manual ? findCuentasByEjercicio(ejercicio.id) : Promise.resolve([]),
     manual ? findNotasByEjercicio(ejercicio.id) : Promise.resolve([]),
   ])
-  const propuesta = manual ? existenciaFinalAnteriorDesdeNotas({ rubros, cuentas, notas }) : null
+  const indicesManual = indicesDelAnteriorManual(ejercicio)
+  const ajustados = ajustarComparativos(comparativos, indicesManual)
+  const propuesta = manual
+    ? existenciaFinalAnteriorDesdeNotas({
+        rubros,
+        cuentas,
+        notas: ajustarNotas(notas, indicesManual),
+      })
+    : null
   const anterior = resolverCostoVentasAnterior(
     ajustarCostoVentas(anteriorRaw, getIndicesReexpresion(ejercicio)),
     modo,
-    comparativos,
+    ajustados,
     ejercicio.id,
     propuesta,
   )
-  return { anterior, comparativos, propuesta }
+  return {
+    anterior,
+    comparativos: ajustados,
+    propuesta,
+    cargado: indicesManual
+      ? {
+          anterior: resolverCostoVentasAnterior(
+            null,
+            modo,
+            comparativos,
+            ejercicio.id,
+            existenciaFinalAnteriorDesdeNotas({ rubros, cuentas, notas }),
+          ),
+          conceptosExtra: comparativos.filter((c) => c.esHuerfano),
+        }
+      : null,
+  }
 }
 
 export async function cargarCostoVentas(
   ejercicio: EjercicioContableDTO,
 ): Promise<CostoVentasCargado> {
-  const [datos, { anterior, comparativos, propuesta }] = await Promise.all([
+  const [datos, { anterior, comparativos, propuesta, cargado }] = await Promise.all([
     findCostoVentas(ejercicio.id),
     cargarAnteriorCostoVentas(ejercicio),
   ])
@@ -82,5 +114,6 @@ export async function cargarCostoVentas(
     datosAnteriores: anterior,
     conceptosExtra: comparativos.filter((c) => c.esHuerfano),
     existenciaFinalAnteriorPropuesta: propuesta,
+    cargado,
   }
 }

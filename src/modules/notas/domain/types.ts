@@ -10,6 +10,8 @@ export type DetalleNotaDTO = {
   concepto: string
   importeActual: number
   importeAnterior: number
+  /** Anterior manual ya ajustado: lo que se había cargado, para mostrarlo al lado. */
+  anteriorCargado?: number
   esTotal: boolean
 }
 

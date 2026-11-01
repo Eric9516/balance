@@ -3,6 +3,7 @@
 import { useState, useTransition, type ReactNode } from 'react'
 import { useMontado } from '@/components/shared/useMontado'
 import { RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { BotonVerCargado } from '@/modules/comparativo-manual/components/ColumnaCargado'
 import { WizardNotaI, type ConfigNotaILocal } from './WizardNotaI'
 import { NotaCuantitativa } from './NotaCuantitativa'
 import { NotaTexto } from './NotaTexto'
@@ -51,6 +52,8 @@ export function NotasView({
   antesDeLasNotas,
 }: Props) {
   const [notas, setNotas] = useState<NotaDTO[]>(initialNotas)
+  const [verCargado, setVerCargado] = useState(false)
+  const hayCargado = notas.some((n) => n.detalles.some((d) => d.anteriorCargado !== undefined))
   const [isPendingGen, startGen] = useTransition()
   const [showWizard, setShowWizard] = useState(false)
   const [config, setConfig] = useState<ConfigNotaILocal>(initialConfig)
@@ -183,10 +186,15 @@ export function NotasView({
                 : 'Los importes del ejercicio anterior se completan manualmente o desde el balance anterior.'}
             </span>
           </p>
-          <Button variant="secondary" size="sm" onClick={() => setRegenerando(true)}>
-            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-            Regenerar desde rubros
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            {hayCargado && (
+              <BotonVerCargado visible={verCargado} onToggle={() => setVerCargado((v) => !v)} />
+            )}
+            <Button variant="secondary" size="sm" onClick={() => setRegenerando(true)}>
+              <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+              Regenerar desde rubros
+            </Button>
+          </div>
         </div>
       )}
 
@@ -209,6 +217,7 @@ export function NotasView({
                 mostrarAnterior={mostrarAnterior}
                 editarAnterior={editarAnterior}
                 origenAnterior={origenAnterior}
+                verCargado={verCargado}
                 ejercicioId={ejercicioId}
                 sociedadId={sociedadId}
                 onChange={(cambio) => handleChange(nota.id, cambio)}

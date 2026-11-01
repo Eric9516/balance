@@ -90,6 +90,8 @@ export type FlujoData = {
   guardado: FlujoGuardadoDTO
   mostrarAnterior: boolean
   editarAnterior: boolean
+  /** Anterior manual ya ajustado: lo que se había cargado, para mostrarlo al lado. */
+  cargado: FlujoGuardadoDTO | null
   /**
    * Si tiene sentido exigir que la columna anterior cuadre: MANUAL, o VINCULADO con
    * flujo en el anterior. Sin ese flujo la columna queda vacía y ya hay advertencia.
@@ -159,6 +161,8 @@ export function armarFlujo(params: {
   /** Flujo guardado del ejercicio anterior (solo VINCULADO). */
   flujoAnterior: FlujoGuardadoDTO | null
   indices: IndicesReexpresion
+  /** Anterior manual ya ajustado: lo que se había cargado. Bloquea la columna anterior. */
+  cargado?: FlujoGuardadoDTO | null
 }): FlujoData {
   const { efectivo, modo, flujoAnterior, indices } = params
   const base = params.guardado ?? FLUJO_VACIO
@@ -238,13 +242,16 @@ export function armarFlujo(params: {
   return {
     guardado,
     mostrarAnterior,
-    editarAnterior,
-    controlarAnterior: editarAnterior || (modo === 'VINCULADO' && flujoAnterior !== null),
+    editarAnterior: editarAnterior && !params.cargado,
+    cargado: params.cargado ?? null,
+    // Ya ajustado, lo cargado se controló al autorizar: los importes ajustados no se comparan exactos.
+    controlarAnterior:
+      (editarAnterior && !params.cargado) || (modo === 'VINCULADO' && flujoAnterior !== null),
     bloqueo: {
       saldoInicial: mostrarAnterior,
       saldoFinal: true,
-      cabeceraAnterior: modo === 'VINCULADO',
-      lineasAnterior,
+      cabeceraAnterior: modo === 'VINCULADO' || Boolean(params.cargado),
+      lineasAnterior: params.cargado ? new Set(items.map((i) => i.id)) : lineasAnterior,
     },
     ...totalesFlujo(guardado, mostrarAnterior),
     conceptosSoloAnterior,

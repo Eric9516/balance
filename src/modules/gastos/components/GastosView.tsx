@@ -19,6 +19,8 @@ import {
 } from '@/modules/comparativo-manual/components/CeldaAnteriorEditable'
 import { ConfigModal } from './ConfigModal'
 import { TablaGastos } from './TablaGastos'
+import { BotonVerCargado } from '@/modules/comparativo-manual/components/ColumnaCargado'
+import { sumarPor } from '@/lib/importe'
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
@@ -38,6 +40,10 @@ export function GastosView({
   editarAnterior = false,
 }: Props) {
   const [showModal, setShowModal] = useState(false)
+  const [verCargado, setVerCargado] = useState(false)
+  const filasCargadas = data.cargado
+    ? filasAnexoGastos(data.cargado.secciones, data.cargado.anteriorManualPorFila)
+    : null
   const mounted = useMontado()
   // Sin columna comparativa (SIN_ANTERIOR / PENDIENTE) no hay nada que editar del anterior.
   const puedeEditarAnterior = conComparativo && editarAnterior
@@ -119,6 +125,9 @@ export function GastosView({
           Columnas y filas se calculan automáticamente desde las cuentas clasificadas.
         </p>
         <div className="flex items-center gap-2">
+          {filasCargadas && (
+            <BotonVerCargado visible={verCargado} onToggle={() => setVerCargado((v) => !v)} />
+          )}
           {puedeEditarAnterior && (
             <ToggleEditarAnterior
               editando={comparativo.editando}
@@ -182,6 +191,14 @@ export function GastosView({
             comparativo={comparativo}
             ejercicioId={ejercicioId}
             sociedadId={sociedadId}
+            cargado={
+              verCargado && filasCargadas
+                ? {
+                    porFila: new Map(filasCargadas.map((f) => [f.clave, f.totalAnterior])),
+                    total: sumarPor(filasCargadas, (f) => f.totalAnterior),
+                  }
+                : null
+            }
           />
 
           <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">

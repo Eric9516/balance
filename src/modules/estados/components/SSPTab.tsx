@@ -24,6 +24,7 @@ import { calcularCuadreSP } from '../lib/cuadre'
 import { esRubroHuerfano } from '../lib/rubroHuerfano'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
 import { CeldaBloqueada } from '@/components/shared/CeldaBloqueada'
+import { ThCargado, TdCargado } from '@/modules/comparativo-manual/components/ColumnaCargado'
 import { claveConcepto } from '@/modules/notas/domain/types'
 import { SECCION_SSP_LABELS } from '@/modules/rubros-base/domain/secciones'
 import {
@@ -51,16 +52,19 @@ export function EncabezadosEjercicio({
   mostrarAnterior,
   anteriorBloqueado,
   anteriorDenominacion,
+  verCargado = false,
 }: {
   fechaCierre: Date
   fechaCierreAnterior: Date | null
   mostrarAnterior: boolean
   anteriorBloqueado: boolean
   anteriorDenominacion: string | null
+  /** Anterior manual ya ajustado: agrega la columna con lo cargado. */
+  verCargado?: boolean
 }) {
   const tituloCandado = anteriorDenominacion
     ? `Tomado de ${anteriorDenominacion}`
-    : 'Tomado del ejercicio anterior vinculado'
+    : 'Cargado a mano y ajustado por inflación'
   return (
     <>
       <th className={TH_IMPORTE}>
@@ -82,6 +86,7 @@ export function EncabezadosEjercicio({
           )}
         </th>
       )}
+      {verCargado && <ThCargado />}
     </>
   )
 }
@@ -92,12 +97,14 @@ function TotalRow({
   valueAnt,
   mostrarAnterior = false,
   variant = 'section',
+  cargado,
 }: {
   label: string
   value: number
   valueAnt?: number
   mostrarAnterior?: boolean
   variant?: 'section' | 'bloque' | 'final'
+  cargado?: number
 }) {
   const isNegative = value < 0
   const antNegative = (valueAnt ?? 0) < 0
@@ -145,6 +152,7 @@ function TotalRow({
           {formatCurrency(valueAnt ?? 0)}
         </td>
       )}
+      {cargado !== undefined && <TdCargado valor={cargado} fuerte oscuro={variant === 'final'} />}
     </tr>
   )
 }
@@ -231,6 +239,7 @@ function RubroExpandableRow({
   comparativo,
   ejercicioId,
   sociedadId,
+  cargado,
 }: {
   rubro: RubroFila
   expanded: boolean
@@ -241,6 +250,7 @@ function RubroExpandableRow({
   comparativo?: ReturnType<typeof useComparativoLote>
   ejercicioId?: string
   sociedadId?: string
+  cargado?: number
 }) {
   const displayText = deduccion
     ? `(${formatCurrency(Math.abs(rubro.displayValue))})`
@@ -291,6 +301,7 @@ function RubroExpandableRow({
             )}
           </td>
         )}
+        {cargado !== undefined && <TdCargado valor={cargado} />}
       </tr>
     )
   }
@@ -339,6 +350,7 @@ function RubroExpandableRow({
             )}
           </td>
         )}
+        {cargado !== undefined && <TdCargado valor={cargado} />}
       </tr>
       {expanded && (
         <>
@@ -365,6 +377,7 @@ function RubroExpandableRow({
                     : null}
                 </td>
               )}
+              {cargado !== undefined && <TdCargado valor={null} />}
             </tr>
           ))}
           {mostrarAnterior &&
@@ -384,6 +397,7 @@ function RubroExpandableRow({
                 <td className="px-4 py-1.5 text-right font-mono text-[11px] text-slate-500 tabular-nums">
                   {formatear(f.importeAnterior)}
                 </td>
+                {cargado !== undefined && <TdCargado valor={null} />}
               </tr>
             ))}
         </>
@@ -409,6 +423,7 @@ export function SSPTab({
   fechaCierreAnterior,
   anteriorBloqueado,
   anteriorDenominacion,
+  cargado = null,
 }: {
   sspRubros: RubroFila[]
   patrimonioNetoFinal: number | null
@@ -425,7 +440,18 @@ export function SSPTab({
   /** Columna anterior tomada del ejercicio vinculado (candado en el encabezado). */
   anteriorBloqueado: boolean
   anteriorDenominacion: string | null
+  /** Anterior manual ya ajustado, con la columna visible: los mismos rubros con lo cargado. */
+  cargado?: { sspRubros: RubroFila[]; patrimonioNetoFinalAnt: number | null } | null
 }) {
+  const cargadoDe = (id: string) =>
+    cargado ? (cargado.sspRubros.find((r) => r.id === id)?.displayValueAnt ?? 0) : undefined
+  const cargadoSeccion = (key: string) =>
+    cargado ? sumarSeccion(cargado.sspRubros, key, 'anterior') : undefined
+  const cargadoPN = cargado
+    ? patrimonioNetoSSP(cargado.sspRubros, cargado.patrimonioNetoFinalAnt, 'anterior')
+    : undefined
+  const cargadoBloque = (sections: readonly string[]) =>
+    cargado ? sumarSecciones(cargado.sspRubros, sections, 'anterior') : undefined
   // Estructura y sumas: fuente única con el documento imprimible (domain/estructuraSSP).
   const getSeccionRubros = (seccionKey: string) => rubrosDeSeccion(sspRubros, seccionKey)
   const seccionTotal = (seccionKey: string) => sumarSeccion(sspRubros, seccionKey, 'actual')
@@ -445,7 +471,7 @@ export function SSPTab({
     patrimonioNetoFinal,
   )
 
-  const colSpan = mostrarAnterior ? 3 : 2
+  const colSpan = (mostrarAnterior ? 3 : 2) + (cargado ? 1 : 0)
 
   return (
     <div>
@@ -493,6 +519,7 @@ export function SSPTab({
                 mostrarAnterior={mostrarAnterior}
                 anteriorBloqueado={anteriorBloqueado}
                 anteriorDenominacion={anteriorDenominacion}
+                verCargado={Boolean(cargado)}
               />
             </tr>
           </thead>
@@ -548,6 +575,7 @@ export function SSPTab({
                               comparativo={comparativo}
                               ejercicioId={ejercicioId}
                               sociedadId={sociedadId}
+                              cargado={cargadoDe(r.id)}
                             />
                           ))}
                           {editarAnterior && (
@@ -581,6 +609,7 @@ export function SSPTab({
                               valueAnt={seccionTotalAnt(secKey)}
                               mostrarAnterior={mostrarAnterior}
                               variant="section"
+                              cargado={cargadoSeccion(secKey)}
                             />
                           )}
                         </React.Fragment>
@@ -602,6 +631,7 @@ export function SSPTab({
                           {formatCurrency(totalPNAnt)}
                         </td>
                       )}
+                      {cargadoPN !== undefined && <TdCargado valor={cargadoPN} />}
                     </tr>
                   )}
 
@@ -611,6 +641,7 @@ export function SSPTab({
                     valueAnt={esPN ? totalPNAnt : bloqueTotalAnt(sections)}
                     mostrarAnterior={mostrarAnterior}
                     variant="bloque"
+                    cargado={esPN ? cargadoPN : cargadoBloque(sections)}
                   />
                 </React.Fragment>
               )
@@ -643,6 +674,7 @@ export function SSPTab({
                       comparativo={comparativo}
                       ejercicioId={ejercicioId}
                       sociedadId={sociedadId}
+                      cargado={cargadoDe(r.id)}
                     />
                   ))}
                 </React.Fragment>
@@ -656,6 +688,7 @@ export function SSPTab({
               valueAnt={totalPasivoPNAnt}
               mostrarAnterior={mostrarAnterior}
               variant="final"
+              cargado={cargado ? sumar(cargadoBloque(SECCIONES_PASIVO), cargadoPN) : undefined}
             />
           </tfoot>
         </table>

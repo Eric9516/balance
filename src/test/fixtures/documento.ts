@@ -65,6 +65,7 @@ export function ejercicioPrueba(
     modoAnterior: 'SIN_ANTERIOR',
     comparativoAutorizadoEn: null,
     comparativoAutorizadoPor: null,
+    anteriorAjustadoEn: null,
     categoriaEnte: 'PEQUENA',
     numeroEjercicio: 5,
     fechaInicio: new Date('2025-01-01T00:00:00.000Z'),

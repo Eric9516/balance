@@ -19,6 +19,7 @@ import { findFlujo } from '@/modules/flujo-efectivo/repository/flujo.repository'
 import { cargarFlujo } from '@/modules/flujo-efectivo/services/flujo.service'
 import type { FlujoData, TotalesColumna } from '@/modules/flujo-efectivo/domain/calculo'
 import { modoEfectivo } from '../domain/ejercicioAnterior'
+import { anteriorAjustado } from '@/modules/comparativo-manual/lib/ajuste'
 import {
   validarAutorizacionFinal,
   type ContextoAutorizacion,
@@ -43,6 +44,7 @@ export async function armarContextoAutorizacion(
   precargado?: Precargado,
 ): Promise<ContextoAutorizacion> {
   const modo = modoEfectivo(ejercicio)
+  const ajustado = anteriorAjustado(ejercicio)
   const esPrimeraAdopcion = ejercicio.adopcionRT54 === 'PRIMERA_ADOPCION'
   const necesitaEstados = modo === 'MANUAL' || esPrimeraAdopcion
   const cargarEstados = () =>
@@ -85,10 +87,14 @@ export async function armarContextoAutorizacion(
           pnConfirmado: anterior.pnConfirmado,
         }
       : null,
+    // Lo cargado se controló al autorizar y no cambia sin anular el ajuste; los importes ajustados
+    // tienen más decimales y no se comparan exactos entre sí.
     cuadreAnterior:
-      modo === 'MANUAL' && estados ? totalesAnteriorSSP(estados.estadosData, estados.pnData) : null,
+      modo === 'MANUAL' && estados && !ajustado
+        ? totalesAnteriorSSP(estados.estadosData, estados.pnData)
+        : null,
     resultadoAnterior:
-      modo === 'MANUAL' && estados
+      modo === 'MANUAL' && estados && !ajustado
         ? {
             eerr: estados.estadosData.eerr.utilidadEjercicioAnt,
             eepn: totalAnteriorFila(estados.pnData.movimientos, 'RESULTADO_EJERCICIO'),
@@ -108,7 +114,10 @@ export async function armarContextoAutorizacion(
       ? {
           lineas: lineasFlujo,
           actual: cuadreFlujo(flujo.actual),
-          anterior: flujo.anterior && flujo.controlarAnterior ? cuadreFlujo(flujo.anterior) : null,
+          anterior:
+            flujo.anterior && flujo.controlarAnterior && !ajustado
+              ? cuadreFlujo(flujo.anterior)
+              : null,
         }
       : {
           lineas: 0,

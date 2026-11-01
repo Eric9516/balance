@@ -1,5 +1,11 @@
 'use client'
 
+import { useState } from 'react'
+import {
+  BotonVerCargado,
+  TdCargado,
+  ThCargado,
+} from '@/modules/comparativo-manual/components/ColumnaCargado'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatFecha } from '@/lib/utils/dates'
@@ -72,6 +78,7 @@ function FilaDato({
   mostrarAnterior,
   editandoAnterior = false,
   onSaveAnterior,
+  cargado,
 }: {
   label: string
   valor: number
@@ -83,6 +90,7 @@ function FilaDato({
   mostrarAnterior: boolean
   editandoAnterior?: boolean
   onSaveAnterior?: (v: number) => void
+  cargado?: number
 }) {
   return (
     <tr className="border-b border-slate-100 hover:bg-acento-suave">
@@ -113,6 +121,7 @@ function FilaDato({
               : '—'}
           </td>
         ))}
+      {cargado !== undefined && <TdCargado valor={cargado} />}
     </tr>
   )
 }
@@ -139,6 +148,8 @@ interface Props {
   sociedadId: string
   fechaCierre: Date
   fechaCierreAnterior: Date | null
+  /** Anterior manual ya ajustado: lo que se había cargado, para mostrarlo al lado. */
+  cargado?: { anterior: CostoVentasDTO | null; conceptosExtra: ComparativoManualDTO[] } | null
 }
 
 // Conceptos fijos y total: fuente única con el documento imprimible (domain/types).
@@ -157,7 +168,10 @@ export function CostoVentasView({
   sociedadId,
   fechaCierre,
   fechaCierreAnterior,
+  cargado = null,
 }: Props) {
+  const [verCargado, setVerCargado] = useState(false)
+  const conCargado = verCargado && cargado !== null
   // Estado inicial del borrador. Si hay existencia inicial derivada del anterior, el
   // borrador la toma como valor (bloqueada, o sin Anexo II cargado todavía): el servidor
   // igual la fija al guardar.
@@ -226,7 +240,7 @@ export function CostoVentasView({
   const costoActual = calcularCostoTotal(datos)
   const costoAnterior = costoAnteriorConExtras(datosAnteriores, conceptosExtraActuales)
 
-  const columnas = mostrarAnterior ? 3 : 2
+  const columnas = (mostrarAnterior ? 3 : 2) + (conCargado ? 1 : 0)
 
   return (
     <div className="max-w-2xl">
@@ -238,11 +252,20 @@ export function CostoVentasView({
             {mostrarAnterior &&
               (editarAnterior
                 ? ' Los del ejercicio anterior, del balance anterior.'
-                : ' Los del ejercicio anterior vienen del ejercicio vinculado.')}
+                : cargado
+                  ? ' Los del ejercicio anterior se cargaron a mano y están ajustados por inflación.'
+                  : ' Los del ejercicio anterior vienen del ejercicio vinculado.')}
           </p>
-          <AvisosArrastre bloqueado={existenciaInicialBloqueada} advertencias={advertencias} />
+          <AvisosArrastre
+            bloqueado={existenciaInicialBloqueada}
+            origen={cargado ? 'lo cargado a mano, ajustado por inflación' : undefined}
+            advertencias={advertencias}
+          />
         </div>
         <div className="flex flex-shrink-0 items-center gap-2">
+          {cargado && (
+            <BotonVerCargado visible={verCargado} onToggle={() => setVerCargado((v) => !v)} />
+          )}
           {mostrarAnterior && editarAnterior && (
             <ToggleEditarAnterior
               editando={comparativo.editando}
@@ -286,6 +309,7 @@ export function CostoVentasView({
                   atenuado
                 />
               )}
+              {conCargado && <ThCargado />}
             </tr>
             <tr className="border-b border-slate-100 bg-slate-50/50">
               <td />
@@ -293,6 +317,7 @@ export function CostoVentasView({
               {mostrarAnterior && (
                 <td className="px-4 py-1 text-right font-mono text-xs text-slate-400">$</td>
               )}
+              {conCargado && <td className="bg-slate-100" />}
             </tr>
           </thead>
           <tbody className={cn(isPending && 'opacity-60')}>
@@ -309,6 +334,7 @@ export function CostoVentasView({
                 mostrarAnterior={mostrarAnterior}
                 editandoAnterior={editandoAnterior}
                 onSaveAnterior={(v) => comparativo.setValor(clave, v)}
+                cargado={conCargado ? (cargado.anterior?.[clave] ?? 0) : undefined}
               />
             ))}
 
@@ -346,6 +372,11 @@ export function CostoVentasView({
                     <td className="w-44 px-4 py-2.5 text-right font-mono text-sm text-slate-500 tabular-nums">
                       {formatCurrency(c.valor, { decimales: 2 })}
                     </td>
+                  )}
+                  {conCargado && (
+                    <TdCargado
+                      valor={cargado.conceptosExtra.find((x) => x.clave === c.clave)?.valor ?? 0}
+                    />
                   )}
                 </tr>
               ))}
@@ -387,6 +418,13 @@ export function CostoVentasView({
                 <td className="w-44 px-4 py-3 text-right font-mono text-sm font-bold text-slate-300 tabular-nums">
                   {costoAnterior !== null ? formatCurrency(costoAnterior, { decimales: 2 }) : '—'}
                 </td>
+              )}
+              {conCargado && (
+                <TdCargado
+                  valor={costoAnteriorConExtras(cargado.anterior, cargado.conceptosExtra)}
+                  fuerte
+                  oscuro
+                />
               )}
             </tr>
           </tfoot>

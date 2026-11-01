@@ -26,6 +26,8 @@ export type GastoSeccion = {
 }
 
 export type GastosSecciones = {
+  /** Anterior manual ya ajustado: el mismo anexo con lo cargado, para mostrarlo al lado. */
+  cargado?: GastosSecciones
   secciones: GastoSeccion[]
   /**
    * Ejercicio anterior fila por fila, cargado a mano. Solo en modo MANUAL (ver resolverGastos);

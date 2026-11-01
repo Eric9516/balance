@@ -11,6 +11,7 @@ import { usarDerivadoDelAnterior } from '@/modules/comparativo-manual/lib/politi
 import { idAnteriorDerivable, modoEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import type { EjercicioContableDTO } from '@/modules/ejercicios/domain/types'
 import { ajustarCuentas, getIndicesReexpresion } from '@/modules/estados/lib/ajuste'
+import { ajustarNotas, indicesDelAnteriorManual } from '@/modules/comparativo-manual/lib/ajuste'
 import { findCuentasByEjercicio } from '@/modules/importaciones/repository/cuentas.repository'
 import { findNotasByEjercicio } from '../repository/notas.repository'
 import { derivarAnteriorDeNotas } from '../domain/anteriorVinculado'
@@ -20,7 +21,12 @@ export async function cargarNotas(ejercicio: EjercicioContableDTO): Promise<Nota
   const anteriorId = usarDerivadoDelAnterior(modoEfectivo(ejercicio))
     ? idAnteriorDerivable(ejercicio)
     : null
-  if (!anteriorId) return findNotasByEjercicio(ejercicio.id)
+  if (!anteriorId) {
+    return ajustarNotas(
+      await findNotasByEjercicio(ejercicio.id),
+      indicesDelAnteriorManual(ejercicio),
+    )
+  }
 
   // Las tres lecturas en paralelo: un solo viaje a la base.
   const [notas, cuentas, cuentasAnt] = await Promise.all([

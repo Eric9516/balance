@@ -13,6 +13,7 @@ import {
   useComparativoLote,
   type ComparativoEntry,
 } from '@/modules/comparativo-manual/components/CeldaAnteriorEditable'
+import { BotonVerCargado } from '@/modules/comparativo-manual/components/ColumnaCargado'
 import { SSPTab } from './SSPTab'
 import { EERRTab } from './EERRTab'
 
@@ -31,6 +32,8 @@ interface Props {
   anteriorDenominacion: string | null
   /** Pestaña "Estado de Flujo de Efectivo" (la arma la página con su propio módulo). */
   flujo?: ReactNode
+  /** Anterior manual ya ajustado: los mismos estados con lo cargado, para mostrarlo al lado. */
+  cargado?: EstadosData | null
 }
 
 export function EstadosView({
@@ -43,6 +46,7 @@ export function EstadosView({
   fechaCierreAnterior,
   anteriorDenominacion,
   flujo,
+  cargado = null,
 }: Props) {
   const [tab, setTab] = useState<'ssp' | 'eerr' | 'flujo'>('ssp')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -82,6 +86,7 @@ export function EstadosView({
     },
   ]
   const comparativo = useComparativoLote(entradasAnterior, ejercicioId, sociedadId)
+  const [verCargado, setVerCargado] = useState(false)
   const editandoAnterior = editarAnterior && comparativo.editando
   // Columna anterior visible pero no editable = valores tomados del ejercicio vinculado.
   const anteriorBloqueado = data.hayEjercicioAnterior && !editarAnterior
@@ -151,6 +156,9 @@ export function EstadosView({
           ))}
         </div>
         <div className="flex items-center gap-2">
+          {cargado && tab !== 'flujo' && (
+            <BotonVerCargado visible={verCargado} onToggle={() => setVerCargado((v) => !v)} />
+          )}
           {editarAnterior && tab !== 'flujo' && (
             <ToggleEditarAnterior
               editando={comparativo.editando}
@@ -205,6 +213,7 @@ export function EstadosView({
           fechaCierreAnterior={fechaCierreAnterior}
           anteriorBloqueado={anteriorBloqueado}
           anteriorDenominacion={anteriorDenominacion}
+          cargado={verCargado ? cargado : null}
         />
       )}
       {tab === 'eerr' && (
@@ -219,6 +228,7 @@ export function EstadosView({
           fechaCierreAnterior={fechaCierreAnterior}
           anteriorBloqueado={anteriorBloqueado}
           anteriorDenominacion={anteriorDenominacion}
+          cargado={verCargado ? (cargado?.eerr ?? null) : null}
         />
       )}
       {/* Envuelto: el slot llega del servidor y como hijo único no entra en la lista de hermanos. */}

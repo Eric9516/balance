@@ -12,6 +12,7 @@ import {
 import { idAnteriorDerivable, modoEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import { compuertaAutorizacion } from '@/modules/ejercicios/services/autorizacion.service'
 import { getIndicesReexpresion } from '@/modules/estados/lib/ajuste'
+import { anteriorAjustado } from '@/modules/comparativo-manual/lib/ajuste'
 import { findMovimientosPN, guardarMovimientosPN } from '../repository/patrimonio-neto.repository'
 import { derivarDesdeAnteriorPN } from '../domain/saldosInicio'
 import { armarEvolucionPN, conResultado } from '../domain/evolucion'
@@ -51,11 +52,20 @@ export async function guardarEvolucionPNAction(
       findMovimientosPN(ejercicioId),
     ])
     const derivado = derivarDesdeAnteriorPN(movsAnterior, getIndicesReexpresion(ejercicio))
+    const ajustado = anteriorAjustado(ejercicio)
 
     const saneado = armarEvolucionPN({
       ejercicioId,
       guardados: conResultado(
-        movimientos.map((m) => ({ ...m, id: '', ejercicioId })),
+        movimientos.map((m) => ({
+          ...m,
+          id: '',
+          ejercicioId,
+          // Ya ajustado, lo que manda la pantalla es el valor ajustado: lo cargado no se toca.
+          totalAnterior: ajustado
+            ? (guardadosPrevios.find((g) => g.tipo === m.tipo)?.totalAnterior ?? 0)
+            : m.totalAnterior,
+        })),
         resultadoEjercicio,
       ),
       resultadoEjercicio,

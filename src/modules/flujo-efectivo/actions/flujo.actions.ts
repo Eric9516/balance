@@ -30,6 +30,7 @@ import {
   guardarFlujoLote,
 } from '../repository/flujo.repository'
 import { cargarFlujo } from '../services/flujo.service'
+import { anteriorAjustado } from '@/modules/comparativo-manual/lib/ajuste'
 
 const importe = z.number().finite()
 const concepto = z
@@ -105,10 +106,18 @@ export async function guardarFlujoAction(
     const actual = (await findFlujo(ejercicioId)) ?? FLUJO_VACIO
     const recibidos = new Map(parsed.data.items.map((i) => [i.id, i]))
     // Solo líneas propias; sección y orden vienen de la base.
+    // Ya ajustado, lo que manda la pantalla en la columna anterior es el valor ajustado: lo cargado
+    // no se toca.
+    const ajustado = anteriorAjustado(ejercicio)
     const items: FlujoItemDTO[] = actual.items.map((i) => {
       const r = recibidos.get(i.id)
       return r
-        ? { ...i, concepto: r.concepto, importe: r.importe, importeAnterior: r.importeAnterior }
+        ? {
+            ...i,
+            concepto: r.concepto,
+            importe: r.importe,
+            importeAnterior: ajustado ? i.importeAnterior : r.importeAnterior,
+          }
         : i
     })
     const duplicado = conceptoDuplicado(items)
@@ -118,13 +127,21 @@ export async function guardarFlujoAction(
       ...actual,
       saldoInicial: parsed.data.saldoInicial,
       modificacionesEjAnt: parsed.data.modificacionesEjAnt,
-      saldoInicialAnterior: parsed.data.saldoInicialAnterior,
-      modificacionesEjAntAnt: parsed.data.modificacionesEjAntAnt,
+      saldoInicialAnterior: ajustado
+        ? actual.saldoInicialAnterior
+        : parsed.data.saldoInicialAnterior,
+      modificacionesEjAntAnt: ajustado
+        ? actual.modificacionesEjAntAnt
+        : parsed.data.modificacionesEjAntAnt,
       items,
     })
     const guardado = await guardarFlujoLote(ejercicioId, flujo.guardado)
 
-    if (modoEfectivo(ejercicio) === 'MANUAL' && cambioColumnaAnterior(actual, guardado)) {
+    if (
+      modoEfectivo(ejercicio) === 'MANUAL' &&
+      !ajustado &&
+      cambioColumnaAnterior(actual, guardado)
+    ) {
       await marcarComparativoModificado(ejercicioId)
     } else {
       await resetEstadosConfirmado(ejercicioId)

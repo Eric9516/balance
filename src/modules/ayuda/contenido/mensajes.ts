@@ -444,6 +444,30 @@ const MENSAJES: Mensaje[] = [
     solucion: ['Seguí lo que indica el mensaje y volvé a intentar.'],
     claves: ['regla', 'no se puede', 'dueño activo'],
   },
+  {
+    codigo: 'NEG-064',
+    titulo: 'Faltan los índices para ajustar el anterior',
+    significa:
+      'Al autorizar los saldos del ejercicio anterior cargados a mano, la app los ajusta por inflación. Sin los dos índices no se pueden ajustar.',
+    solucion: [
+      'Abrí "Editar ejercicio" y cargá el índice al cierre del ejercicio anterior y el de este.',
+      'Después volvé a autorizar los saldos.',
+    ],
+    claves: ['indices', 'inflacion', 'autorizar', 'ajuste'],
+    relacionados: ['anterior-manual', 'coeficiente'],
+  },
+  {
+    codigo: 'NEG-065',
+    titulo: 'Los saldos del anterior ya están ajustados',
+    significa:
+      'Los saldos del ejercicio anterior ya se autorizaron y se ajustaron por inflación. Mientras estén así no se editan, y si el ejercicio está cerrado no se pueden corregir.',
+    solucion: [
+      'En el paso Ejercicio anterior, tocá "Corregir lo cargado". Se quitan el ajuste y la autorización.',
+      'Corregí los importes y autorizá de nuevo: se vuelven a ajustar.',
+    ],
+    claves: ['corregir', 'ajustado', 'no me deja', 'columna anterior'],
+    relacionados: ['anterior-manual'],
+  },
 ]
 
 export const MENSAJES_AYUDA: ArticuloAyuda[] = MENSAJES.map((m) => ({

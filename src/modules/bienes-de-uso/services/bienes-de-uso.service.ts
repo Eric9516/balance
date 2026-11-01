@@ -11,7 +11,8 @@ import {
   derivarArrastreBienesDeUso,
   type ResultadoArrastreBDU,
 } from '../domain/saldosInicio'
-import { getIndicesReexpresion } from '@/modules/estados/lib/ajuste'
+import { getIndicesReexpresion, reexpresar } from '@/modules/estados/lib/ajuste'
+import { indicesDelAnteriorManual } from '@/modules/comparativo-manual/lib/ajuste'
 import { findBienesDeUso } from '../repository/bienes-de-uso.repository'
 
 export async function cargarBienesDeUso(
@@ -22,11 +23,24 @@ export async function cargarBienesDeUso(
     findBienesDeUso(ejercicio.id),
     anteriorId ? findBienesDeUso(anteriorId) : Promise.resolve([]),
   ])
-  return aplicarArrastreBienesDeUso(
+  const arrastre = aplicarArrastreBienesDeUso(
     bienes,
     anteriorId
       ? derivarArrastreBienesDeUso(bienesAnterior, getIndicesReexpresion(ejercicio))
       : null,
     modoEfectivo(ejercicio),
   )
+  const manual = indicesDelAnteriorManual(ejercicio)
+  if (!manual) return arrastre
+  // Las categorías siguen como en la base: se ajusta solo el neto que se muestra como anterior.
+  return {
+    ...arrastre,
+    netoCargadoMap: arrastre.netoAnteriorMap,
+    netoAnteriorMap: new Map(
+      [...arrastre.netoAnteriorMap].map(([categoria, neto]) => [
+        categoria,
+        reexpresar(neto, manual),
+      ]),
+    ),
+  }
 }

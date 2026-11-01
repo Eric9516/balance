@@ -1,5 +1,7 @@
 'use client'
 
+import { BotonVerCargado, ThCargado } from '@/modules/comparativo-manual/components/ColumnaCargado'
+import { sumar } from '@/lib/importe'
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight, PlusCircle, PackageOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -33,6 +35,8 @@ interface Props {
   bienes: BienDeUsoDTO[]
   /** Neto residual al cierre del ejercicio anterior, por nombre de categoría. */
   netoAnteriorMap: Map<string, number>
+  /** Anterior manual ya ajustado: el neto que se había cargado de cada categoría. */
+  netoCargadoMap?: Map<string, number>
   /** ids de filas cuyas columnas de inicio vienen del ejercicio anterior vinculado. */
   bloqueadas: string[]
   /** Fuentes faltantes en el anterior (filas que quedan editables). */
@@ -50,6 +54,7 @@ interface Props {
 export function BienesDeUsoView({
   bienes: initialBienes,
   netoAnteriorMap,
+  netoCargadoMap,
   bloqueadas,
   advertencias,
   mostrarAnterior,
@@ -59,6 +64,8 @@ export function BienesDeUsoView({
   fechaCierre,
   fechaCierreAnterior,
 }: Props) {
+  const [verCargado, setVerCargado] = useState(false)
+  const conCargado = verCargado && netoCargadoMap !== undefined
   const {
     valor: bienes,
     editando,
@@ -171,6 +178,9 @@ export function BienesDeUsoView({
             onExpandir={grupos.expandirTodos}
             disabled={editando}
           />
+          {netoCargadoMap && (
+            <BotonVerCargado visible={verCargado} onToggle={() => setVerCargado((v) => !v)} />
+          )}
           <BotonEditar
             editando={editando}
             onEditar={iniciarEdicion}
@@ -224,7 +234,10 @@ export function BienesDeUsoView({
                     </th>
                   )
                 })}
-                <th colSpan={mostrarAnterior ? 2 : 1} className={cn(thGrupo, 'border-l-slate-300')}>
+                <th
+                  colSpan={(mostrarAnterior ? 2 : 1) + (conCargado ? 1 : 0)}
+                  className={cn(thGrupo, 'border-l-slate-300')}
+                >
                   Neto residual
                 </th>
                 <th rowSpan={2} className="w-12 border-b border-linea" />
@@ -256,6 +269,7 @@ export function BienesDeUsoView({
                     )}
                   </th>
                 )}
+                {conCargado && <ThCargado />}
               </tr>
             </thead>
             <tbody>
@@ -265,6 +279,7 @@ export function BienesDeUsoView({
                   bien={bien}
                   columnas={columnas}
                   netoAnterior={netoAnteriorMap.get(bien.categoria) ?? null}
+                  netoCargado={conCargado ? (netoCargadoMap?.get(bien.categoria) ?? 0) : undefined}
                   bloqueada={bloqueadasSet.has(bien.id)}
                   mostrarAnterior={mostrarAnterior}
                   editarAnterior={editarAnterior}
@@ -281,6 +296,7 @@ export function BienesDeUsoView({
                 bienes={bienes}
                 columnas={columnas}
                 netoAnteriorMap={netoAnteriorMap}
+                netoCargado={conCargado ? sumar(...(netoCargadoMap?.values() ?? [])) : undefined}
                 mostrarAnterior={mostrarAnterior}
                 editarAnterior={editarAnterior}
               />
