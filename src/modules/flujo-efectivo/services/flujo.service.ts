@@ -23,8 +23,6 @@ export async function cargarFlujo(
   ejercicio: EjercicioContableDTO,
   estadosData: EstadosData,
   guardado?: FlujoGuardadoDTO | null,
-  /** Anterior manual ya ajustado: los estados con lo cargado, para la columna de lo cargado. */
-  estadosCargados?: EstadosData | null,
 ): Promise<FlujoData> {
   const anteriorId = idAnteriorDerivable(ejercicio)
   // Lo que viene de un guardado queda tal cual: lo ajustado se calcula solo para mostrar.
@@ -35,18 +33,21 @@ export async function cargarFlujo(
     anteriorId ? findFlujo(anteriorId) : Promise.resolve(null),
   ])
   const rubrosEfectivo = new Set(rubros.filter((r) => r.esEfectivo).map((r) => r.id))
+  // Anterior manual ya ajustado: el efectivo que se había cargado, sin ajustar.
+  const efectivoCargado = estadosData.sspRubrosCargados
+    ? efectivoDesdeSSP(estadosData.sspRubrosCargados, rubrosEfectivo).anterior
+    : null
   return armarFlujo({
     guardado: guardado !== undefined ? guardado : ajustarFlujo(cargado, manual),
     cargado:
       manual && cargado
         ? {
             ...cargado,
-            saldoFinalAnterior: estadosCargados
-              ? efectivoDesdeSSP(estadosCargados.sspRubros, rubrosEfectivo).anterior
-              : cargado.saldoFinalAnterior,
+            saldoFinalAnterior: efectivoCargado ?? cargado.saldoFinalAnterior,
           }
         : null,
     efectivo: efectivoDesdeSSP(estadosData.sspRubros, rubrosEfectivo),
+    efectivoInicial: efectivoCargado,
     modo: modoEfectivo(ejercicio),
     flujoAnterior,
     indices: getIndicesReexpresion(ejercicio),

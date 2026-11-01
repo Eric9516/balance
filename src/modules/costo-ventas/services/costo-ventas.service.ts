@@ -109,8 +109,9 @@ export async function cargarCostoVentas(
     cargarAnteriorCostoVentas(ejercicio),
   ])
   return {
-    // La existencia inicial es la existencia final del anterior (vinculado o cargado a mano).
-    ...aplicarArrastreCostoVentas(datos, anterior, modoEfectivo(ejercicio)),
+    // La existencia inicial es la existencia final del anterior (vinculado o cargado a mano). Es de
+    // este año: con el anterior manual ya ajustado, sale de lo cargado, sin ajustar.
+    ...aplicarArrastreCostoVentas(datos, cargado?.anterior ?? anterior, modoEfectivo(ejercicio)),
     datosAnteriores: anterior,
     conceptosExtra: comparativos.filter((c) => c.esHuerfano),
     existenciaFinalAnteriorPropuesta: propuesta,

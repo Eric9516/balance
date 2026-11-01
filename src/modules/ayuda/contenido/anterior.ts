@@ -109,7 +109,11 @@ export const ANTERIOR: ArticuloAyuda[] = [
       defs(
         [
           'Qué se ajusta',
-          'La columna "Ejercicio anterior" de los estados, el Anexo II, el Anexo III, las notas, el neto anterior del Anexo I, el E.E.P.N. y el flujo de efectivo. El valor y la amortización al comienzo del Anexo I y los saldos al inicio del E.E.P.N. no: su reexpresión se carga en "Ajuste por inflación". Igual que con el anterior vinculado.',
+          'La columna "Ejercicio anterior" de los estados, el Anexo II, el Anexo III, las notas, el neto anterior del Anexo I, el E.E.P.N. y el flujo de efectivo. El valor y la amortización al comienzo del Anexo I y los saldos al inicio del E.E.P.N. no: su reexpresión se carga en "Ajuste por inflación".',
+        ],
+        [
+          'Qué no se ajusta',
+          'Nada de la columna del ejercicio actual. El efectivo al inicio del flujo y la existencia al comienzo del Anexo II son de este año: quedan como se cargaron, sin ajustar.',
         ],
         [
           'Ver lo cargado',

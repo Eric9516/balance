@@ -370,10 +370,7 @@ export async function autorizarComparativoAction(
           'No se pueden autorizar los saldos del ejercicio anterior porque faltan los índices de inflación, y sin ellos no se pueden ajustar. Cargalos en "Editar ejercicio".',
       })
     }
-    // El flujo de este año (AUT-050) parte del efectivo del anterior: se controla ya ajustado.
-    const bloqueo = await compuertaAutorizacion(ejercicioId, {
-      ignorarCodigos: ['AUT-010', 'AUT-050'],
-    })
+    const bloqueo = await compuertaAutorizacion(ejercicioId, { ignorarCodigos: ['AUT-010'] })
     if (bloqueo) return actionError(bloqueo)
 
     await autorizarComparativo(

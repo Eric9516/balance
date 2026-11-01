@@ -89,6 +89,11 @@ export type EERRData = {
 
 export type EstadosData = {
   sspRubros: RubroFila[]
+  /**
+   * Anterior manual ya ajustado: los rubros con lo cargado. La columna del ejercicio actual no se
+   * ajusta, así que lo que arrastra del anterior (el efectivo al inicio del flujo) sale de acá.
+   */
+  sspRubrosCargados?: RubroFila[]
   eerrRubros: RubroFila[]
   eerr: EERRData
   patrimonioNetoFinal: number | null

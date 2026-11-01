@@ -169,13 +169,17 @@ export async function cargarEstadosConPN(
     ? { ...pnAjustado, bloqueo: { ...pnAjustado.bloqueo, totalAnterior: true } }
     : pnAjustado
 
+  const cargado = manual ? armar(comparativos, notas, bienesDeUso, movsActual) : null
+
   return {
-    estadosData,
+    estadosData: cargado
+      ? { ...estadosData, sspRubrosCargados: cargado.estadosData.sspRubros }
+      : estadosData,
     pnData,
     comparativos,
     coeficiente: getCoeficienteComparativo(ejercicio),
     anteriorId,
-    cargado: manual ? armar(comparativos, notas, bienesDeUso, movsActual) : null,
+    cargado,
   }
 }
 

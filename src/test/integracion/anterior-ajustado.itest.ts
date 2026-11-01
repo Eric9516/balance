@@ -155,6 +155,14 @@ beforeAll(async () => {
       { modulo: 'SSP', clave: ctx.rubro, label: 'Rubro', valor: 800, esHuerfano: true, orden: 0 },
       {
         modulo: 'COSTO_VENTAS',
+        clave: 'existenciaFinal',
+        label: 'Existencia final',
+        valor: 100,
+        esHuerfano: false,
+        orden: 1,
+      },
+      {
+        modulo: 'COSTO_VENTAS',
         clave: 'compras',
         label: 'Compras',
         valor: 400,
@@ -233,15 +241,22 @@ describe('Anterior cargado a mano', () => {
       200,
     )
 
-    const flujo = await cargarFlujo(e, estadosData, undefined, cargado?.estadosData)
+    const flujo = await cargarFlujo(e, estadosData)
     expect(flujo.guardado.saldoInicialAnterior).toBe(50)
     expect(flujo.guardado.items[0]!.importeAnterior).toBe(100)
     expect(flujo.cargado?.saldoInicialAnterior).toBe(40)
     expect(flujo.editarAnterior).toBe(false)
+    // La columna anterior se ajusta; la del ejercicio actual, no
+    expect(flujo.guardado.saldoFinalAnterior).toBe(1250)
+    expect(flujo.guardado.saldoInicial).toBe(1000)
+    expect(flujo.actual.variacionNeta).toBe(-500)
+    expect(flujo.cargado?.saldoFinalAnterior).toBe(1000)
 
     const costo = await cargarCostoVentas(e)
     expect(costo.datosAnteriores?.compras).toBe(500)
     expect(costo.cargado?.anterior?.compras).toBe(400)
+    expect(costo.datosAnteriores?.existenciaFinal).toBe(125)
+    expect(costo.existenciaInicialDerivada).toBe(100)
 
     expect((await cargarGastos(e)).cargado).toBeDefined()
   })

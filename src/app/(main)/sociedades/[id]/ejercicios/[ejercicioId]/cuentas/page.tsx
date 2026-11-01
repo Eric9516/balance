@@ -411,7 +411,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
   } else if (paso === 'estados') {
     const cuentas = await findCuentasByEjercicio(ejercicioId)
     const { estadosData, pnData, cargado } = await cargarEstadosConPN(ejercicio, cuentas)
-    const flujo = await cargarFlujo(ejercicio, estadosData, undefined, cargado?.estadosData)
+    const flujo = await cargarFlujo(ejercicio, estadosData)
     content = (
       <EstadosView
         data={{

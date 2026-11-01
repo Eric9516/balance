@@ -163,6 +163,8 @@ export function armarFlujo(params: {
   indices: IndicesReexpresion
   /** Anterior manual ya ajustado: lo que se había cargado. Bloquea la columna anterior. */
   cargado?: FlujoGuardadoDTO | null
+  /** Anterior manual ya ajustado: el efectivo al inicio de este año, que no se ajusta. */
+  efectivoInicial?: number | null
 }): FlujoData {
   const { efectivo, modo, flujoAnterior, indices } = params
   const base = params.guardado ?? FLUJO_VACIO
@@ -172,7 +174,9 @@ export function armarFlujo(params: {
 
   // ── Columna actual ────────────────────────────────────────────────────────
   const saldoFinal = efectivo.actual
-  const saldoInicial = mostrarAnterior ? efectivo.anterior : base.saldoInicial
+  const saldoInicial = mostrarAnterior
+    ? (params.efectivoInicial ?? efectivo.anterior)
+    : base.saldoInicial
 
   // ── Columna anterior ──────────────────────────────────────────────────────
   const lineasAnterior = new Set<string>()
