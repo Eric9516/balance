@@ -1,5 +1,9 @@
 'use client'
 
+import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
+import { moverNotaAction } from '../actions/notas.actions'
+import { ubicarEnLista } from '../domain/regeneracion'
+import { UbicarNota } from './UbicarNota'
 import { useState, useTransition, type ReactNode } from 'react'
 import { useMontado } from '@/components/shared/useMontado'
 import { RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react'
@@ -53,6 +57,7 @@ export function NotasView({
 }: Props) {
   const [notas, setNotas] = useState<NotaDTO[]>(initialNotas)
   const [verCargado, setVerCargado] = useState(false)
+  const { isPending: moviendo, ejecutar: ejecutarMover } = useGuardarAccion()
   const hayCargado = notas.some((n) => n.detalles.some((d) => d.anteriorCargado !== undefined))
   const [isPendingGen, startGen] = useTransition()
   const [showWizard, setShowWizard] = useState(false)
@@ -63,6 +68,22 @@ export function NotasView({
 
   function handleChange(id: string, cambio: (prev: NotaDTO) => NotaDTO) {
     setNotas((prev) => prev.map((n) => (n.id === id ? cambio(n) : n)))
+  }
+
+  function mover(id: string, debajoDe: string | null) {
+    ejecutarMover(
+      () => moverNotaAction(id, ejercicioId, sociedadId, debajoDe),
+      () => {
+        const lista = ubicarEnLista(
+          notas.map((n) => n.id),
+          id,
+          debajoDe,
+        )
+        if (!lista) return
+        const porId = new Map(notas.map((n) => [n.id, n]))
+        setNotas(lista.map((x, i) => ({ ...porId.get(x)!, numero: i + 2, orden: i + 1 })))
+      },
+    )
   }
 
   function handleDelete(id: string) {
@@ -207,33 +228,42 @@ export function NotasView({
             tieneCuentasClasificadas={tieneCuentasClasificadas}
           />
         ) : (
-          notas.map((nota) =>
-            nota.tipo === 'CUANTITATIVA' ? (
-              <NotaCuantitativa
-                key={nota.id}
+          notas.map((nota, i) => (
+            <div key={nota.id} className="space-y-1">
+              <UbicarNota
                 nota={nota}
-                fechaCierre={fechaCierre}
-                fechaCierreAnterior={fechaCierreAnterior}
-                mostrarAnterior={mostrarAnterior}
-                editarAnterior={editarAnterior}
-                origenAnterior={origenAnterior}
-                verCargado={verCargado}
-                ejercicioId={ejercicioId}
-                sociedadId={sociedadId}
-                onChange={(cambio) => handleChange(nota.id, cambio)}
-                onDelete={() => handleDelete(nota.id)}
+                indice={i}
+                notas={notas}
+                disabled={moviendo}
+                onMover={(debajoDe) => mover(nota.id, debajoDe)}
               />
-            ) : (
-              <NotaTexto
-                key={nota.id}
-                nota={nota}
-                ejercicioId={ejercicioId}
-                sociedadId={sociedadId}
-                onChange={(cambio) => handleChange(nota.id, cambio)}
-                onDelete={() => handleDelete(nota.id)}
-              />
-            ),
-          )
+              {nota.tipo === 'CUANTITATIVA' ? (
+                <NotaCuantitativa
+                  key={nota.id}
+                  nota={nota}
+                  fechaCierre={fechaCierre}
+                  fechaCierreAnterior={fechaCierreAnterior}
+                  mostrarAnterior={mostrarAnterior}
+                  editarAnterior={editarAnterior}
+                  origenAnterior={origenAnterior}
+                  verCargado={verCargado}
+                  ejercicioId={ejercicioId}
+                  sociedadId={sociedadId}
+                  onChange={(cambio) => handleChange(nota.id, cambio)}
+                  onDelete={() => handleDelete(nota.id)}
+                />
+              ) : (
+                <NotaTexto
+                  key={nota.id}
+                  nota={nota}
+                  ejercicioId={ejercicioId}
+                  sociedadId={sociedadId}
+                  onChange={(cambio) => handleChange(nota.id, cambio)}
+                  onDelete={() => handleDelete(nota.id)}
+                />
+              )}
+            </div>
+          ))
         ))}
     </div>
   )

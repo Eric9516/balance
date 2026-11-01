@@ -190,6 +190,10 @@ export const PASOS: ArticuloAyuda[] = [
         ],
         ['Descartar', 'No va en este balance.'],
         [
+          'Agregar una nota manual',
+          'En "Agregar documento manual" elegís "Nota", le ponés título y elegís dónde va. La nota aparece en el paso Notas, lista para completar, y sale en el balance. Después la podés mover con las flechas o con "Mover a…", arriba de cada nota. Regenerar las notas no la borra y respeta el lugar donde las ubicaste.',
+        ],
+        [
           'No aplica / No aplica este año',
           'No corresponde para esta sociedad o para este ejercicio.',
         ],

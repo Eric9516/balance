@@ -445,6 +445,15 @@ const MENSAJES: Mensaje[] = [
     claves: ['regla', 'no se puede', 'dueño activo'],
   },
   {
+    codigo: 'NEG-066',
+    titulo: 'La nota manual ya tiene filas cargadas',
+    significa:
+      'Quisiste eliminar de Anexos → Configuración una nota agregada a mano que ya tiene filas. Desde ahí no se elimina, para que no pierdas lo cargado sin verlo.',
+    solucion: ['Andá al paso Notas, revisala y eliminala desde el tacho de esa nota.'],
+    claves: ['eliminar nota', 'nota manual', 'no me deja borrar'],
+    relacionados: ['paso-notas'],
+  },
+  {
     codigo: 'NEG-064',
     titulo: 'Faltan los índices para ajustar el anterior',
     significa:

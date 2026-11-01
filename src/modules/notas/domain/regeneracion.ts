@@ -242,11 +242,21 @@ export type PlanNotaExistente = {
   filasSinCuenta: { detalleId: string; concepto: string; importeAnterior: number }[]
 }
 
+type EntradaSecuencia = {
+  clave: string
+  /** Lugar que le toca según los rubros. */
+  ordenProvisional: number
+  /** Nota que ya existe: su lugar actual. El contador la pudo ubicar a mano y se respeta. */
+  ordenActual?: number
+  /** Nota que no es de ningún rubro: no sirve de referencia para ubicar a las nuevas. */
+  sinRubro?: boolean
+}
+
 export type PlanRegeneracion = {
   nuevas: PlanNotaNueva[]
   existentes: PlanNotaExistente[]
   /** Orden en que la generación deja las notas, para numerarlas al final. */
-  secuencia: { clave: string; ordenProvisional: number }[]
+  secuencia: EntradaSecuencia[]
 }
 
 /** Saldo de la cuenta como se muestra en la nota. */
@@ -334,7 +344,11 @@ export function planificarRegeneracion(params: {
     }
 
     plan.existentes.push(existente)
-    plan.secuencia.push({ clave: `e:${nota.id}`, ordenProvisional: obj.ordenProvisional })
+    plan.secuencia.push({
+      clave: `e:${nota.id}`,
+      ordenProvisional: obj.ordenProvisional,
+      ordenActual: nota.orden,
+    })
   }
 
   // Las notas que no son de ningún rubro (por ejemplo, la de transición a la RT 54) se quedan
@@ -354,7 +368,12 @@ export function planificarRegeneracion(params: {
       importesActuales: [],
       filasSinCuenta: [],
     })
-    plan.secuencia.push({ clave: `e:${nota.id}`, ordenProvisional: nota.orden })
+    plan.secuencia.push({
+      clave: `e:${nota.id}`,
+      ordenProvisional: nota.orden,
+      ordenActual: nota.orden,
+      sinRubro: true,
+    })
   }
   return plan
 }
@@ -395,11 +414,42 @@ export function numeracionFinal(
   plan: PlanRegeneracion,
   op: OpcionesRegeneracion,
 ): Map<string, { orden: number; numero: number }> {
-  const entradas = plan.secuencia
-    .filter((e) => op.notasNuevas || !e.clave.startsWith('n:'))
-    .map((e, i) => ({ ...e, i }))
-    .sort((a, b) => a.ordenProvisional - b.ordenProvisional || a.i - b.i)
-  return new Map(entradas.map((e, i) => [e.clave, { orden: i + 1, numero: i + 2 }]))
+  const entradas = plan.secuencia.filter((e) => op.notasNuevas || !e.clave.startsWith('n:'))
+  // Las que existen quedan donde están, porque el contador las pudo ubicar a mano. Cada nota nueva
+  // va debajo de la nota del rubro que le toca antes.
+  const lista = entradas
+    .filter((e) => e.ordenActual !== undefined)
+    .sort((a, b) => (a.ordenActual ?? 0) - (b.ordenActual ?? 0))
+  const nuevas = entradas
+    .map((e, i) => ({ e, i }))
+    .filter(({ e }) => e.ordenActual === undefined)
+    .sort((a, b) => a.e.ordenProvisional - b.e.ordenProvisional || a.i - b.i)
+  for (const { e: nueva } of nuevas) {
+    let referencia = -1
+    lista.forEach((e, i) => {
+      if (e.sinRubro || e.ordenProvisional > nueva.ordenProvisional) return
+      if (referencia < 0 || e.ordenProvisional >= lista[referencia]!.ordenProvisional)
+        referencia = i
+    })
+    lista.splice(referencia + 1, 0, nueva)
+  }
+  return new Map(lista.map((e, i) => [e.clave, { orden: i + 1, numero: i + 2 }]))
+}
+
+/**
+ * La lista con `id` debajo de `debajoDe` (null: primera). La Nota 1 no entra: siempre es la primera
+ * del balance. Null si alguna de las dos no está en la lista.
+ */
+export function ubicarEnLista(
+  ids: readonly string[],
+  id: string,
+  debajoDe: string | null,
+): string[] | null {
+  if (!ids.includes(id)) return null
+  const resto = ids.filter((x) => x !== id)
+  const posicion = debajoDe === null ? 0 : resto.indexOf(debajoDe) + 1
+  if (debajoDe !== null && posicion === 0) return null
+  return [...resto.slice(0, posicion), id, ...resto.slice(posicion)]
 }
 
 // ─── Resumen para el usuario ──────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+import { ubicarEnLista } from '../domain/regeneracion'
 import { cache } from 'react'
 import { Prisma, type TipoNota } from '@prisma/client'
 import { db } from '@/lib/db'
@@ -128,6 +129,34 @@ export async function renumerarNotas(ejercicioId: string): Promise<void> {
     numero++
     orden++
   }
+}
+
+/** Deja la nota debajo de otra (null: primera) y renumera. False si alguna no es de este ejercicio. */
+export async function ubicarNota(
+  ejercicioId: string,
+  notaId: string,
+  debajoDe: string | null,
+): Promise<boolean> {
+  const notas = await db.notaEjercicio.findMany({
+    where: { ejercicioId },
+    orderBy: { orden: 'asc' },
+    select: { id: true, orden: true, numero: true },
+  })
+  const lista = ubicarEnLista(
+    notas.map((n) => n.id),
+    notaId,
+    debajoDe,
+  )
+  if (!lista) return false
+  const actual = new Map(notas.map((n) => [n.id, n]))
+  await db.$transaction(
+    lista.flatMap((id, i) =>
+      actual.get(id)?.orden === i + 1 && actual.get(id)?.numero === i + 2
+        ? []
+        : [db.notaEjercicio.update({ where: { id }, data: { orden: i + 1, numero: i + 2 } })],
+    ),
+  )
+  return true
 }
 
 export async function createDetalle(data: {

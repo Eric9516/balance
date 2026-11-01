@@ -10,9 +10,17 @@ import {
   upsertDecisionRegla,
   deleteDecisionRegla,
   createDocumentoManual,
+  createNotaManual,
   deleteDocumentoManual,
+  findDocumentoManual,
   saldoPorCodigoRubro,
 } from '../repository/documento.repository'
+import {
+  deleteNota,
+  findNotasByEjercicio,
+  renumerarNotas,
+  ubicarNota,
+} from '@/modules/notas/repository/notas.repository'
 import { sumarPor } from '@/lib/importe'
 
 function revalidate(sociedadId: string, ejercicioId: string) {
@@ -124,6 +132,8 @@ export async function agregarDocumentoManualAction(
   sociedadId: string,
   tipo: TipoDoc,
   titulo: string,
+  /** Solo notas: 'FINAL', 'PRIMERA' o el id de la nota que queda arriba. */
+  ubicacion: string = 'FINAL',
 ): Promise<ActionResult<DocumentoEjercicioDTO>> {
   try {
     await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
@@ -141,6 +151,25 @@ export async function agregarDocumentoManualAction(
         errorHandler(new Error('El título es obligatorio'), ctxErr('agregar_manual')),
       )
     }
+    if (tipo === 'NOTA') {
+      const notas = await findNotasByEjercicio(ejercicioId)
+      const nombre = titulo.trim().toLocaleUpperCase('es-AR')
+      if (notas.some((n) => n.titulo.trim().toLocaleUpperCase('es-AR') === nombre)) {
+        return actionError({
+          tipo: 'FORMULARIO',
+          severidad: 'BAJO',
+          codigo: 'FORM-001',
+          mensaje: `Ya hay una nota llamada "${titulo.trim()}". Buscala en el paso Notas o elegí otro título.`,
+          campo: 'titulo',
+        })
+      }
+      const { documento, notaId } = await createNotaManual({ ejercicioId, titulo: titulo.trim() })
+      if (ubicacion !== 'FINAL') {
+        await ubicarNota(ejercicioId, notaId, ubicacion === 'PRIMERA' ? null : ubicacion)
+      }
+      revalidate(sociedadId, ejercicioId)
+      return actionOk(documento)
+    }
     const row = await createDocumentoManual({ ejercicioId, tipo, titulo: titulo.trim() })
     revalidate(sociedadId, ejercicioId)
     return actionOk(row)
@@ -157,6 +186,23 @@ export async function eliminarDocumentoManualAction(
 ): Promise<ActionResult<void>> {
   try {
     await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    // Una nota manual se va junto con su documento, salvo que ya tenga filas cargadas.
+    const manual = await findDocumentoManual(ejercicioId, id)
+    if (manual?.tipo === 'NOTA') {
+      const nota = (await findNotasByEjercicio(ejercicioId)).find((n) => n.titulo === manual.titulo)
+      if (nota && nota.detalles.length > 0) {
+        return actionError({
+          tipo: 'NEGOCIO',
+          severidad: 'BAJO',
+          codigo: 'NEG-066',
+          mensaje: `La nota "${manual.titulo}" ya tiene filas cargadas. Para no perderlas, eliminala desde el paso Notas.`,
+        })
+      }
+      if (nota) {
+        await deleteNota(ejercicioId, nota.id)
+        await renumerarNotas(ejercicioId)
+      }
+    }
     if (!(await deleteDocumentoManual(ejercicioId, id))) {
       return actionError({
         tipo: 'TECNICO',

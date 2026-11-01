@@ -257,7 +257,16 @@ export default async function CuentasPage({ params, searchParams }: Props) {
     let anexoContent: React.ReactNode = null
     if (enConfig) {
       anexoContent = (
-        <DocumentosView documentos={documentosEval} ejercicioId={ejercicioId} sociedadId={id} />
+        <DocumentosView
+          documentos={documentosEval}
+          ejercicioId={ejercicioId}
+          sociedadId={id}
+          notas={(await findNotasByEjercicio(ejercicioId)).map((n) => ({
+            id: n.id,
+            numero: n.numero,
+            titulo: n.titulo,
+          }))}
+        />
       )
     } else if (activeSlug === 'bienes-de-uso') {
       const arrastre = await cargarBienesDeUso(ejercicio)

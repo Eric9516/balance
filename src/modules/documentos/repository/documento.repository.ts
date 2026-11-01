@@ -164,6 +164,58 @@ export async function createDocumentoManual(input: {
  * Borra un documento MANUAL solo si es de este ejercicio (los automáticos se descartan, no se
  * borran). Devuelve si borró.
  */
+/**
+ * Una nota agregada a mano: el documento de la lista y la nota de verdad, juntos. Va al final y lleva
+ * tabla, como las de los rubros; si se deja sin filas, sale solo el título.
+ */
+export async function createNotaManual(input: {
+  ejercicioId: string
+  titulo: string
+}): Promise<{ documento: DocumentoEjercicioDTO; notaId: string }> {
+  const { _max } = await db.notaEjercicio.aggregate({
+    where: { ejercicioId: input.ejercicioId },
+    _max: { orden: true, numero: true },
+  })
+  const [row, nota] = await db.$transaction([
+    db.documentoEjercicio.create({
+      data: {
+        ejercicioId: input.ejercicioId,
+        reglaClave: null,
+        tipo: 'NOTA',
+        titulo: input.titulo,
+        estado: 'ACEPTADO',
+        origen: 'MANUAL',
+      },
+    }),
+    db.notaEjercicio.create({
+      data: {
+        ejercicioId: input.ejercicioId,
+        titulo: input.titulo,
+        tipo: 'CUANTITATIVA',
+        orden: (_max.orden ?? 0) + 1,
+        numero: (_max.numero ?? 1) + 1,
+      },
+      select: { id: true },
+    }),
+  ])
+  return { documento: toDocumentoDTO(row), notaId: nota.id }
+}
+
+/** Quita de la lista el documento manual de una nota que se eliminó en la pantalla de Notas. */
+export async function deleteDocumentoManualDeNota(ejercicioId: string, titulo: string) {
+  await db.documentoEjercicio.deleteMany({
+    where: { ejercicioId, titulo, tipo: 'NOTA', origen: 'MANUAL' },
+  })
+}
+
+export async function findDocumentoManual(ejercicioId: string, id: string) {
+  if (!esUuid(id)) return null
+  return db.documentoEjercicio.findFirst({
+    where: { id, ejercicioId, origen: 'MANUAL' },
+    select: { tipo: true, titulo: true },
+  })
+}
+
 export async function deleteDocumentoManual(ejercicioId: string, id: string): Promise<boolean> {
   if (!esUuid(id)) return false
   const { count } = await db.documentoEjercicio.deleteMany({

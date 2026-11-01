@@ -77,13 +77,17 @@ export function DocumentosView({
   documentos,
   ejercicioId,
   sociedadId,
+  notas = [],
 }: {
   documentos: DocumentoEvaluado[]
   ejercicioId: string
   sociedadId: string
+  /** Las notas del ejercicio, para elegir dónde va una nota nueva. */
+  notas?: { id: string; numero: number | null; titulo: string }[]
 }) {
   const [isPending, startTransition] = useTransition()
   const [nuevoTipo, setNuevoTipo] = useState<TipoDoc>('NOTA')
+  const [ubicacion, setUbicacion] = useState('FINAL')
   const [nuevoTitulo, setNuevoTitulo] = useState('')
   const [agregando, setAgregando] = useState(false)
 
@@ -104,11 +108,22 @@ export function DocumentosView({
   function handleAgregar() {
     if (!nuevoTitulo.trim()) return
     startTransition(async () => {
-      const r = await agregarDocumentoManualAction(ejercicioId, sociedadId, nuevoTipo, nuevoTitulo)
+      const r = await agregarDocumentoManualAction(
+        ejercicioId,
+        sociedadId,
+        nuevoTipo,
+        nuevoTitulo,
+        ubicacion,
+      )
       if (r.ok) {
         setNuevoTitulo('')
+        setUbicacion('FINAL')
         setAgregando(false)
-        toastSuccess('Documento agregado')
+        toastSuccess(
+          nuevoTipo === 'NOTA'
+            ? 'Nota agregada: la completás en el paso Notas'
+            : 'Documento agregado',
+        )
       } else toastError(r.error)
     })
   }
@@ -396,8 +411,24 @@ export function DocumentosView({
                 if (e.key === 'Enter') handleAgregar()
               }}
               placeholder="Título del anexo o nota"
-              className="flex-1 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-900 focus:border-blue-400 focus:outline-none"
+              className="min-w-48 flex-1 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-900 focus:border-blue-400 focus:outline-none"
             />
+            {nuevoTipo === 'NOTA' && (
+              <select
+                aria-label="Dónde va la nota"
+                value={ubicacion}
+                onChange={(e) => setUbicacion(e.target.value)}
+                className="max-w-64 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm"
+              >
+                <option value="FINAL">Al final</option>
+                <option value="PRIMERA">Primera (después de la Nota 1)</option>
+                {notas.map((n) => (
+                  <option key={n.id} value={n.id}>
+                    Debajo de la Nota {n.numero}: {n.titulo}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               onClick={handleAgregar}
               disabled={isPending || !nuevoTitulo.trim()}

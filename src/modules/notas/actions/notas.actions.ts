@@ -1,5 +1,7 @@
 'use server'
 
+import { deleteDocumentoManualDeNota } from '@/modules/documentos/repository/documento.repository'
+import { esUuid } from '@/lib/utils/uuid'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { db } from '@/lib/db'
@@ -12,6 +14,7 @@ import {
   deleteNota,
   esNotaDelEjercicio,
   renumerarNotas,
+  ubicarNota,
   createDetalle,
   updateDetalle,
   deleteDetalle,
@@ -123,12 +126,35 @@ export async function eliminarNotaAction(
 ): Promise<ActionResult<void>> {
   try {
     await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    const titulo = (await findNotasByEjercicio(ejercicioId)).find((n) => n.id === notaId)?.titulo
     if (!(await deleteNota(ejercicioId, notaId))) return actionError(NOTA_NO_ENCONTRADA)
+    // Si se agregó a mano en Anexos → Configuración, también se va de esa lista.
+    if (titulo) await deleteDocumentoManualDeNota(ejercicioId, titulo)
     await renumerarNotas(ejercicioId)
     revalPath(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {
     return actionError(errorHandler(error, { modulo: 'NOTAS', operacion: 'eliminar_nota' }))
+  }
+}
+
+/** Ubica la nota debajo de otra (null: primera). Cambia su número, en el balance y en los estados. */
+export async function moverNotaAction(
+  notaId: string,
+  ejercicioId: string,
+  sociedadId: string,
+  debajoDe: string | null,
+): Promise<ActionResult<void>> {
+  try {
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    if (!esUuid(notaId) || (debajoDe !== null && !esUuid(debajoDe))) {
+      return actionError(NOTA_NO_ENCONTRADA)
+    }
+    if (!(await ubicarNota(ejercicioId, notaId, debajoDe))) return actionError(NOTA_NO_ENCONTRADA)
+    revalPath(sociedadId, ejercicioId)
+    return actionOk(undefined)
+  } catch (error) {
+    return actionError(errorHandler(error, { modulo: 'NOTAS', operacion: 'mover_nota' }))
   }
 }
 
