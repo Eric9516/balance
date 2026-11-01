@@ -84,18 +84,17 @@ export function FilasNotaEERR({
         </tr>
       ))}
       {notas && (
-        <tr className="group">
-          <td colSpan={columnas} className="p-0">
+        // Fila sin alto: el + queda sobre el borde entre dos filas y aparece al pasar por la de arriba.
+        <tr className="h-0">
+          <td colSpan={columnas} className="relative h-0 p-0">
             <button
               type="button"
               onClick={() => setAbierto(true)}
               aria-label="Agregar una nota como fila acá"
               title="Agregar una nota como fila acá"
-              className="flex h-4 w-full items-center gap-2 px-4 text-slate-400 transition-all hover:h-7 hover:text-blue-600 focus-visible:h-7 focus-visible:text-blue-600"
+              className="absolute -top-2.5 left-1 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 opacity-0 shadow-sm transition-opacity hover:border-blue-500 hover:bg-blue-600 hover:text-white hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 [tr:hover+tr_&]:opacity-100"
             >
-              <span className="flex-1 border-t border-dashed border-current" />
-              <Plus className="h-3.5 w-3.5 shrink-0" />
-              <span className="flex-1 border-t border-dashed border-current" />
+              <Plus className="h-3 w-3" />
             </button>
           </td>
         </tr>

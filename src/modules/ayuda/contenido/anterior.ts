@@ -110,7 +110,7 @@ export const ANTERIOR: ArticuloAyuda[] = [
       defs(
         [
           'Una fila que solo existió el año anterior',
-          'Si un importe del anterior no tiene cuentas en el balance de este año (por ejemplo, "Otros ingresos y egresos"), creá la nota en Anexos → Configuración, cargale las filas con el importe del anterior en el paso Notas y, en el Estado de Resultados, tocá el + donde va y elegí la nota. La fila entra en los subtotales de abajo. Lo de este año no se escribe: sale de las cuentas.',
+          'Si un importe del anterior no tiene cuentas en el balance de este año (por ejemplo, "Otros ingresos y egresos"), creá la nota en Anexos → Configuración, cargale las filas con el importe del anterior en el paso Notas y, en el Estado de Resultados, pasá el mouse por la fila de arriba de donde va, tocá el + que aparece a la izquierda y elegí la nota. La fila entra en los subtotales de abajo. Lo de este año no se escribe: sale de las cuentas.',
         ],
         [
           'Qué se ajusta',
