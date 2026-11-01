@@ -52,6 +52,8 @@ export async function cargarAnteriorCostoVentas(ejercicio: EjercicioContableDTO)
   comparativos: ComparativoManualDTO[]
   propuesta: number | null
   cargado: CostoVentasCargado['cargado']
+  /** Para la existencia inicial de este año, que nunca se ajusta. */
+  anteriorSinAjustar: CostoVentasDTO | null
 }> {
   const modo = modoEfectivo(ejercicio)
   const anteriorId = idAnteriorDerivable(ejercicio)
@@ -82,36 +84,38 @@ export async function cargarAnteriorCostoVentas(ejercicio: EjercicioContableDTO)
     ejercicio.id,
     propuesta,
   )
+  const anteriorCargado = indicesManual
+    ? resolverCostoVentasAnterior(
+        null,
+        modo,
+        comparativos,
+        ejercicio.id,
+        existenciaFinalAnteriorDesdeNotas({ rubros, cuentas, notas }),
+      )
+    : null
   return {
     anterior,
     comparativos: ajustados,
     propuesta,
     cargado: indicesManual
       ? {
-          anterior: resolverCostoVentasAnterior(
-            null,
-            modo,
-            comparativos,
-            ejercicio.id,
-            existenciaFinalAnteriorDesdeNotas({ rubros, cuentas, notas }),
-          ),
+          anterior: anteriorCargado,
           conceptosExtra: comparativos.filter((c) => c.esHuerfano),
         }
       : null,
+    anteriorSinAjustar: indicesManual ? anteriorCargado : (anteriorRaw ?? anterior),
   }
 }
 
 export async function cargarCostoVentas(
   ejercicio: EjercicioContableDTO,
 ): Promise<CostoVentasCargado> {
-  const [datos, { anterior, comparativos, propuesta, cargado }] = await Promise.all([
-    findCostoVentas(ejercicio.id),
-    cargarAnteriorCostoVentas(ejercicio),
-  ])
+  const [datos, { anterior, comparativos, propuesta, cargado, anteriorSinAjustar }] =
+    await Promise.all([findCostoVentas(ejercicio.id), cargarAnteriorCostoVentas(ejercicio)])
   return {
     // La existencia inicial es la existencia final del anterior (vinculado o cargado a mano). Es de
-    // este año: con el anterior manual ya ajustado, sale de lo cargado, sin ajustar.
-    ...aplicarArrastreCostoVentas(datos, cargado?.anterior ?? anterior, modoEfectivo(ejercicio)),
+    // este año: nunca se ajusta.
+    ...aplicarArrastreCostoVentas(datos, anteriorSinAjustar, modoEfectivo(ejercicio)),
     datosAnteriores: anterior,
     conceptosExtra: comparativos.filter((c) => c.esHuerfano),
     existenciaFinalAnteriorPropuesta: propuesta,

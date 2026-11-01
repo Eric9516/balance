@@ -606,8 +606,8 @@ export const ESCENARIO_C: Escenario = {
     },
   ],
   costoVentas: {
-    existenciaInicial: 6_240_000,
-    compras: 21_260_000,
+    existenciaInicial: 4_800_000,
+    compras: 22_700_000,
     gastosFabricacion: 0,
     existenciaFinal: 5_500_000,
   },
@@ -626,7 +626,7 @@ export const ESCENARIO_C: Escenario = {
     {
       seccion: 'ACTIVIDADES_OPERATIVAS',
       concepto: 'Pagos a proveedores y empleados',
-      importe: -31_836_674.025,
+      importe: -31_457_249.25,
     },
     {
       seccion: 'ACTIVIDADES_INVERSION',
@@ -668,8 +668,8 @@ export const ESCENARIO_C: Escenario = {
     bienesDeUsoNeto: 4_680_000,
     amortizacionEjercicio: 1_170_000,
     costoVentasAnexo: {
-      existenciaInicial: 6_240_000,
-      compras: 21_260_000,
+      existenciaInicial: 4_800_000,
+      compras: 22_700_000,
       existenciaFinal: 5_500_000,
       costo: 22_000_000,
     },

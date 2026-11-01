@@ -181,20 +181,21 @@ describe('Anterior vinculado con coeficiente', () => {
     expect(ant['legacy:GASTOS_COM']).toBe(75)
   })
 
-  it('Anexo II: la existencia inicial es la final del anterior reexpresada, también al guardar', async () => {
+  it('Anexo II: la existencia inicial es la final del anterior sin ajustar, también al guardar', async () => {
     const antes = await cargarCostoVentas(await ej2025())
-    expect(antes.existenciaInicialDerivada).toBe(600.003)
+    expect(antes.existenciaInicialDerivada).toBe(400.002)
+    // La columna anterior sí se ajusta; la del ejercicio actual, no.
     expect(antes.datosAnteriores?.existenciaFinal).toBe(600.003)
     // La pantalla manda otra existencia inicial: el servidor guarda la derivada.
     ok(
       await guardarTodoCostoVentasAction(ctx.ej2025, ctx.sociedadId, {
-        existenciaInicial: 400.002,
+        existenciaInicial: 1,
         compras: 1_000,
         gastosFabricacion: 0,
         existenciaFinal: 600,
       }),
     )
-    expect((await findCostoVentas(ctx.ej2025))?.existenciaInicial).toBe(600.003)
+    expect((await findCostoVentas(ctx.ej2025))?.existenciaInicial).toBe(400.002)
   })
 
   it('Anexo I: el neto del año anterior es el neto reexpresado', async () => {

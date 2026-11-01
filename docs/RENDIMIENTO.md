@@ -198,3 +198,7 @@ Ver la migración `20261101120000_anterior_ajustado`. Un ejercicio con el anteri
 | Documento imprimible | 78 ms | 76 ms |
 
 La medición no siembra ejercicios ajustados: esos números son de ejercicios sin ajustar, cuyo camino no suma trabajo. El Paso Estados subió más que el testigo y no se investigó si es variación entre corridas. Queda pendiente medir un ejercicio ajustado.
+
+## La columna del ejercicio actual no se ajusta (2026-11-01, escala media)
+
+Con el anterior vinculado y coeficiente distinto de 1, los estados se arman dos veces con las mismas lecturas, para sacar el efectivo al inicio sin ajustar: no suma viajes. Medido: Paso Estados 46 ms, Paso Anterior con compuerta 45 ms y documento imprimible 80 ms de mediana local. El testigo, importar 800 cuentas, dio 202 ms en esa corrida (167 ms en la de referencia), así que la máquina estaba más cargada y la comparación no es exacta.

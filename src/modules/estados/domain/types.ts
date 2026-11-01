@@ -90,10 +90,10 @@ export type EERRData = {
 export type EstadosData = {
   sspRubros: RubroFila[]
   /**
-   * Anterior manual ya ajustado: los rubros con lo cargado. La columna del ejercicio actual no se
-   * ajusta, así que lo que arrastra del anterior (el efectivo al inicio del flujo) sale de acá.
+   * Si el anterior se ajustó: los rubros con su anterior sin ajustar. La columna del ejercicio actual
+   * nunca se ajusta, así que lo que arrastra del anterior (el efectivo al inicio del flujo) sale de acá.
    */
-  sspRubrosCargados?: RubroFila[]
+  sspRubrosSinAjustar?: RubroFila[]
   eerrRubros: RubroFila[]
   eerr: EERRData
   patrimonioNetoFinal: number | null

@@ -30,10 +30,11 @@ export const ANTERIOR: ArticuloAyuda[] = [
         ],
         [
           'Reexpresión',
-          'Si los índices de inflación son distintos, el anterior se expresa en moneda de cierre: se multiplica por el coeficiente completo. Vale para el estado de situación patrimonial, el estado de resultados (incluidos los gastos), las notas, el costo de ventas, la existencia inicial y el neto anterior del Anexo I.',
+          'Si los índices de inflación son distintos, el anterior se expresa en moneda de cierre: se multiplica por el coeficiente completo. Vale para el estado de situación patrimonial, el estado de resultados (incluidos los gastos), las notas, el costo de ventas del año anterior y el neto anterior del Anexo I. Nada de la columna del ejercicio actual se ajusta.',
         ],
       ),
       lista(
+        'El efectivo al inicio del flujo y la existencia al comienzo del Anexo II son de este año: quedan como cerraron, sin ajustar.',
         'Excepciones a propósito: en el Anexo I el valor y la amortización al comienzo quedan como cerraron y la reexpresión se carga en "Ajuste por inflación"; en el E.E.P.N. la reexpresión de los saldos al inicio se carga en la fila "Ajuste por inflación".',
         'Lo que existió solo el año anterior aparece igual: un rubro, una fila o una sección entera del Anexo III, un concepto del flujo.',
         'Si al anterior le falta un dato (por ejemplo, no tiene Anexo II), esa parte queda editable y la app lo avisa.',

@@ -33,9 +33,9 @@ export async function cargarFlujo(
     anteriorId ? findFlujo(anteriorId) : Promise.resolve(null),
   ])
   const rubrosEfectivo = new Set(rubros.filter((r) => r.esEfectivo).map((r) => r.id))
-  // Anterior manual ya ajustado: el efectivo que se había cargado, sin ajustar.
-  const efectivoCargado = estadosData.sspRubrosCargados
-    ? efectivoDesdeSSP(estadosData.sspRubrosCargados, rubrosEfectivo).anterior
+  // El efectivo al inicio de este año es el del anterior sin ajustar.
+  const efectivoSinAjustar = estadosData.sspRubrosSinAjustar
+    ? efectivoDesdeSSP(estadosData.sspRubrosSinAjustar, rubrosEfectivo).anterior
     : null
   return armarFlujo({
     guardado: guardado !== undefined ? guardado : ajustarFlujo(cargado, manual),
@@ -43,11 +43,11 @@ export async function cargarFlujo(
       manual && cargado
         ? {
             ...cargado,
-            saldoFinalAnterior: efectivoCargado ?? cargado.saldoFinalAnterior,
+            saldoFinalAnterior: efectivoSinAjustar ?? cargado.saldoFinalAnterior,
           }
         : null,
     efectivo: efectivoDesdeSSP(estadosData.sspRubros, rubrosEfectivo),
-    efectivoInicial: efectivoCargado,
+    efectivoInicial: efectivoSinAjustar,
     modo: modoEfectivo(ejercicio),
     flujoAnterior,
     indices: getIndicesReexpresion(ejercicio),

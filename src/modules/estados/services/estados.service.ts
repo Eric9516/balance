@@ -13,7 +13,10 @@ import {
   findRubrosBase,
 } from '@/modules/importaciones/repository/cuentas.repository'
 import { findCostoVentas } from '@/modules/costo-ventas/repository/costo-ventas.repository'
-import { existenciaFinalAnteriorDesdeNotas } from '@/modules/costo-ventas/domain/saldosInicio'
+import {
+  aplicarArrastreCostoVentas,
+  existenciaFinalAnteriorDesdeNotas,
+} from '@/modules/costo-ventas/domain/saldosInicio'
 import { findGastosDinamicos } from '@/modules/gastos/repository/gastos-dinamico.repository'
 import { findNotasByEjercicio } from '@/modules/notas/repository/notas.repository'
 import { notaPorRubro } from '@/modules/notas/domain/types'
@@ -29,6 +32,7 @@ import { findComparativoByEjercicio } from '@/modules/comparativo-manual/reposit
 import type { ComparativoManualDTO } from '@/modules/comparativo-manual/domain/types'
 import {
   editarAnteriorManual,
+  usarDerivadoDelAnterior,
   mostrarColumnaAnterior,
   resolverCostoVentasAnterior,
   resolverEstados,
@@ -42,6 +46,7 @@ import {
   ajustarGastos,
   getCoeficienteComparativo,
   getIndicesReexpresion,
+  SIN_REEXPRESION,
 } from '../lib/ajuste'
 import { sumar, sumarPor } from '@/lib/importe'
 import {
@@ -102,15 +107,22 @@ export async function cargarEstadosConPN(
       : Promise.resolve([] as BienDeUsoDTO[]),
   ])
 
+  // La existencia inicial es de este año y nunca se ajusta: vinculado, es la final del anterior como
+  // cerró (lo guardado antes de esta regla puede estar ajustado).
+  const costoVentasActual = usarDerivadoDelAnterior(modo)
+    ? aplicarArrastreCostoVentas(costoVentas, costoVentasAntRaw, modo).datos
+    : costoVentas
+
   // Una sola lectura: con el anterior ajustado se arma dos veces, ajustado y con lo cargado.
   const armar = (
     comparativos: ComparativoManualDTO[],
     notas: NotaDTO[],
     bienesDeUso: BienDeUsoDTO[],
     movsActual: EvolucionPNMovimientoDTO[],
+    indicesVinculado = indices,
   ) => {
     const costoVentasAnt = resolverCostoVentasAnterior(
-      ajustarCostoVentas(costoVentasAntRaw, indices),
+      ajustarCostoVentas(costoVentasAntRaw, indicesVinculado),
       modo,
       comparativos,
       ejercicioId,
@@ -122,10 +134,10 @@ export async function cargarEstadosConPN(
     // Gastos: el Anexo III ya resuelto según el modo es la única fuente de las líneas de gasto
     // del EERR. En MANUAL sus totales del anterior por sección se calculan desde las filas
     // (resolverGastos); resolverEstados no vuelve a aplicar gastos.
-    const gastos = resolverGastos(ajustarGastos(gastosRaw, indices), modo, comparativos)
+    const gastos = resolverGastos(ajustarGastos(gastosRaw, indicesVinculado), modo, comparativos)
     const raw = buildEstadosData(cuentas, rubros, {
-      cuentasAnt: ajustarCuentas(cuentasAntRaw, indices),
-      costoVentas,
+      cuentasAnt: ajustarCuentas(cuentasAntRaw, indicesVinculado),
+      costoVentas: costoVentasActual,
       costoVentasAnt,
       gastosDinamicos: gastos,
       notas,
@@ -170,11 +182,14 @@ export async function cargarEstadosConPN(
     : pnAjustado
 
   const cargado = manual ? armar(comparativos, notas, bienesDeUso, movsActual) : null
+  const sspRubrosSinAjustar =
+    cargado?.estadosData.sspRubros ??
+    (usarDerivadoDelAnterior(modo) && indices.actual !== indices.anterior
+      ? armar(comparativos, notas, bienesDeUso, movsActual, SIN_REEXPRESION).estadosData.sspRubros
+      : undefined)
 
   return {
-    estadosData: cargado
-      ? { ...estadosData, sspRubrosCargados: cargado.estadosData.sspRubros }
-      : estadosData,
+    estadosData: sspRubrosSinAjustar ? { ...estadosData, sspRubrosSinAjustar } : estadosData,
     pnData,
     comparativos,
     coeficiente: getCoeficienteComparativo(ejercicio),

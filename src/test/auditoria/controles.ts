@@ -3,7 +3,7 @@
  * resultados conocidos de la referencia, y las pantallas entre sí (estados, anexos, notas,
  * patrimonio neto, flujo y el documento que se imprime). Todo con igualdad exacta.
  */
-import { restar, sumar, sumarPor } from '@/lib/importe'
+import { dividir, multiplicar, restar, sumar, sumarPor } from '@/lib/importe'
 import { iguales } from './registro'
 import { findEjercicioById } from '@/modules/ejercicios/repository/ejercicio.repository'
 import { evaluarAutorizacionEjercicio } from '@/modules/ejercicios/services/autorizacion.service'
@@ -34,6 +34,9 @@ export async function controlar(ctx: Contexto, esc: Escenario, ej: string) {
   const id = esc.id
   const x = esc.esperado
   const ant = x.anterior
+  // La columna del ejercicio actual no se ajusta: lo que arrastra del anterior se compara ajustándolo.
+  const ajustado = (v: number) =>
+    multiplicar(v, dividir(esc.ejercicio.indiceActual, esc.ejercicio.indiceAnterior))
   const conAnterior = esc.ejercicio.modo !== 'SIN_ANTERIOR'
   const igual = (
     area: string,
@@ -221,8 +224,8 @@ export async function controlar(ctx: Contexto, esc: Escenario, ej: string) {
     )
     igual(
       fe,
-      'Efectivo al inicio = cierre del año anterior',
-      flujo.actual.efectivoInicio,
+      'Efectivo al inicio, ajustado = cierre del año anterior',
+      ajustado(flujo.actual.efectivoInicio),
       flujo.anterior.efectivoCierre,
     )
     igual(fe, 'Variación del año anterior explicada', flujo.anterior.diferencia, 0)
@@ -297,8 +300,8 @@ export async function controlar(ctx: Contexto, esc: Escenario, ej: string) {
     if (ant) {
       igual(
         a2,
-        'Existencia inicial = Bienes de cambio del año anterior',
-        cv.datos?.existenciaInicial,
+        'Existencia inicial, ajustada = Bienes de cambio del año anterior',
+        ajustado(cv.datos?.existenciaInicial ?? 0),
         rubro('ACT-CTE-09')?.displayValueAnt ?? 0,
       )
       igual(

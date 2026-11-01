@@ -163,7 +163,7 @@ export function armarFlujo(params: {
   indices: IndicesReexpresion
   /** Anterior manual ya ajustado: lo que se había cargado. Bloquea la columna anterior. */
   cargado?: FlujoGuardadoDTO | null
-  /** Anterior manual ya ajustado: el efectivo al inicio de este año, que no se ajusta. */
+  /** Si el anterior se ajustó: el efectivo al inicio de este año, que nunca se ajusta. */
   efectivoInicial?: number | null
 }): FlujoData {
   const { efectivo, modo, flujoAnterior, indices } = params

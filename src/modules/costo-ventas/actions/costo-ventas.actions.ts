@@ -40,12 +40,12 @@ export async function guardarTodoCostoVentasAction(
         mensaje: 'Ejercicio no encontrado',
       })
     }
-    // Mismo arrastre que la pantalla: la existencia final del anterior (reexpresada si es
-    // vinculado; cargada o propuesta desde la nota de bienes de cambio si es manual).
-    const { anterior, cargado } = await cargarAnteriorCostoVentas(ejercicio)
+    // Mismo arrastre que la pantalla: la existencia final del anterior sin ajustar (cargada o
+    // propuesta desde la nota de bienes de cambio si es manual).
+    const { anteriorSinAjustar } = await cargarAnteriorCostoVentas(ejercicio)
     const arrastre = aplicarArrastreCostoVentas(
       { id: '', ejercicioId, ...data },
-      cargado?.anterior ?? anterior,
+      anteriorSinAjustar,
       modoEfectivo(ejercicio),
     )
     const saneado = arrastre.datos ?? { id: '', ejercicioId, ...data }

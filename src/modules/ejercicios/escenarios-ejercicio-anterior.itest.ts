@@ -428,7 +428,7 @@ describe('Escenario A — ejercicio anterior vinculado', () => {
     expect(inst.costoInicioReexpresado).toBe(40_000)
   })
 
-  it('costo de ventas: existencia inicial = existencia final del anterior reexpresada', async () => {
+  it('costo de ventas: existencia inicial = existencia final del anterior, sin ajustar', async () => {
     const cv = ok(
       await guardarTodoCostoVentasAction(ej2025, ctx.sociedadA, {
         existenciaInicial: 1,
@@ -437,9 +437,9 @@ describe('Escenario A — ejercicio anterior vinculado', () => {
         existenciaFinal: 220_000,
       }),
     )
-    // 180.000 × 1,25 (índices 100 → 125): en moneda de cierre, igual que la columna del anterior.
-    expect(cv.existenciaInicial).toBe(225_000)
-    expect((await findCostoVentas(ej2025))?.existenciaInicial).toBe(225_000)
+    // La columna del ejercicio actual no se ajusta: la del anterior sí (180.000 × 1,25).
+    expect(cv.existenciaInicial).toBe(180_000)
+    expect((await findCostoVentas(ej2025))?.existenciaInicial).toBe(180_000)
   })
 
   it('compuerta: confirma solo si el anterior está confirmado', async () => {
@@ -747,7 +747,7 @@ describe('Estado de Flujo de Efectivo', () => {
       }),
     )
     const g = (await findFlujo(ej2025))!
-    expect(g.saldoInicial).toBe(125_000) // caja 2024 100.000 × 1,25
+    expect(g.saldoInicial).toBe(100_000) // caja 2024, sin ajustar: es de este año
     expect(g.saldoFinal).toBe(150_000)
     expect(g.saldoFinalAnterior).toBe(125_000)
     expect(g.saldoInicialAnterior).toBe(100_000) // inicio 2024 80.000 × 1,25
@@ -765,7 +765,7 @@ describe('Estado de Flujo de Efectivo', () => {
   })
 
   it('compuerta: un flujo que no cuadra bloquea los estados pero no el E.E.P.N.', async () => {
-    // Variación 25.000; actividades 300.000 + 0 → no cuadra
+    // Variación 50.000; actividades 300.000 + 0 → no cuadra
     const r = await confirmarEstadosAction(ej2025, soc)
     expect(fail(r, 'NEG-030')).toMatch(/Flujo de Efectivo no cuadra/)
     ok(await confirmarPNAction(ej2025, soc, true))
@@ -775,7 +775,7 @@ describe('Estado de Flujo de Efectivo', () => {
       await guardarFlujoAction(ej2025, soc, {
         ...f,
         items: f.items.map((i) =>
-          i.concepto === 'Pagos a proveedores' ? { ...i, importe: -275_000 } : i,
+          i.concepto === 'Pagos a proveedores' ? { ...i, importe: -250_000 } : i,
         ),
       }),
     )
