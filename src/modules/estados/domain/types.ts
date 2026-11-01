@@ -1,3 +1,4 @@
+import type { LineaNotaEERR } from './lineasDeNotas'
 // ─── Fila individual de cuenta (dentro de un rubro) ──────────────────────────
 
 export type FilaCuenta = {
@@ -77,6 +78,9 @@ export type EERRData = {
   impuestoGanancias: number
   impuestoGananciasAnt: number
   igCuentas: FilaCuenta[]
+
+  /** Notas ubicadas como filas del estado (solo tienen importe en la columna anterior). */
+  lineasNota?: LineaNotaEERR[]
 
   // Subtotales calculados
   utilidadBruta: number

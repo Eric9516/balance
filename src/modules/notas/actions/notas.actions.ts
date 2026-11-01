@@ -15,6 +15,7 @@ import {
   esNotaDelEjercicio,
   renumerarNotas,
   ubicarNota,
+  ubicarNotaEnEERR,
   createDetalle,
   updateDetalle,
   deleteDetalle,
@@ -155,6 +156,51 @@ export async function moverNotaAction(
     return actionOk(undefined)
   } catch (error) {
     return actionError(errorHandler(error, { modulo: 'NOTAS', operacion: 'mover_nota' }))
+  }
+}
+
+/**
+ * Ubica una nota como fila del Estado de Resultados, debajo de una línea (null la saca). Cambia la
+ * columna anterior: anula la autorización, y ya ajustada se corrige primero.
+ */
+export async function ubicarNotaEnEERRAction(
+  notaId: string,
+  ejercicioId: string,
+  sociedadId: string,
+  debajoDe: string | null,
+): Promise<ActionResult<void>> {
+  try {
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    if (!esUuid(notaId) || (debajoDe !== null && (!debajoDe || debajoDe.length > 200))) {
+      return actionError(NOTA_NO_ENCONTRADA)
+    }
+    const config = await findConfigAnterior(ejercicioId)
+    if (config?.modoAnterior !== 'MANUAL') {
+      return actionError({
+        tipo: 'NEGOCIO',
+        severidad: 'MEDIO',
+        codigo: 'NEG-012',
+        mensaje:
+          'Una nota se agrega como fila del Estado de Resultados solo cuando el ejercicio anterior se carga a mano.',
+      })
+    }
+    if (config.anteriorAjustadoEn) {
+      return actionError({
+        tipo: 'NEGOCIO',
+        severidad: 'MEDIO',
+        codigo: 'NEG-065',
+        mensaje:
+          'Estos saldos ya están autorizados y ajustados por inflación. Para cambiarlos, tocá "Corregir lo cargado" en el paso Ejercicio anterior.',
+      })
+    }
+    if (!(await ubicarNotaEnEERR(ejercicioId, notaId, debajoDe))) {
+      return actionError(NOTA_NO_ENCONTRADA)
+    }
+    await marcarComparativoModificado(ejercicioId)
+    revalPath(sociedadId, ejercicioId)
+    return actionOk(undefined)
+  } catch (error) {
+    return actionError(errorHandler(error, { modulo: 'NOTAS', operacion: 'ubicar_en_eerr' }))
   }
 }
 

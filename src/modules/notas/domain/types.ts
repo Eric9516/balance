@@ -22,6 +22,8 @@ export type NotaDTO = {
   titulo: string
   tipo: 'INFORMATIVA' | 'CUANTITATIVA' | 'POLITICA_CONTABLE'
   orden: number
+  /** Fila del Estado de Resultados: debajo de qué línea va. Null = la nota no es una fila. */
+  lineaEerrDebajoDe?: string | null
   criterioMedicion: string | null
   textoApertura: string | null
   detalles: DetalleNotaDTO[]
@@ -39,6 +41,7 @@ export function toNotaDTO(n: NotaRaw): NotaDTO {
     titulo: n.titulo,
     tipo: n.tipo,
     orden: n.orden,
+    lineaEerrDebajoDe: n.lineaEerrDebajoDe ?? null,
     criterioMedicion: n.criterioMedicion,
     textoApertura: n.textoApertura,
     detalles: [...n.detalles]

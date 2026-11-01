@@ -419,7 +419,10 @@ export default async function CuentasPage({ params, searchParams }: Props) {
     )
   } else if (paso === 'estados') {
     const cuentas = await findCuentasByEjercicio(ejercicioId)
-    const { estadosData, pnData, cargado } = await cargarEstadosConPN(ejercicio, cuentas)
+    const { estadosData, pnData, cargado, notasParaEERR } = await cargarEstadosConPN(
+      ejercicio,
+      cuentas,
+    )
     const flujo = await cargarFlujo(ejercicio, estadosData)
     content = (
       <EstadosView
@@ -435,6 +438,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         fechaCierre={ejercicio.fechaCierre}
         fechaCierreAnterior={fechaCierreAnterior}
         anteriorDenominacion={ejercicioAnterior?.denominacion ?? null}
+        notasParaEERR={editarAnterior ? notasParaEERR : undefined}
         cargado={
           cargado && {
             ...cargado.estadosData,

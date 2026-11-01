@@ -5,6 +5,7 @@
  * de transición pasan por acá).
  */
 
+import { aplicarLineasDeNotas, notasParaEERR, type NotaParaEERR } from '../domain/lineasDeNotas'
 import type { EjercicioContableDTO } from '@/modules/ejercicios/domain/types'
 import { idAnteriorDerivable, modoEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import type { CuentaContableDTO } from '@/modules/importaciones/domain/types'
@@ -65,6 +66,8 @@ export type EstadosConPN = {
   comparativos: ComparativoManualDTO[]
   coeficiente: number
   anteriorId: string | null
+  /** Notas que se pueden ubicar como filas del Estado de Resultados (carga manual). */
+  notasParaEERR: NotaParaEERR[]
   /** Anterior manual ya ajustado: los mismos estados con lo cargado, para mostrarlo al lado. */
   cargado: { estadosData: EstadosData; pnData: EvolucionPNData } | null
 }
@@ -113,6 +116,8 @@ export async function cargarEstadosConPN(
     ? aplicarArrastreCostoVentas(costoVentas, costoVentasAntRaw, modo).datos
     : costoVentas
 
+  const idsConCuentas = new Set(cuentas.flatMap((c) => c.notaEjercicioId ?? []))
+
   // Una sola lectura: con el anterior ajustado se arma dos veces, ajustado y con lo cargado.
   const armar = (
     comparativos: ComparativoManualDTO[],
@@ -147,7 +152,7 @@ export async function cargarEstadosConPN(
     // o, bienes de uso, el Anexo I (los rubros que sugieren ese anexo).
     const notaDeRubro = notaPorRubro(cuentas, notas)
     const rubrosAnexoI = new Set(REGLA_POR_CLAVE.get('ANEXO_BIENES_USO')?.rubros ?? [])
-    const estadosData = resolverEstados(raw, modo, comparativos, {
+    const resueltos = resolverEstados(raw, modo, comparativos, {
       notas: new Map(
         rubros.filter(generaNotaCuantitativa).map((r) => [r.id, notaDeRubro.get(r.id) ?? null]),
       ),
@@ -156,6 +161,10 @@ export async function cargarEstadosConPN(
         categorias: bienesDeUso,
       },
     })
+    // Carga manual: las notas ubicadas como filas entran en los subtotales del anterior.
+    const estadosData = editarAnteriorManual(modo)
+      ? { ...resueltos, eerr: aplicarLineasDeNotas(resueltos.eerr, notas, idsConCuentas) }
+      : resueltos
 
     const pnData = armarEvolucionPN({
       ejercicioId,
@@ -192,6 +201,9 @@ export async function cargarEstadosConPN(
     estadosData: sspRubrosSinAjustar ? { ...estadosData, sspRubrosSinAjustar } : estadosData,
     pnData,
     comparativos,
+    notasParaEERR: editarAnteriorManual(modo)
+      ? notasParaEERR(ajustarNotas(notas, manual), idsConCuentas)
+      : [],
     coeficiente: getCoeficienteComparativo(ejercicio),
     anteriorId,
     cargado,

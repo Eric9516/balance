@@ -109,6 +109,10 @@ export const ANTERIOR: ArticuloAyuda[] = [
       ),
       defs(
         [
+          'Una fila que solo existió el año anterior',
+          'Si un importe del anterior no tiene cuentas en el balance de este año (por ejemplo, "Otros ingresos y egresos"), creá la nota en Anexos → Configuración, cargale las filas con el importe del anterior en el paso Notas y, en el Estado de Resultados, tocá el + donde va y elegí la nota. La fila entra en los subtotales de abajo. Lo de este año no se escribe: sale de las cuentas.',
+        ],
+        [
           'Qué se ajusta',
           'La columna "Ejercicio anterior" de los estados, el Anexo II, el Anexo III, las notas, el neto anterior del Anexo I, el E.E.P.N. y el flujo de efectivo. El valor y la amortización al comienzo del Anexo I y los saldos al inicio del E.E.P.N. no: su reexpresión se carga en "Ajuste por inflación".',
         ],

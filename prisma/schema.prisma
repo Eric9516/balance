@@ -618,6 +618,8 @@ model NotaEjercicio {
   tipo            TipoNota
   numero          Int?     // Número que aparece impreso: "Nota N° 2", "Nota N° 3"...
   orden           Int      // Orden de aparición (puede diferir del número)
+  // Fila del Estado de Resultados: debajo de qué línea va. Null = la nota no es una fila.
+  lineaEerrDebajoDe String? @map("linea_eerr_debajo_de")
   // Campos para renderizado de la nota (ver PDF páginas 2-3)
   criterioMedicion String? @map("criterio_medicion") // Ej: "valor nominal", "costo de reposición"
   textoApertura    String? @map("texto_apertura") // Ej: "El saldo del rubro a fecha de cierre está compuesto por:"

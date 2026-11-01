@@ -159,6 +159,19 @@ export async function ubicarNota(
   return true
 }
 
+/** Ubica la nota como fila del Estado de Resultados (null la saca). False si no es de este ejercicio. */
+export async function ubicarNotaEnEERR(
+  ejercicioId: string,
+  notaId: string,
+  debajoDe: string | null,
+): Promise<boolean> {
+  const { count } = await db.notaEjercicio.updateMany({
+    where: { id: notaId, ejercicioId },
+    data: { lineaEerrDebajoDe: debajoDe },
+  })
+  return count > 0
+}
+
 export async function createDetalle(data: {
   notaEjercicioId: string
   concepto: string

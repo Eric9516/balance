@@ -59,7 +59,7 @@ export function armarLineasEERR(eerr: EERRData): LineaEERR[] {
     notaNumero: opts.notaNumero ?? null,
   })
 
-  return [
+  const lineas: LineaEERR[] = [
     linea('INGRESOS', ETIQUETAS_EERR.ingresos, eerr.ingresos, eerr.ingresosAnt, {
       notaNumero: eerr.notaIngresosNum,
     }),
@@ -110,4 +110,20 @@ export function armarLineasEERR(eerr: EERRData): LineaEERR[] {
       { tipo: 'final' },
     ),
   ]
+  return lineas.flatMap((l) => [l, ...filasDeNotas(eerr, l.clave)])
+}
+
+/** Las notas ubicadas debajo de una línea. Solo tienen importe en la columna anterior. */
+function filasDeNotas(eerr: EERRData, clave: string): LineaEERR[] {
+  return (eerr.lineasNota ?? [])
+    .filter((n) => n.debajoDe === clave)
+    .map((n) => ({
+      clave: `nota:${n.notaId}`,
+      etiqueta: n.titulo,
+      tipo: 'linea',
+      valor: 0,
+      valorAnt: n.totalAnt,
+      deduccion: false,
+      notaNumero: n.notaNumero,
+    }))
 }

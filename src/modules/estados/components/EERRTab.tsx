@@ -1,3 +1,6 @@
+import React from 'react'
+import { FilasNotaEERR } from './FilasNotaEERR'
+import type { NotaParaEERR } from '../domain/lineasDeNotas'
 import { Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
@@ -97,7 +100,7 @@ function EERRLine({
           )}
         </td>
       )}
-      {cargado !== undefined && <TdCargado valor={cargado} />}
+      {cargado !== undefined && <TdCargado valor={deduccion ? -Math.abs(cargado) : cargado} />}
     </tr>
   )
 }
@@ -166,6 +169,7 @@ export function EERRTab({
   anteriorBloqueado,
   anteriorDenominacion,
   cargado = null,
+  notasParaEERR,
 }: {
   eerr: EERRData
   conComparativo: boolean
@@ -180,8 +184,21 @@ export function EERRTab({
   anteriorDenominacion: string | null
   /** Anterior manual ya ajustado, con la columna visible: el mismo estado con lo cargado. */
   cargado?: EERRData | null
+  /** Carga manual sin ajustar: las notas que se pueden agregar como filas. */
+  notasParaEERR?: NotaParaEERR[]
 }) {
   const resultadoPeriodo = eerr.utilidadEjercicio
+  const filasDe = (clave: string) => (
+    <FilasNotaEERR
+      clave={clave}
+      lineas={eerr.lineasNota ?? []}
+      notas={notasParaEERR}
+      cargado={cargado ? (cargado.lineasNota ?? []) : undefined}
+      columnas={cargado ? 4 : 3}
+      ejercicioId={ejercicioId}
+      sociedadId={sociedadId}
+    />
+  )
 
   return (
     <div>
@@ -235,6 +252,7 @@ export function EERRTab({
               ejercicioId={ejercicioId}
               sociedadId={sociedadId}
             />
+            {filasDe('INGRESOS')}
             <EERRLine
               label={
                 eerr.usaAnexoCosto ? ETIQUETAS_EERR.costoVentasAnexo : ETIQUETAS_EERR.costoVentas
@@ -252,6 +270,7 @@ export function EERRTab({
               ejercicioId={ejercicioId}
               sociedadId={sociedadId}
             />
+            {filasDe('COSTO_VENTAS')}
             <EERRTotalLine
               label={ETIQUETAS_EERR.utilidadBruta}
               value={eerr.utilidadBruta}
@@ -259,23 +278,26 @@ export function EERRTab({
               conComparativo={conComparativo}
               cargado={cargado?.utilidadBrutaAnt}
             />
+            {filasDe('UTILIDAD_BRUTA')}
             {/* Los gastos del ejercicio anterior no se cargan acá: salen del Anexo III, donde se
                 cargan fila por fila y se suman solos por columna (una sola fuente). */}
             {eerr.seccionesGasto.map((s) => (
-              <EERRLine
-                key={s.key}
-                label={ETIQUETAS_EERR.gastoAnexo(s.nombre)}
-                value={s.total}
-                valueAnt={s.totalAnt}
-                deduccion
-                conComparativo={conComparativo}
-                esHuerfano={esRubroHuerfano(s.key)}
-                cargado={
-                  cargado
-                    ? (cargado.seccionesGasto.find((c) => c.key === s.key)?.totalAnt ?? 0)
-                    : undefined
-                }
-              />
+              <React.Fragment key={s.key}>
+                <EERRLine
+                  label={ETIQUETAS_EERR.gastoAnexo(s.nombre)}
+                  value={s.total}
+                  valueAnt={s.totalAnt}
+                  deduccion
+                  conComparativo={conComparativo}
+                  esHuerfano={esRubroHuerfano(s.key)}
+                  cargado={
+                    cargado
+                      ? (cargado.seccionesGasto.find((c) => c.key === s.key)?.totalAnt ?? 0)
+                      : undefined
+                  }
+                />
+                {filasDe(s.key)}
+              </React.Fragment>
             ))}
             {editarAnterior && conComparativo && eerr.seccionesGasto.length > 0 && (
               <tr>
@@ -298,6 +320,7 @@ export function EERRTab({
               ejercicioId={ejercicioId}
               sociedadId={sociedadId}
             />
+            {filasDe('RESULTADOS_FINANCIEROS')}
             <EERRTotalLine
               label={ETIQUETAS_EERR.resultadoAntesIG}
               value={eerr.resultadoAntesIG}
@@ -305,6 +328,7 @@ export function EERRTab({
               conComparativo={conComparativo}
               cargado={cargado?.resultadoAntesIGAnt}
             />
+            {filasDe('RESULTADO_ANTES_IG')}
             <EERRLine
               label={ETIQUETAS_EERR.impuestoGanancias}
               value={eerr.impuestoGanancias}
@@ -319,6 +343,7 @@ export function EERRTab({
               ejercicioId={ejercicioId}
               sociedadId={sociedadId}
             />
+            {filasDe('IMPUESTO_GANANCIAS')}
           </tbody>
           <tfoot>
             <EERRTotalLine
