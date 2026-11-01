@@ -9,7 +9,7 @@ import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
 import { TdCargado } from '@/modules/comparativo-manual/components/ColumnaCargado'
 import { formatCurrency } from '@/lib/utils/currency'
 import { ubicarNotaEnEERRAction } from '@/modules/notas/actions/notas.actions'
-import type { LineaNotaEERR, NotaParaEERR } from '../domain/lineasDeNotas'
+import { conSigno, type LineaNotaEERR, type NotaParaEERR } from '../domain/lineasDeNotas'
 
 /** Las notas ubicadas debajo de una línea del estado y, en carga manual, el + para agregar otra. */
 export function FilasNotaEERR({
@@ -35,11 +35,18 @@ export function FilasNotaEERR({
   const router = useRouter()
   const { isPending, ejecutar } = useGuardarAccion()
   const [abierto, setAbierto] = useState(false)
-  const [elegida, setElegida] = useState<string | null>(null)
+  const [elegida, setElegida] = useState<NotaParaEERR | null>(null)
+  const [resta, setResta] = useState(false)
 
-  const ubicar = (notaId: string, debajoDe: string | null) =>
+  const elegir = (n: NotaParaEERR) => {
+    setElegida(n)
+    // Arranca con el signo de la nota: un importe cargado en negativo es una resta
+    setResta(n.totalAnt < 0)
+  }
+
+  const ubicar = (notaId: string, debajoDe: string | null, restaDe = false) =>
     ejecutar(
-      () => ubicarNotaEnEERRAction(notaId, ejercicioId, sociedadId, debajoDe),
+      () => ubicarNotaEnEERRAction(notaId, ejercicioId, sociedadId, debajoDe, restaDe),
       () => {
         setAbierto(false)
         setElegida(null)
@@ -111,7 +118,7 @@ export function FilasNotaEERR({
                 Cancelar
               </Button>
               <Button
-                onClick={() => elegida && ubicar(elegida, clave)}
+                onClick={() => elegida && ubicar(elegida.id, clave, resta)}
                 disabled={isPending || !elegida}
               >
                 {isPending ? 'Agregando…' : 'Agregar acá'}
@@ -138,8 +145,8 @@ export function FilasNotaEERR({
                   <input
                     type="radio"
                     name={`nota-${clave}`}
-                    checked={elegida === n.id}
-                    onChange={() => setElegida(n.id)}
+                    checked={elegida?.id === n.id}
+                    onChange={() => elegir(n)}
                     className="accent-blue-600"
                   />
                   <span className="min-w-0 flex-1 text-sm text-slate-800">
@@ -148,20 +155,43 @@ export function FilasNotaEERR({
                       <span className="ml-1 text-xs text-slate-400">(Nota {n.numero})</span>
                     )}
                   </span>
-                  <span className="text-right">
-                    <span className="block font-mono text-sm text-slate-800 tabular-nums">
-                      {formatCurrency(n.totalAnt)}
-                    </span>
-                    <span className="block text-xs text-slate-500">
-                      {n.totalAnt > 0 ? 'suma al resultado' : 'resta del resultado'}
-                    </span>
+                  <span className="font-mono text-sm text-slate-800 tabular-nums">
+                    {formatCurrency(n.totalAnt)}
                   </span>
                 </label>
               ))}
-              <p className="text-xs leading-relaxed text-slate-500">
-                Si una pérdida figura como &quot;suma&quot;, cargala en negativo en la nota, por
-                ejemplo (1.000,00).
-              </p>
+              {elegida && (
+                <fieldset className="pt-2">
+                  <legend className="mb-2 text-sm font-medium text-slate-700">
+                    ¿Suma o resta del resultado?
+                  </legend>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { valor: false, texto: 'Suma' },
+                      { valor: true, texto: 'Resta' },
+                    ].map((o) => (
+                      <label
+                        key={o.texto}
+                        className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 hover:bg-slate-50 has-checked:border-blue-500 has-checked:bg-blue-50"
+                      >
+                        <span className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name={`signo-${clave}`}
+                            checked={resta === o.valor}
+                            onChange={() => setResta(o.valor)}
+                            className="accent-blue-600"
+                          />
+                          {o.texto}
+                        </span>
+                        <span className="font-mono text-xs text-slate-500 tabular-nums">
+                          {formatCurrency(conSigno(elegida.totalAnt, o.valor))}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
             </div>
           )}
         </Dialogo>

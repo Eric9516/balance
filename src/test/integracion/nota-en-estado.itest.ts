@@ -59,8 +59,8 @@ async function estados() {
   return cargarEstadosConPN(await ejercicio(), await findCuentasByEjercicio(ctx.ejercicioId))
 }
 
-const ubicar = (debajoDe: string | null) =>
-  ubicarNotaEnEERRAction(ctx.notaId, ctx.ejercicioId, ctx.sociedadId, debajoDe)
+const ubicar = (debajoDe: string | null, resta = true) =>
+  ubicarNotaEnEERRAction(ctx.notaId, ctx.ejercicioId, ctx.sociedadId, debajoDe, resta)
 
 beforeAll(async () => {
   const estudio = await db.estudio.create({
@@ -164,12 +164,21 @@ describe('Nota como fila del Estado de Resultados', () => {
     expect((await estados()).notasParaEERR).toEqual([])
   })
 
+  it('si se elige que sume, cambia el signo y el resultado', async () => {
+    ok(await ubicar('RESULTADOS_FINANCIEROS', false))
+    const { eerr } = (await estados()).estadosData
+    expect(eerr.lineasNota?.[0]?.totalAnt).toBe(316_904.13)
+    expect(eerr.resultadoAntesIGAnt).toBe(5_605_227)
+  })
+
   it('se saca y la nota sigue existiendo', async () => {
     ok(await ubicar(null))
     const { estadosData, notasParaEERR } = await estados()
     expect(estadosData.eerr.lineasNota).toBeUndefined()
     expect(estadosData.eerr.resultadoAntesIGAnt).toBe(ANTES_DE_LA_NOTA)
     expect(notasParaEERR?.map((n) => n.id)).toEqual([ctx.notaId])
+    const guardada = (await findNotasByEjercicio(ctx.ejercicioId)).find((n) => n.id === ctx.notaId)
+    expect(guardada?.lineaEerrResta).toBeNull()
   })
 
   it('agregarla anula la autorización y la confirmación: cambió el anterior', async () => {
@@ -193,6 +202,7 @@ describe('Nota como fila del Estado de Resultados', () => {
       ctx.ejercicioId,
       ctx.sociedadId,
       'INGRESOS',
+      false,
     )
     expect(r.ok).toBe(false)
   })

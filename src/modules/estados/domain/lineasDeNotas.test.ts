@@ -86,6 +86,25 @@ describe('Nota como fila del Estado de Resultados', () => {
     expect(r.resultadoAntesIGAnt).toBe(5_288_422.87)
   })
 
+  it('se elige si suma o resta, sea cual sea el signo con el que se cargó la nota', () => {
+    const conEleccion = (anterior: number, resta: boolean | null) =>
+      aplicarLineasDeNotas(
+        eerr,
+        [{ ...nota('a', anterior, 'RESULTADOS_FINANCIEROS'), lineaEerrResta: resta }],
+        SIN_CUENTAS,
+      )
+    // Cargada en positivo y elegida "resta": entre paréntesis y baja el resultado
+    expect(conEleccion(316_904.13, true).lineasNota?.[0]?.totalAnt).toBe(-316_904.13)
+    expect(conEleccion(316_904.13, true).resultadoAntesIGAnt).toBe(4_971_418.74)
+    expect(conEleccion(-316_904.13, true).lineasNota?.[0]?.totalAnt).toBe(-316_904.13)
+    // Cargada en negativo y elegida "suma"
+    expect(conEleccion(-316_904.13, false).lineasNota?.[0]?.totalAnt).toBe(316_904.13)
+    expect(conEleccion(-316_904.13, false).resultadoAntesIGAnt).toBe(5_605_227)
+    // Sin elegir (ubicada antes de esta opción): el signo de la nota, como antes
+    expect(conEleccion(-316_904.13, null).lineasNota?.[0]?.totalAnt).toBe(-316_904.13)
+    expect(conEleccion(316_904.13, null).lineasNota?.[0]?.totalAnt).toBe(316_904.13)
+  })
+
   it('no toca la columna del ejercicio actual', () => {
     const r = aplicarLineasDeNotas(eerr, [nota('a', 100, 'INGRESOS')], SIN_CUENTAS)
     expect(r.utilidadBruta).toBe(0)

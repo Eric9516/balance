@@ -164,10 +164,11 @@ export async function ubicarNotaEnEERR(
   ejercicioId: string,
   notaId: string,
   debajoDe: string | null,
+  resta: boolean,
 ): Promise<boolean> {
   const { count } = await db.notaEjercicio.updateMany({
     where: { id: notaId, ejercicioId },
-    data: { lineaEerrDebajoDe: debajoDe },
+    data: { lineaEerrDebajoDe: debajoDe, lineaEerrResta: debajoDe === null ? null : resta },
   })
   return count > 0
 }

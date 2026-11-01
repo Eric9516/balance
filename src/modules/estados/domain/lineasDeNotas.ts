@@ -40,6 +40,15 @@ function lineaVigente(debajoDe: string, secciones: ReadonlySet<string>): string 
   return LINEAS_FIJAS.has(debajoDe) || secciones.has(debajoDe) ? debajoDe : 'UTILIDAD_BRUTA'
 }
 
+/**
+ * El total con el signo elegido: la que resta va en negativo (entre paréntesis), la que suma en
+ * positivo. Sin elegir (se ubicó antes de esta opción), el signo con el que se cargó la nota.
+ */
+export function conSigno(total: number, resta: boolean | null | undefined): number {
+  const negativo = total < 0
+  return (resta ?? negativo) === negativo ? total : restar(0, total)
+}
+
 /** Las notas que no tienen cuentas de este año: si las tuvieran, ya estarían en otra línea. */
 function sinCuentas(notas: NotaDTO[], idsConCuentas: ReadonlySet<string>) {
   return notas.filter((n) => n.tipo === 'CUANTITATIVA' && !idsConCuentas.has(n.id))
@@ -74,7 +83,7 @@ export function aplicarLineasDeNotas(
       titulo: n.titulo,
       notaNumero: n.numero,
       debajoDe: lineaVigente(n.lineaEerrDebajoDe!, secciones),
-      totalAnt: totalesNota(n).anterior,
+      totalAnt: conSigno(totalesNota(n).anterior, n.lineaEerrResta),
     }))
   if (lineasNota.length === 0) return eerr
 

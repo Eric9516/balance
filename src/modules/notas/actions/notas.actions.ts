@@ -168,6 +168,8 @@ export async function ubicarNotaEnEERRAction(
   ejercicioId: string,
   sociedadId: string,
   debajoDe: string | null,
+  /** Si la fila resta del resultado. Sin línea no se usa. */
+  resta: boolean,
 ): Promise<ActionResult<void>> {
   try {
     await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
@@ -193,7 +195,7 @@ export async function ubicarNotaEnEERRAction(
           'Estos saldos ya están autorizados y ajustados por inflación. Para cambiarlos, tocá "Corregir lo cargado" en el paso Ejercicio anterior.',
       })
     }
-    if (!(await ubicarNotaEnEERR(ejercicioId, notaId, debajoDe))) {
+    if (!(await ubicarNotaEnEERR(ejercicioId, notaId, debajoDe, resta === true))) {
       return actionError(NOTA_NO_ENCONTRADA)
     }
     await marcarComparativoModificado(ejercicioId)
