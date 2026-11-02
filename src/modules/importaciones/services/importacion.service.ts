@@ -3,7 +3,11 @@ import { actionError, actionOk, type ActionResult } from '@/modules/errores/type
 import { formatCurrency } from '@/lib/utils/currency'
 import { resetEstadosConfirmado } from '@/modules/ejercicios/repository/ejercicio.repository'
 import { createImportacion, updateImportacion } from '../repository/importacion.repository'
-import { replaceCuentas } from '../repository/cuentas.repository'
+import {
+  agregarCuentas,
+  countCuentasByEjercicio,
+  replaceCuentas,
+} from '../repository/cuentas.repository'
 import { procesarFilas, validarCuadre, type FilaImportacion } from '../domain/importacion'
 import type { ResultadoImportacion } from '../domain/types'
 
@@ -14,7 +18,8 @@ export function hashContenido(contenido: string | Uint8Array): string {
 
 /**
  * Caso de uso único de importación del balance (carga manual o Excel editado):
- * registra la importación, valida filas y cuadre, reemplaza las cuentas del ejercicio
+ * registra la importación y valida las filas. Excel reemplaza el balance completo;
+ * la carga manual agrega cuentas conservando las existentes y su clasificación
  * y deja la importación en COMPLETADA o CON_ERRORES con el detalle.
  */
 export async function registrarImportacion(params: {
@@ -23,6 +28,7 @@ export async function registrarImportacion(params: {
   hashArchivo: string
   mapeoSnapshot: object
   filas: FilaImportacion[]
+  modo?: 'AGREGAR' | 'REEMPLAZAR'
 }): Promise<ActionResult<ResultadoImportacion>> {
   const { ejercicioId, filas } = params
   const totalFilas = filas.length
@@ -74,7 +80,11 @@ export async function registrarImportacion(params: {
     }
 
     const cuadre = validarCuadre(cuentas)
-    if (!cuadre.cuadrado) {
+    // Una ampliación puede ser una sola cuenta: el cuadre se revisa en el balance completo.
+    // En la carga inicial y al reemplazar por Excel se mantiene el control de cuadre.
+    const esAmpliacion =
+      params.modo === 'AGREGAR' && (await countCuentasByEjercicio(ejercicioId)) > 0
+    if (!cuadre.cuadrado && !esAmpliacion) {
       const exceso = cuadre.diferencia > 0 ? 'el debe supera al haber' : 'el haber supera al debe'
       return rechazar(
         { mensaje: 'El balance de sumas y saldos no cuadra', ...cuadre },
@@ -89,14 +99,17 @@ export async function registrarImportacion(params: {
       )
     }
 
-    const importadas = await replaceCuentas(ejercicioId, importacionId, cuentas)
+    const importadas =
+      params.modo === 'AGREGAR'
+        ? await agregarCuentas(ejercicioId, importacionId, cuentas)
+        : await replaceCuentas(ejercicioId, importacionId, cuentas)
     await updateImportacion(importacionId, {
       estado: 'COMPLETADA',
       totalFilas,
       filasImportadas: importadas,
       filasError,
     })
-    await resetEstadosConfirmado(ejercicioId)
+    if (params.modo !== 'AGREGAR') await resetEstadosConfirmado(ejercicioId)
 
     return actionOk({ importacionId, importadas, errores: filasError, total: totalFilas })
   } catch (error) {

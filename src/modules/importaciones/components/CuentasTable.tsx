@@ -88,8 +88,8 @@ export function CuentasTable({ cuentas, sociedadId, ejercicioId }: CuentasTableP
         </div>
       </div>
 
-      {/* Barra de clasificación + botón reimportar */}
-      <div className="flex items-center justify-between">
+      {/* Clasificación y opciones de carga */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 text-xs text-slate-500">
           {sinClasificar > 0 ? (
             <span className="font-medium text-amber-600">{sinClasificar} sin clasificar</span>
@@ -98,12 +98,20 @@ export function CuentasTable({ cuentas, sociedadId, ejercicioId }: CuentasTableP
           )}
           {clasificadas > 0 && <span>{clasificadas} clasificadas</span>}
         </div>
-        <Button variant="secondary" size="sm" asChild>
-          <Link href={importarHref}>
-            <Upload className="mr-1 h-3.5 w-3.5" />
-            Re-importar
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" asChild>
+            <Link href={manualHref}>
+              <Keyboard className="mr-1 h-3.5 w-3.5" />
+              Agregar cuenta
+            </Link>
+          </Button>
+          <Button variant="secondary" size="sm" asChild>
+            <Link href={importarHref}>
+              <Upload className="mr-1 h-3.5 w-3.5" />
+              Re-importar
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Tabla */}
