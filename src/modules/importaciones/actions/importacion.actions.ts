@@ -54,6 +54,7 @@ export async function confirmarImportacionManual(
       nombreArchivo: 'Carga manual',
       hashArchivo: hashContenido(JSON.stringify(filas.data)),
       mapeoSnapshot: { tipo: 'manual' },
+      modo: 'AGREGAR',
       filas: filas.data,
     })
     if (resultado.ok) revalidarEjercicio(sociedadId, ejercicioId)

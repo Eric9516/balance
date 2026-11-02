@@ -26,8 +26,10 @@ export const PASOS: ArticuloAyuda[] = [
       ),
       lista(
         'Carga manual: escribís código, nombre, saldo deudor y saldo acreedor de cada cuenta.',
+        'Si ya cargaste cuentas, usá "Agregar cuenta" en el balance: las nuevas se agregan sin reemplazar las existentes ni perder sus clasificaciones. Los códigos ya usados se rechazan.',
+        'Podés agregar una cuenta por vez aunque la carga adicional no cuadre. Después revisá el cuadre total, clasificá las cuentas nuevas y regenerá las notas. Los estados deben confirmarse de nuevo.',
         'Cada cuenta necesita un código único (NEG-012) y un nombre (NEG-010).',
-        'Antes de confirmar, la app controla que el total del debe sea igual al del haber, exacto. Si no cuadra, te dice de cuánto es la diferencia (NEG-011).',
+        'En la carga inicial y al importar Excel, la app controla que el total del debe sea igual al del haber, exacto. Si no cuadra, te dice de cuánto es la diferencia (NEG-011).',
       ),
       aviso(
         'Reimportar reemplaza todas las cuentas y se pierde la clasificación: hay que volver a clasificar y regenerar las notas.',

@@ -34,7 +34,7 @@ export function CargaManualForm({ ejercicioId, sociedadId, denominacion, tieneCu
   const [isPending, startTransition] = useTransition()
   const [filas, setFilas] = useState<EditableRow[]>(() => [emptyFila()])
 
-  // Mismo cálculo de cuadre que valida el servidor (Decimal, tolerancia de centavos).
+  // La carga inicial exige cuadre; las altas posteriores permiten completar de a una.
   const { totalDeudor, totalAcreedor, cuadrado } = useMemo(
     () => validarCuadre(filas.map(importesDeFila)),
     [filas],
@@ -89,7 +89,9 @@ export function CargaManualForm({ ejercicioId, sociedadId, denominacion, tieneCu
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h2 className="text-base font-semibold text-slate-900">Carga manual de cuentas</h2>
+          <h2 className="text-base font-semibold text-slate-900">
+            {tieneCuentas ? 'Agregar cuentas' : 'Carga manual de cuentas'}
+          </h2>
           <p className="mt-0.5 text-sm text-slate-500">
             {denominacion} — Ingresá cada cuenta con código, nombre, debe y haber.
           </p>
@@ -118,13 +120,14 @@ export function CargaManualForm({ ejercicioId, sociedadId, denominacion, tieneCu
         </div>
       </div>
 
-      {/* Advertencia reimportación */}
+      {/* Las altas manuales conservan lo que ya se cargó. */}
       {tieneCuentas && (
         <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
           <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
           <p className="text-xs text-amber-700">
-            Este ejercicio ya tiene cuentas cargadas. Al confirmar se reemplazarán todas y se
-            perderá la clasificación existente.
+            Las cuentas nuevas se agregarán sin reemplazar las existentes ni sus clasificaciones.
+            Podés agregarlas de a una aunque esta carga no cuadre. Después revisá el cuadre total,
+            clasificá las cuentas nuevas y actualizá las notas antes de confirmar los estados.
           </p>
         </div>
       )}
@@ -217,12 +220,12 @@ export function CargaManualForm({ ejercicioId, sociedadId, denominacion, tieneCu
         </div>
         <Button
           type="button"
-          disabled={filas.length === 0 || !cuadrado || isPending}
+          disabled={filas.length === 0 || (!tieneCuentas && !cuadrado) || isPending}
           onClick={handleConfirmar}
         >
           {isPending
             ? 'Guardando...'
-            : `Confirmar carga (${filas.length} ${filas.length === 1 ? 'cuenta' : 'cuentas'})`}
+            : `${tieneCuentas ? 'Agregar' : 'Confirmar carga'} (${filas.length} ${filas.length === 1 ? 'cuenta' : 'cuentas'})`}
         </Button>
       </div>
     </div>

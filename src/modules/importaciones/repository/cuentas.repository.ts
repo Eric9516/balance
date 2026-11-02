@@ -2,6 +2,8 @@ import { cache } from 'react'
 import type { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { esUuid } from '@/lib/utils/uuid'
+import type { CuentaImportada } from '../domain/importacion'
+import type { AppError } from '@/modules/errores/types'
 import { toCuentaDTO, type CuentaContableDTO, type RubroBaseSimple } from '../domain/types'
 
 // ─── Mutaciones ───────────────────────────────────────────────────────────────
@@ -62,6 +64,47 @@ export async function deleteCuenta(ejercicioId: string, cuentaId: string): Promi
   if (!esUuid(cuentaId)) return false
   const { count } = await db.cuentaContable.deleteMany({ where: { id: cuentaId, ejercicioId } })
   return count > 0
+}
+
+/** Agrega sin borrar ni reclasificar; la confirmación se revoca en la misma transacción. */
+export async function agregarCuentas(
+  ejercicioId: string,
+  importacionId: string,
+  cuentas: CuentaImportada[],
+): Promise<number> {
+  return db.$transaction(async (tx) => {
+    const repetidas = await tx.cuentaContable.findMany({
+      where: { ejercicioId, codigo: { in: cuentas.map((c) => c.codigo) } },
+      select: { codigo: true },
+    })
+    if (repetidas.length > 0) {
+      throw {
+        tipo: 'NEGOCIO',
+        severidad: 'ALTO',
+        codigo: 'NEG-012',
+        mensaje: `Ya existen cuentas con estos códigos: ${repetidas
+          .slice(0, 5)
+          .map((c) => c.codigo)
+          .join(', ')}. Usá códigos nuevos; no se modificó ninguna cuenta existente.`,
+      } satisfies AppError
+    }
+    const data: Prisma.CuentaContableCreateManyInput[] = cuentas.map((c) => ({
+      ejercicioId,
+      importacionExcelId: importacionId,
+      codigo: c.codigo,
+      nombre: c.nombre,
+      saldoDeudor: c.saldoDeudor,
+      saldoAcreedor: c.saldoAcreedor,
+      saldoFinal: c.saldoFinal,
+    }))
+    // Sin skipDuplicates: un conflicto concurrente debe revertir todo el lote.
+    const { count } = await tx.cuentaContable.createMany({ data })
+    await tx.ejercicioContable.update({
+      where: { id: ejercicioId },
+      data: { estadosConfirmado: false },
+    })
+    return count
+  })
 }
 
 export async function replaceCuentas(
