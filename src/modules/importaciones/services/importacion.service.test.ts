@@ -80,7 +80,7 @@ describe('Carga manual adicional', () => {
     const resultado = await registrarImportacion({
       ...params,
       modo: 'AGREGAR',
-      filas: [params.filas[0], params.filas[0]],
+      filas: [...params.filas, ...params.filas],
     })
     expect(resultado).toMatchObject({ ok: false, error: { codigo: 'NEG-012' } })
     expect(agregarCuentas).not.toHaveBeenCalled()
