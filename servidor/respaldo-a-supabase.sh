@@ -31,7 +31,7 @@ TABLAS="select format('%I.%I', schemaname, tablename) from pg_tables
 # La huella de Supabase: cuántas filas tiene cada tabla y un resumen de su contenido.
 huella() {
   local q; q="$(psql "$SUPABASE" -Atc "select string_agg(format('select %L, count(*), md5(coalesce(string_agg(md5(x::text), '''' order by md5(x::text)), '''')) from %s x', t, t), ' union all ' order by t) from ($TABLAS) z(t)")"
-  psql "$SUPABASE" -At -F' ' -c "set row_security = off; $q order by 1"
+  psql -q "$SUPABASE" -At -F' ' -c "set row_security = off; $q order by 1"
 }
 if [ -f "$HUELLA" ] && ! diff -q <(huella) "$HUELLA" >/dev/null; then
   echo "⚠ Alguien cambió datos en Supabase después del último respaldo: se guarda lo de allá antes de pisarlo"
@@ -59,6 +59,6 @@ contar() {
   local q; q="$("$@" -Atc "select string_agg(format('select %L, count(*) from %s', t, t), ' union all ' order by t) from ($TABLAS) x(t)")"
   "$@" -At -F' ' -c "set row_security = off; $q order by 1"
 }
-diff <(contar local_) <(contar psql "$SUPABASE") || { echo "✗ Supabase no quedó igual que el servidor." >&2; exit 1; }
+diff <(contar local_) <(contar psql -q "$SUPABASE") || { echo "✗ Supabase no quedó igual que el servidor." >&2; exit 1; }
 huella > "$HUELLA"
 echo "✔ Respaldo en Supabase al día ($(date -u '+%Y-%m-%d %H:%M') UTC)"

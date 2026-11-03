@@ -11,6 +11,8 @@ WORKDIR /repo
 # exige una dirección con forma válida al cargar los módulos.
 ENV HUSKY=0 CI=1 NEXT_TELEMETRY_DISABLED=1 \
     DATABASE_URL=postgresql://armado:armado@127.0.0.1:5432/armado
+# OpenSSL: lo usa el motor de migraciones de Prisma (la app no: consulta con su compilador wasm).
+RUN apt-get update -q && apt-get install -y -q --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 RUN npm install -g pnpm@12.10.1 --ignore-scripts
 # Primero solo lo que decide los paquetes: si no cambia, Docker reusa lo instalado.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml prisma.config.ts ./

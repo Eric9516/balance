@@ -46,6 +46,6 @@ contar() {
   local q; q="$("$@" -Atc "select string_agg(format('select %L, count(*) from %s', t, t), ' union all ' order by t) from ($TABLAS) x(t)")"
   "$@" -At -F' ' -c "set row_security = off; $q order by 1"
 }
-diff <(contar local_) <(contar psql "$SUPABASE") \
+diff <(contar local_) <(contar psql -q "$SUPABASE") \
   || { echo "✗ El servidor no quedó igual que Supabase." >&2; exit 1; }
 echo "✔ Copiadas $(local_ -Atc "select count(*) from ($TABLAS) x") tablas, iguales a Supabase ($(date -u '+%Y-%m-%d %H:%M') UTC)"
