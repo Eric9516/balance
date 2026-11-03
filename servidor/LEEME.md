@@ -29,12 +29,16 @@ nocturno.
 | `desplegar.sh` | Publica la versión guardada en git. Se corre desde la computadora. |
 | `app.sh` | Prende y cambia la app. Se instala como `balancert-app`. Si la nueva no responde, vuelve sola a la anterior. |
 | `copiar-de-supabase.sh` | Copia los datos de Supabase al servidor, para el ensayo y para el pase. |
+| `pase.sh` | El pase: copia final, huella de Supabase y respaldo nocturno prendido. |
 | `respaldo-a-supabase.sh` | Respaldo de cada noche a las 4:30, después del pase. |
 
 ## El pase
 
-1. Publicar en el servidor la misma versión que está en uso (`desplegar.sh`).
-2. Dejar de usar la app vieja y copiar los datos (`copiar-de-supabase.sh`).
-3. `touch /etc/balancert/pase-hecho` y `systemctl enable --now balancert-respaldo.timer`.
-4. Desde ese momento se usa la dirección del servidor. La app vieja no se vuelve a usar: el respaldo
-   pisa Supabase cada noche, después de guardar una copia si alguien la cambió.
+`pase.sh`, con la app vieja sin usar:
+
+1. Copia final de Supabase al servidor, comparando tabla por tabla.
+2. Guarda la huella de Supabase. Si alguien carga algo en la app vieja después del pase, el respaldo de
+   la noche lo detecta y lo guarda aparte antes de pisarlo.
+3. Marca el pase hecho (`/etc/balancert/pase-hecho`) y prende el respaldo nocturno.
+
+Desde ese momento se trabaja solo en el servidor. La app vieja no se vuelve a usar.
