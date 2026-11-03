@@ -102,4 +102,16 @@ fi
 # HTTP/2 en las líneas del 443 que pone certbot: todos los archivos de una pantalla por una sola conexión.
 sed -i -E '/listen .*443 ssl/{/http2/!s/443 ssl/443 ssl http2/}' /etc/nginx/sites-available/balancert
 nginx -t -q && systemctl reload nginx
-echo "Servidor listo para $DOMINIO"
+
+# La vigilancia: cada 2 minutos revisa la app, la base, el disco, la memoria, el certificado y el respaldo,
+# y avisa al celular por ntfy. El tema (el canal al que se suscribe el celular) se inventa una sola vez:
+# es largo y al azar para que nadie más lo encuentre.
+if [ ! -f /etc/balancert/avisos.conf ]; then
+  (umask 077; printf 'TEMA=balancert-%s\n' "$(openssl rand -hex 10)" > /etc/balancert/avisos.conf)
+fi
+sed -i '/^DOMINIO=/d' /etc/balancert/avisos.conf && echo "DOMINIO=$DOMINIO" >> /etc/balancert/avisos.conf
+install -m 755 "$DIR/vigilar.sh" /usr/local/bin/balancert-vigilar
+install -m 644 "$DIR/balancert-vigilancia.service" "$DIR/balancert-vigilancia.timer" /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now balancert-vigilancia.timer >/dev/null
+echo "Servidor listo para $DOMINIO (avisos al celular: tema $(sed -n 's/^TEMA=//p' /etc/balancert/avisos.conf) en ntfy)"

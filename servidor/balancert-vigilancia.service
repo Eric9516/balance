@@ -1,0 +1,10 @@
+# Revisa que el servidor esté bien y avisa al celular si algo se rompe (servidor/vigilar.sh). La dispara
+# balancert-vigilancia.timer; a mano: balancert-vigilar (o balancert-vigilar prueba)
+[Unit]
+Description=Vigilancia del servidor de BalanceRT (avisos al celular)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/balancert-vigilar

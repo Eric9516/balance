@@ -1,0 +1,10 @@
+# Cada 2 minutos, desde 3 minutos después de prender el servidor.
+[Unit]
+Description=Vigilancia del servidor de BalanceRT cada 2 minutos
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=2min
+
+[Install]
+WantedBy=timers.target
