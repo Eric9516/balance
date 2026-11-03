@@ -12,7 +12,12 @@ nocturno.
   - `balancert_dueno`: migraciones. Su conexión está en `/etc/balancert/base-dueno.env`, solo para root.
   - `balancert_web`: la app. Solo puede pasar al rol `balancert_app`, así que nunca saltea las reglas por
     fila. Su conexión está en `/etc/balancert/web.env`.
+  - El dueño ve por encima de la separación por estudio (`BYPASSRLS`), igual que `postgres` en Supabase:
+    las funciones `security definer` (entrar, la sesión) corren con él y sin eso no encuentran ninguna
+    cuenta.
 - **Secretos:** se generan en el servidor y quedan solo en `/etc/balancert`. Nunca en el repositorio.
+  `CLAVE_CODIGOS` no se genera: va a mano en `web.env` y tiene que ser la misma que en producción. Si
+  no, nadie puede usar el código del celular que ya configuró.
 
 ## Archivos
 

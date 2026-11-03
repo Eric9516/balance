@@ -65,6 +65,12 @@ END \$\$;
 ALTER ROLE balancert_dueno PASSWORD '$DUENO';
 ALTER ROLE balancert_web PASSWORD '$WEB';
 SQL
+fi
+# El dueño de tablas y funciones ve por encima de la separación por estudio, igual que postgres en
+# Supabase (y que el usuario de las pruebas): las funciones "security definer" (entrar, la sesión, el
+# catálogo) corren con él y sin esto no encuentran nada. La app entra con balancert_web, que no puede.
+sudo -u postgres psql -q -c "ALTER ROLE balancert_dueno BYPASSRLS"
+if [ ! -f /etc/balancert/web.env ]; then
   (umask 077; echo "DATABASE_URL=postgresql://balancert_dueno:$DUENO@127.0.0.1:5432/balancert" > /etc/balancert/base-dueno.env)
   (umask 027; cat > /etc/balancert/web.env <<ENV
 DATABASE_URL=postgresql://balancert_web:$WEB@127.0.0.1:5432/balancert
