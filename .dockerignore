@@ -1,0 +1,12 @@
+# Lo que no entra en la caja de la app (Dockerfile): dependencias y armados de esta computadora,
+# secretos, documentos y pruebas que no corren en el servidor.
+node_modules
+.next
+.git
+.claude
+.env*
+!.env.example
+coverage
+auditoria/informes
+*.pdf
+*.tsbuildinfo
