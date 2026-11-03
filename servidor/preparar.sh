@@ -7,7 +7,7 @@
 # balancert_web para la app, que solo puede pasar al rol balancert_app), Docker, Nginx con HTTPS y
 # balancert-app. Las contraseñas se generan acá y quedan solo en /etc/balancert (nunca en el repositorio).
 set -euo pipefail
-DOMINIO="${1:?Falta el dominio (por ejemplo 64-176-28-71.sslip.io)}"
+DOMINIO="${1:?Falta el dominio (por ejemplo balancert.com.ar; también atiende www.)}"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a
 
@@ -101,9 +101,9 @@ ln -sfn /etc/nginx/sites-available/balancert /etc/nginx/sites-enabled/balancert
 rm -f /etc/nginx/sites-enabled/default
 nginx -t -q && systemctl reload nginx
 if [ -d "/etc/letsencrypt/live/$DOMINIO" ]; then
-  certbot install --nginx --cert-name "$DOMINIO" --non-interactive --redirect -q
+  certbot install --nginx --cert-name "$DOMINIO" -d "$DOMINIO" -d "www.$DOMINIO" --non-interactive --redirect -q
 else
-  certbot --nginx -d "$DOMINIO" --non-interactive --agree-tos --register-unsafely-without-email --redirect -q
+  certbot --nginx -d "$DOMINIO" -d "www.$DOMINIO" --non-interactive --agree-tos --register-unsafely-without-email --redirect -q
 fi
 # HTTP/2 en las líneas del 443 que pone certbot: todos los archivos de una pantalla por una sola conexión.
 sed -i -E '/listen .*443 ssl/{/http2/!s/443 ssl/443 ssl http2/}' /etc/nginx/sites-available/balancert

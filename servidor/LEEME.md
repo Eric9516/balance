@@ -6,6 +6,8 @@ nocturno.
 
 - **Servidor:** Vultr, Santiago de Chile. Plan `vc2-2c-2gb` (2 vCPU, 2 GB), Ubuntu 24.04 LTS, con las
   copias automáticas de Vultr.
+- **Dirección:** https://balancert.com.ar (y www.). El dominio es de NIC Argentina, delegado al DNS de
+  Vultr (`ns1.vultr.com` y `ns2.vultr.com`).
 - **App:** caja de Docker (`Dockerfile`) con el usuario `balancert`, solo lectura, 700 MB como máximo.
   Escucha en `127.0.0.1:3000` y Nginx la publica con HTTPS.
 - **Base:** PostgreSQL 17, que solo atiende en `127.0.0.1`. Tiene dos usuarios:

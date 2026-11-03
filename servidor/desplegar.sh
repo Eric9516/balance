@@ -7,7 +7,7 @@
 # 4. Cambia la app (balancert-app): si la nueva no responde, vuelve sola a la anterior.
 set -euo pipefail
 SERVIDOR="${SERVIDOR:-root@64.176.28.71}"
-DOMINIO="${DOMINIO:-64-176-28-71.sslip.io}"
+DOMINIO="${DOMINIO:-balancert.com.ar}"
 V="$(git rev-parse HEAD)"
 [ -z "$(git status --porcelain --untracked-files=no)" ] || echo "  (hay cambios sin guardar: no van en esta publicación)"
 
