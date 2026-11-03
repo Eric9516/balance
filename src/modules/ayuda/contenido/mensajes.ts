@@ -454,6 +454,18 @@ const MENSAJES: Mensaje[] = [
     relacionados: ['paso-notas'],
   },
   {
+    codigo: 'NEG-067',
+    titulo: 'La nota ya está en el otro estado',
+    significa:
+      'Quisiste agregar como fila una nota que ya está en el otro estado (el de Resultados o el de Situación Patrimonial). Una nota se usa una sola vez, para que su importe no se cuente dos veces.',
+    solucion: [
+      'En el estado donde está, tocá la X de esa fila para sacarla.',
+      'Después agregala con el + donde la necesitás.',
+    ],
+    claves: ['nota repetida', 'ya esta usada', 'fila de nota', 'agregar nota'],
+    relacionados: ['anterior-manual'],
+  },
+  {
     codigo: 'NEG-064',
     titulo: 'Faltan los índices para ajustar el anterior',
     significa:

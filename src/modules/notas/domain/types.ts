@@ -25,6 +25,9 @@ export type NotaDTO = {
   /** Fila del Estado de Resultados: debajo de qué línea va. Null = la nota no es una fila. */
   lineaEerrDebajoDe?: string | null
   lineaEerrResta?: boolean | null
+  lineaSspSeccion?: string | null
+  lineaSspDebajoDe?: string | null
+  lineaSspResta?: boolean | null
   criterioMedicion: string | null
   textoApertura: string | null
   detalles: DetalleNotaDTO[]
@@ -44,6 +47,9 @@ export function toNotaDTO(n: NotaRaw): NotaDTO {
     orden: n.orden,
     lineaEerrDebajoDe: n.lineaEerrDebajoDe ?? null,
     lineaEerrResta: n.lineaEerrResta ?? null,
+    lineaSspSeccion: n.lineaSspSeccion ?? null,
+    lineaSspDebajoDe: n.lineaSspDebajoDe ?? null,
+    lineaSspResta: n.lineaSspResta ?? null,
     criterioMedicion: n.criterioMedicion,
     textoApertura: n.textoApertura,
     detalles: [...n.detalles]

@@ -28,6 +28,11 @@ export type RubroFila = {
    * cuenta, o el Anexo I, por categoría) y no se escribe en el estado.
    */
   anteriorDesdeDetalle?: AnteriorDesdeDetalle
+  /**
+   * Una nota ubicada como fila (solo tiene importe anterior). `debajoDe` es la fila que queda arriba
+   * (null: al principio de la sección). Ver domain/lineasDeNotas.
+   */
+  notaFila?: { notaId: string; debajoDe: string | null }
 }
 
 export type AnteriorDesdeDetalle = {

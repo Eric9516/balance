@@ -622,6 +622,11 @@ model NotaEjercicio {
   lineaEerrDebajoDe String? @map("linea_eerr_debajo_de")
   /// Si la fila resta del resultado. Null: no se eligió, vale el signo de la nota.
   lineaEerrResta    Boolean? @map("linea_eerr_resta")
+  /// Fila del Estado de Situación Patrimonial: sección (no PN), fila de arriba y si resta. Una nota
+  /// va en un solo estado (CHECK notas_ejercicio_un_solo_estado).
+  lineaSspSeccion   String?  @map("linea_ssp_seccion")
+  lineaSspDebajoDe  String?  @map("linea_ssp_debajo_de")
+  lineaSspResta     Boolean? @map("linea_ssp_resta")
   // Campos para renderizado de la nota (ver PDF páginas 2-3)
   criterioMedicion String? @map("criterio_medicion") // Ej: "valor nominal", "costo de reposición"
   textoApertura    String? @map("texto_apertura") // Ej: "El saldo del rubro a fecha de cierre está compuesto por:"

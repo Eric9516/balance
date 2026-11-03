@@ -159,18 +159,46 @@ export async function ubicarNota(
   return true
 }
 
-/** Ubica la nota como fila del Estado de Resultados (null la saca). False si no es de este ejercicio. */
+export type ResultadoUbicar = 'OK' | 'NO_ENCONTRADA' | 'EN_OTRO_ESTADO'
+
+/** Una nota que no cambió: no es de este ejercicio, o ya está en el otro estado. */
+async function porQueNoSeUbico(ejercicioId: string, notaId: string): Promise<ResultadoUbicar> {
+  const nota = await db.notaEjercicio.findFirst({
+    where: { id: notaId, ejercicioId },
+    select: { id: true },
+  })
+  return nota ? 'EN_OTRO_ESTADO' : 'NO_ENCONTRADA'
+}
+
+/** Ubica la nota como fila del Estado de Resultados (null la saca). Una nota va en un solo estado. */
 export async function ubicarNotaEnEERR(
   ejercicioId: string,
   notaId: string,
   debajoDe: string | null,
   resta: boolean,
-): Promise<boolean> {
+): Promise<ResultadoUbicar> {
   const { count } = await db.notaEjercicio.updateMany({
-    where: { id: notaId, ejercicioId },
+    where: { id: notaId, ejercicioId, lineaSspSeccion: null },
     data: { lineaEerrDebajoDe: debajoDe, lineaEerrResta: debajoDe === null ? null : resta },
   })
-  return count > 0
+  return count > 0 ? 'OK' : porQueNoSeUbico(ejercicioId, notaId)
+}
+
+/** Ubica la nota como fila del Estado de Situación Patrimonial (null la saca). */
+export async function ubicarNotaEnSSP(
+  ejercicioId: string,
+  notaId: string,
+  ubicacion: { seccion: string; debajoDe: string | null; resta: boolean } | null,
+): Promise<ResultadoUbicar> {
+  const { count } = await db.notaEjercicio.updateMany({
+    where: { id: notaId, ejercicioId, lineaEerrDebajoDe: null },
+    data: {
+      lineaSspSeccion: ubicacion?.seccion ?? null,
+      lineaSspDebajoDe: ubicacion?.debajoDe ?? null,
+      lineaSspResta: ubicacion?.resta ?? null,
+    },
+  })
+  return count > 0 ? 'OK' : porQueNoSeUbico(ejercicioId, notaId)
 }
 
 export async function createDetalle(data: {

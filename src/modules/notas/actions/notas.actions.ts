@@ -16,6 +16,8 @@ import {
   renumerarNotas,
   ubicarNota,
   ubicarNotaEnEERR,
+  ubicarNotaEnSSP,
+  type ResultadoUbicar,
   createDetalle,
   updateDetalle,
   deleteDetalle,
@@ -176,33 +178,98 @@ export async function ubicarNotaEnEERRAction(
     if (!esUuid(notaId) || (debajoDe !== null && (!debajoDe || debajoDe.length > 200))) {
       return actionError(NOTA_NO_ENCONTRADA)
     }
-    const config = await findConfigAnterior(ejercicioId)
-    if (config?.modoAnterior !== 'MANUAL') {
-      return actionError({
-        tipo: 'NEGOCIO',
-        severidad: 'MEDIO',
-        codigo: 'NEG-012',
-        mensaje:
-          'Una nota se agrega como fila del Estado de Resultados solo cuando el ejercicio anterior se carga a mano.',
-      })
-    }
-    if (config.anteriorAjustadoEn) {
-      return actionError({
-        tipo: 'NEGOCIO',
-        severidad: 'MEDIO',
-        codigo: 'NEG-065',
-        mensaje:
-          'Estos saldos ya están autorizados y ajustados por inflación. Para cambiarlos, tocá "Corregir lo cargado" en el paso Ejercicio anterior.',
-      })
-    }
-    if (!(await ubicarNotaEnEERR(ejercicioId, notaId, debajoDe, resta === true))) {
-      return actionError(NOTA_NO_ENCONTRADA)
-    }
+    const error = await puedeUbicarNota(ejercicioId)
+    if (error) return actionError(error)
+    const r = await ubicarNotaEnEERR(ejercicioId, notaId, debajoDe, resta === true)
+    if (r !== 'OK') return actionError(noSeUbico(r))
     await marcarComparativoModificado(ejercicioId)
     revalPath(sociedadId, ejercicioId)
     return actionOk(undefined)
   } catch (error) {
     return actionError(errorHandler(error, { modulo: 'NOTAS', operacion: 'ubicar_en_eerr' }))
+  }
+}
+
+const SECCIONES_SSP_CON_FILAS = new Set([
+  'ACTIVO_CORRIENTE',
+  'ACTIVO_NO_CORRIENTE',
+  'PASIVO_CORRIENTE',
+  'PASIVO_NO_CORRIENTE',
+])
+
+/**
+ * Ubica una nota como fila del Estado de Situación Patrimonial, en el Activo o el Pasivo (null la
+ * saca). Igual que en el Estado de Resultados: cambia la columna anterior y la nota va en un solo estado.
+ */
+export async function ubicarNotaEnSSPAction(
+  notaId: string,
+  ejercicioId: string,
+  sociedadId: string,
+  ubicacion: { seccion: string; debajoDe: string | null; resta: boolean } | null,
+): Promise<ActionResult<void>> {
+  try {
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    const valida =
+      ubicacion === null ||
+      (SECCIONES_SSP_CON_FILAS.has(ubicacion.seccion) &&
+        typeof ubicacion.resta === 'boolean' &&
+        (ubicacion.debajoDe === null ||
+          (typeof ubicacion.debajoDe === 'string' &&
+            ubicacion.debajoDe.length > 0 &&
+            ubicacion.debajoDe.length <= 200)))
+    if (!esUuid(notaId) || !valida) return actionError(NOTA_NO_ENCONTRADA)
+    const error = await puedeUbicarNota(ejercicioId)
+    if (error) return actionError(error)
+    const r = await ubicarNotaEnSSP(
+      ejercicioId,
+      notaId,
+      ubicacion && {
+        seccion: ubicacion.seccion,
+        debajoDe: ubicacion.debajoDe,
+        resta: ubicacion.resta,
+      },
+    )
+    if (r !== 'OK') return actionError(noSeUbico(r))
+    await marcarComparativoModificado(ejercicioId)
+    revalPath(sociedadId, ejercicioId)
+    return actionOk(undefined)
+  } catch (error) {
+    return actionError(errorHandler(error, { modulo: 'NOTAS', operacion: 'ubicar_en_ssp' }))
+  }
+}
+
+/** Una nota se ubica en un estado solo con el anterior cargado a mano y todavía sin ajustar. */
+async function puedeUbicarNota(ejercicioId: string): Promise<AppError | null> {
+  const config = await findConfigAnterior(ejercicioId)
+  if (config?.modoAnterior !== 'MANUAL') {
+    return {
+      tipo: 'NEGOCIO',
+      severidad: 'MEDIO',
+      codigo: 'NEG-012',
+      mensaje:
+        'Una nota se agrega como fila de un estado solo cuando el ejercicio anterior se carga a mano.',
+    }
+  }
+  if (config.anteriorAjustadoEn) {
+    return {
+      tipo: 'NEGOCIO',
+      severidad: 'MEDIO',
+      codigo: 'NEG-065',
+      mensaje:
+        'Estos saldos ya están autorizados y ajustados por inflación. Para cambiarlos, tocá "Corregir lo cargado" en el paso Ejercicio anterior.',
+    }
+  }
+  return null
+}
+
+function noSeUbico(r: Exclude<ResultadoUbicar, 'OK'>): AppError {
+  if (r === 'NO_ENCONTRADA') return NOTA_NO_ENCONTRADA
+  return {
+    tipo: 'NEGOCIO',
+    severidad: 'MEDIO',
+    codigo: 'NEG-067',
+    mensaje:
+      'Esa nota ya está como fila en el otro estado. Una nota se usa una sola vez: sacala de ahí con la X y agregala acá.',
   }
 }
 

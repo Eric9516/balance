@@ -102,7 +102,7 @@ export function SSPDoc({
                           <FilaImportes
                             key={r.id}
                             label={r.nombre}
-                            actual={esRubroHuerfano(r.id) ? null : r.displayValue}
+                            actual={esRubroHuerfano(r.id) || r.notaFila ? null : r.displayValue}
                             anterior={r.displayValueAnt}
                             columnas={columnas}
                             nota={r.notaNumero}

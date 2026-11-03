@@ -22,6 +22,7 @@ vi.mock('next/navigation', () => ({
 }))
 
 import { db } from '@/lib/db'
+import { sumar } from '@/lib/importe'
 import { formatCurrency } from '@/lib/utils/currency'
 import type { ActionResult } from '@/modules/errores/types'
 import { agregarDocumentoManualAction } from '@/modules/documentos/actions/documento.actions'
@@ -31,7 +32,7 @@ import {
   findEjercicioById,
 } from '@/modules/ejercicios/repository/ejercicio.repository'
 import { armarLineasEERR } from '@/modules/estados/domain/lineasEERR'
-import { cargarEstadosConPN } from '@/modules/estados/services/estados.service'
+import { cargarEstadosConPN, totalesAnteriorSSP } from '@/modules/estados/services/estados.service'
 import { findCuentasByEjercicio } from '@/modules/importaciones/repository/cuentas.repository'
 import { guardarLoteComparativoAction } from '@/modules/comparativo-manual/actions/comparativo.actions'
 import {
@@ -39,6 +40,7 @@ import {
   crearDetalleAction,
   generarNotasAutomaticasAction,
   ubicarNotaEnEERRAction,
+  ubicarNotaEnSSPAction,
 } from '@/modules/notas/actions/notas.actions'
 import { findNotasByEjercicio } from '@/modules/notas/repository/notas.repository'
 
@@ -144,8 +146,8 @@ afterAll(async () => {
 
 describe('Nota como fila del Estado de Resultados', () => {
   it('para elegir aparece solo la nota sin cuentas de este año, con su total', async () => {
-    const { notasParaEERR, estadosData } = await estados()
-    expect(notasParaEERR).toEqual([
+    const { notasParaUbicar, estadosData } = await estados()
+    expect(notasParaUbicar).toEqual([
       expect.objectContaining({ id: ctx.notaId, titulo: TITULO, totalAnt: -316_904.13 }),
     ])
     expect(estadosData.eerr.resultadoAntesIGAnt).toBe(ANTES_DE_LA_NOTA)
@@ -161,7 +163,7 @@ describe('Nota como fila del Estado de Resultados', () => {
     const lineas = armarLineasEERR(eerr)
     const i = lineas.findIndex((l) => l.clave === 'RESULTADOS_FINANCIEROS')
     expect(lineas[i + 1]).toMatchObject({ etiqueta: TITULO, valor: 0, valorAnt: -316_904.13 })
-    expect((await estados()).notasParaEERR).toEqual([])
+    expect((await estados()).notasParaUbicar).toEqual([])
   })
 
   it('si se elige que sume, cambia el signo y el resultado', async () => {
@@ -173,10 +175,10 @@ describe('Nota como fila del Estado de Resultados', () => {
 
   it('se saca y la nota sigue existiendo', async () => {
     ok(await ubicar(null))
-    const { estadosData, notasParaEERR } = await estados()
+    const { estadosData, notasParaUbicar } = await estados()
     expect(estadosData.eerr.lineasNota).toBeUndefined()
     expect(estadosData.eerr.resultadoAntesIGAnt).toBe(ANTES_DE_LA_NOTA)
-    expect(notasParaEERR?.map((n) => n.id)).toEqual([ctx.notaId])
+    expect(notasParaUbicar?.map((n) => n.id)).toEqual([ctx.notaId])
     const guardada = (await findNotasByEjercicio(ctx.ejercicioId)).find((n) => n.id === ctx.notaId)
     expect(guardada?.lineaEerrResta).toBeNull()
   })
@@ -205,6 +207,71 @@ describe('Nota como fila del Estado de Resultados', () => {
       false,
     )
     expect(r.ok).toBe(false)
+  })
+
+  it('una nota usada en un estado no se puede usar en el otro', async () => {
+    const r = await ubicarNotaEnSSPAction(ctx.notaId, ctx.ejercicioId, ctx.sociedadId, {
+      seccion: 'ACTIVO_CORRIENTE',
+      debajoDe: null,
+      resta: false,
+    })
+    expect(r.ok ? 'ok' : r.error.codigo).toBe('NEG-067')
+    expect((await estados()).notasParaUbicar).toEqual([])
+  })
+
+  it('en el estado patrimonial va debajo del rubro y entra en el total del activo', async () => {
+    ok(await ubicar(null))
+    const antes = await estados()
+    const activoAntes = totalesAnteriorSSP(antes.estadosData, antes.pnData).activo
+    const banco = antes.estadosData.sspRubros.find((r) => r.seccionSSP === 'ACTIVO_CORRIENTE')!
+
+    ok(
+      await ubicarNotaEnSSPAction(ctx.notaId, ctx.ejercicioId, ctx.sociedadId, {
+        seccion: 'ACTIVO_CORRIENTE',
+        debajoDe: banco.id,
+        resta: false,
+      }),
+    )
+    const { estadosData, pnData, notasParaUbicar } = await estados()
+    const i = estadosData.sspRubros.findIndex((r) => r.id === banco.id)
+    expect(estadosData.sspRubros[i + 1]).toMatchObject({
+      id: `nota:${ctx.notaId}`,
+      seccionSSP: 'ACTIVO_CORRIENTE',
+      displayValue: 0,
+      displayValueAnt: 316_904.13,
+    })
+    expect(totalesAnteriorSSP(estadosData, pnData).activo).toBe(sumar(activoAntes, 316_904.13))
+    expect(estadosData.eerr.lineasNota).toBeUndefined()
+    expect(notasParaUbicar).toEqual([])
+
+    const r = await ubicar('INGRESOS')
+    expect(r.ok ? 'ok' : r.error.codigo).toBe('NEG-067')
+  })
+
+  it('la base no deja que una nota esté en los dos estados', async () => {
+    await expect(
+      db.notaEjercicio.update({
+        where: { id: ctx.notaId },
+        data: { lineaEerrDebajoDe: 'INGRESOS', lineaEerrResta: false },
+      }),
+    ).rejects.toThrow()
+  })
+
+  it('en el patrimonio neto no se ubica', async () => {
+    const r = await ubicarNotaEnSSPAction(ctx.notaId, ctx.ejercicioId, ctx.sociedadId, {
+      seccion: 'PATRIMONIO_NETO',
+      debajoDe: null,
+      resta: false,
+    })
+    expect(r.ok).toBe(false)
+  })
+
+  it('se saca del estado patrimonial y vuelve a estar disponible', async () => {
+    ok(await ubicarNotaEnSSPAction(ctx.notaId, ctx.ejercicioId, ctx.sociedadId, null))
+    const { estadosData, notasParaUbicar } = await estados()
+    expect(estadosData.sspRubros.some((r) => r.notaFila)).toBe(false)
+    expect(notasParaUbicar?.map((n) => n.id)).toEqual([ctx.notaId])
+    ok(await ubicar('RESULTADOS_FINANCIEROS'))
   })
 
   it('al autorizar se ajusta, lo cargado se ve y ya no se cambia', async () => {

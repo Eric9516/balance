@@ -419,7 +419,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
     )
   } else if (paso === 'estados') {
     const cuentas = await findCuentasByEjercicio(ejercicioId)
-    const { estadosData, pnData, cargado, notasParaEERR } = await cargarEstadosConPN(
+    const { estadosData, pnData, cargado, notasParaUbicar } = await cargarEstadosConPN(
       ejercicio,
       cuentas,
     )
@@ -438,7 +438,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         fechaCierre={ejercicio.fechaCierre}
         fechaCierreAnterior={fechaCierreAnterior}
         anteriorDenominacion={ejercicioAnterior?.denominacion ?? null}
-        notasParaEERR={editarAnterior ? notasParaEERR : undefined}
+        notasParaUbicar={editarAnterior ? notasParaUbicar : undefined}
         cargado={
           cargado && {
             ...cargado.estadosData,

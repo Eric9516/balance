@@ -1,6 +1,6 @@
 import React from 'react'
 import { FilasNotaEERR } from './FilasNotaEERR'
-import type { NotaParaEERR } from '../domain/lineasDeNotas'
+import type { NotaParaUbicar } from '../domain/lineasDeNotas'
 import { Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
@@ -169,7 +169,7 @@ export function EERRTab({
   anteriorBloqueado,
   anteriorDenominacion,
   cargado = null,
-  notasParaEERR,
+  notasParaUbicar,
 }: {
   eerr: EERRData
   conComparativo: boolean
@@ -185,14 +185,14 @@ export function EERRTab({
   /** Anterior manual ya ajustado, con la columna visible: el mismo estado con lo cargado. */
   cargado?: EERRData | null
   /** Carga manual sin ajustar: las notas que se pueden agregar como filas. */
-  notasParaEERR?: NotaParaEERR[]
+  notasParaUbicar?: NotaParaUbicar[]
 }) {
   const resultadoPeriodo = eerr.utilidadEjercicio
   const filasDe = (clave: string) => (
     <FilasNotaEERR
       clave={clave}
       lineas={eerr.lineasNota ?? []}
-      notas={notasParaEERR}
+      notas={notasParaUbicar}
       cargado={cargado ? (cargado.lineasNota ?? []) : undefined}
       columnas={cargado ? 4 : 3}
       ejercicioId={ejercicioId}

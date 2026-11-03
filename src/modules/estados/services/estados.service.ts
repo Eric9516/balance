@@ -5,7 +5,12 @@
  * de transición pasan por acá).
  */
 
-import { aplicarLineasDeNotas, notasParaEERR, type NotaParaEERR } from '../domain/lineasDeNotas'
+import {
+  aplicarFilasNotaSSP,
+  aplicarLineasDeNotas,
+  notasParaUbicar,
+  type NotaParaUbicar,
+} from '../domain/lineasDeNotas'
 import type { EjercicioContableDTO } from '@/modules/ejercicios/domain/types'
 import { idAnteriorDerivable, modoEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
 import type { CuentaContableDTO } from '@/modules/importaciones/domain/types'
@@ -67,7 +72,7 @@ export type EstadosConPN = {
   coeficiente: number
   anteriorId: string | null
   /** Notas que se pueden ubicar como filas del Estado de Resultados (carga manual). */
-  notasParaEERR: NotaParaEERR[]
+  notasParaUbicar: NotaParaUbicar[]
   /** Anterior manual ya ajustado: los mismos estados con lo cargado, para mostrarlo al lado. */
   cargado: { estadosData: EstadosData; pnData: EvolucionPNData } | null
 }
@@ -163,7 +168,11 @@ export async function cargarEstadosConPN(
     })
     // Carga manual: las notas ubicadas como filas entran en los subtotales del anterior.
     const estadosData = editarAnteriorManual(modo)
-      ? { ...resueltos, eerr: aplicarLineasDeNotas(resueltos.eerr, notas, idsConCuentas) }
+      ? {
+          ...resueltos,
+          eerr: aplicarLineasDeNotas(resueltos.eerr, notas, idsConCuentas),
+          sspRubros: aplicarFilasNotaSSP(resueltos.sspRubros, notas, idsConCuentas),
+        }
       : resueltos
 
     const pnData = armarEvolucionPN({
@@ -201,8 +210,8 @@ export async function cargarEstadosConPN(
     estadosData: sspRubrosSinAjustar ? { ...estadosData, sspRubrosSinAjustar } : estadosData,
     pnData,
     comparativos,
-    notasParaEERR: editarAnteriorManual(modo)
-      ? notasParaEERR(ajustarNotas(notas, manual), idsConCuentas)
+    notasParaUbicar: editarAnteriorManual(modo)
+      ? notasParaUbicar(ajustarNotas(notas, manual), idsConCuentas)
       : [],
     coeficiente: getCoeficienteComparativo(ejercicio),
     anteriorId,

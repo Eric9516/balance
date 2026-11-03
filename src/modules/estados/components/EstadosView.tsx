@@ -1,6 +1,6 @@
 'use client'
 
-import type { NotaParaEERR } from '../domain/lineasDeNotas'
+import type { NotaParaUbicar } from '../domain/lineasDeNotas'
 import { useState, useTransition, type ReactNode } from 'react'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -36,7 +36,7 @@ interface Props {
   /** Anterior manual ya ajustado: los mismos estados con lo cargado, para mostrarlo al lado. */
   cargado?: EstadosData | null
   /** Carga manual sin ajustar: las notas que se pueden agregar como filas de resultados. */
-  notasParaEERR?: NotaParaEERR[]
+  notasParaUbicar?: NotaParaUbicar[]
 }
 
 export function EstadosView({
@@ -50,7 +50,7 @@ export function EstadosView({
   anteriorDenominacion,
   flujo,
   cargado = null,
-  notasParaEERR,
+  notasParaUbicar,
 }: Props) {
   const [tab, setTab] = useState<'ssp' | 'eerr' | 'flujo'>('ssp')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -203,6 +203,7 @@ export function EstadosView({
 
       {tab === 'ssp' && (
         <SSPTab
+          notasParaUbicar={notasParaUbicar}
           sspRubros={data.sspRubros}
           patrimonioNetoFinal={data.patrimonioNetoFinal}
           patrimonioNetoFinalAnt={data.patrimonioNetoFinalAnt}
@@ -233,7 +234,7 @@ export function EstadosView({
           anteriorBloqueado={anteriorBloqueado}
           anteriorDenominacion={anteriorDenominacion}
           cargado={verCargado ? (cargado?.eerr ?? null) : null}
-          notasParaEERR={notasParaEERR}
+          notasParaUbicar={notasParaUbicar}
         />
       )}
       {/* Envuelto: el slot llega del servidor y como hijo único no entra en la lista de hermanos. */}

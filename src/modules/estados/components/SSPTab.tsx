@@ -1,5 +1,6 @@
 import React from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   ChevronDown,
   ChevronRight,
@@ -33,6 +34,10 @@ import {
   useComparativoLote,
 } from '@/modules/comparativo-manual/components/CeldaAnteriorEditable'
 import { sumar } from '@/lib/importe'
+import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
+import { ubicarNotaEnSSPAction } from '@/modules/notas/actions/notas.actions'
+import type { NotaParaUbicar } from '../domain/lineasDeNotas'
+import { FilaNota, MasNota } from './FilasNotaEERR'
 
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
 
@@ -406,6 +411,54 @@ function RubroExpandableRow({
   )
 }
 
+// ─── Notas como filas ─────────────────────────────────────────────────────────
+
+/** La fila de arriba de un grupo: el rubro, o el que tiene arriba una nota ubicada debajo de él. */
+const anclaDe = (r: RubroFila) => (r.notaFila ? r.notaFila.debajoDe : r.id)
+
+/** ¿Termina el grupo (un rubro y sus notas) después de esta fila? -1: el principio de la sección. */
+function cierraGrupo(rubros: RubroFila[], i: number): boolean {
+  const siguiente = rubros[i + 1]
+  const ancla = i < 0 ? null : anclaDe(rubros[i]!)
+  return !(siguiente?.notaFila && siguiente.notaFila.debajoDe === ancla)
+}
+
+function FilaNotaSSP({
+  rubro,
+  cargado,
+  puedeSacar,
+  ejercicioId,
+  sociedadId,
+}: {
+  rubro: RubroFila
+  cargado?: number
+  puedeSacar: boolean
+  ejercicioId: string
+  sociedadId: string
+}) {
+  const router = useRouter()
+  const { isPending, ejecutar } = useGuardarAccion()
+  const notaId = rubro.notaFila!.notaId
+  return (
+    <FilaNota
+      titulo={rubro.nombre}
+      notaNumero={rubro.notaNumero}
+      totalAnt={rubro.displayValueAnt}
+      cargado={cargado}
+      onSacar={
+        puedeSacar
+          ? () =>
+              ejecutar(
+                () => ubicarNotaEnSSPAction(notaId, ejercicioId, sociedadId, null),
+                () => router.refresh(),
+              )
+          : undefined
+      }
+      sacando={isPending}
+    />
+  )
+}
+
 // ─── SSP Tab ──────────────────────────────────────────────────────────────────
 
 export function SSPTab({
@@ -424,6 +477,7 @@ export function SSPTab({
   anteriorBloqueado,
   anteriorDenominacion,
   cargado = null,
+  notasParaUbicar,
 }: {
   sspRubros: RubroFila[]
   patrimonioNetoFinal: number | null
@@ -442,6 +496,8 @@ export function SSPTab({
   anteriorDenominacion: string | null
   /** Anterior manual ya ajustado, con la columna visible: los mismos rubros con lo cargado. */
   cargado?: { sspRubros: RubroFila[]; patrimonioNetoFinalAnt: number | null } | null
+  /** Carga manual sin ajustar: las notas que se pueden agregar como filas (con el +). */
+  notasParaUbicar?: NotaParaUbicar[]
 }) {
   const cargadoDe = (id: string) =>
     cargado ? (cargado.sspRubros.find((r) => r.id === id)?.displayValueAnt ?? 0) : undefined
@@ -472,6 +528,17 @@ export function SSPTab({
   )
 
   const colSpan = (mostrarAnterior ? 3 : 2) + (cargado ? 1 : 0)
+  const masNota = (seccion: string, debajoDe: string | null) =>
+    notasParaUbicar && (
+      <MasNota
+        notas={notasParaUbicar}
+        columnas={colSpan}
+        estado="SSP"
+        accion={(notaId, resta) =>
+          ubicarNotaEnSSPAction(notaId, ejercicioId, sociedadId, { seccion, debajoDe, resta })
+        }
+      />
+    )
 
   return (
     <div>
@@ -564,19 +631,32 @@ export function SSPTab({
                               </td>
                             </tr>
                           )}
-                          {rubros.map((r) => (
-                            <RubroExpandableRow
-                              key={r.id}
-                              rubro={r}
-                              expanded={expanded.has(r.id)}
-                              onToggle={() => onToggle(r.id)}
-                              mostrarAnterior={mostrarAnterior}
-                              editarAnterior={editarAnterior}
-                              comparativo={comparativo}
-                              ejercicioId={ejercicioId}
-                              sociedadId={sociedadId}
-                              cargado={cargadoDe(r.id)}
-                            />
+                          {cierraGrupo(rubros, -1) && masNota(secKey, null)}
+                          {rubros.map((r, i) => (
+                            <React.Fragment key={r.id}>
+                              {r.notaFila ? (
+                                <FilaNotaSSP
+                                  rubro={r}
+                                  cargado={cargadoDe(r.id)}
+                                  puedeSacar={Boolean(notasParaUbicar)}
+                                  ejercicioId={ejercicioId}
+                                  sociedadId={sociedadId}
+                                />
+                              ) : (
+                                <RubroExpandableRow
+                                  rubro={r}
+                                  expanded={expanded.has(r.id)}
+                                  onToggle={() => onToggle(r.id)}
+                                  mostrarAnterior={mostrarAnterior}
+                                  editarAnterior={editarAnterior}
+                                  comparativo={comparativo}
+                                  ejercicioId={ejercicioId}
+                                  sociedadId={sociedadId}
+                                  cargado={cargadoDe(r.id)}
+                                />
+                              )}
+                              {cierraGrupo(rubros, i) && masNota(secKey, anclaDe(r))}
+                            </React.Fragment>
                           ))}
                           {editarAnterior && (
                             <tr>
