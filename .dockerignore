@@ -12,3 +12,5 @@ auditoria/informes
 *.tsbuildinfo
 docs
 servidor
+Dockerfile
+.dockerignore

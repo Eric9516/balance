@@ -21,9 +21,10 @@ COPY . .
 ARG VERSION=
 ENV NEXT_DEPLOYMENT_ID=$VERSION NEXT_SALIDA_STANDALONE=1
 RUN pnpm run build
-# Lo que corre: el servidor standalone más los archivos estáticos, que Next no copia solo. -L copia el
-# contenido de los accesos directos de pnpm en vez del acceso.
-RUN cp -rL .next/standalone /app \
+# Lo que corre: el servidor standalone más los archivos estáticos, que Next no copia solo. -a conserva
+# los accesos directos de pnpm (node_modules/.pnpm): copiarlos aplanados (-L) deja a cada paquete sin
+# los que tiene al lado (por ejemplo, next sin @swc/helpers).
+RUN cp -a .next/standalone /app \
  && cp -r .next/static /app/.next/static \
  && cp -r public /app/public \
  && rm -f /app/.env*
