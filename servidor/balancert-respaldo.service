@@ -1,0 +1,11 @@
+# Después del pase: los datos del servidor a Supabase, que queda de respaldo. La dispara
+# balancert-respaldo.timer; a mano: systemctl start balancert-respaldo
+[Unit]
+Description=Respaldo de BalanceRT en Supabase
+After=network-online.target postgresql.service docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash /usr/local/lib/balancert/respaldo-a-supabase.sh
+Nice=10
