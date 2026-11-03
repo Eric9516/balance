@@ -10,3 +10,5 @@ coverage
 auditoria/informes
 *.pdf
 *.tsbuildinfo
+docs
+servidor
