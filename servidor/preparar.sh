@@ -95,16 +95,29 @@ install -m 755 "$DIR/copiar-de-supabase.sh" "$DIR/respaldo-a-supabase.sh" /usr/l
 install -m 644 "$DIR/balancert-respaldo.service" "$DIR/balancert-respaldo.timer" /etc/systemd/system/
 systemctl daemon-reload
 
-# Nginx con el dominio, y su certificado HTTPS.
-sed -e "s/__DOMINIO__/$DOMINIO/" "$DIR/nginx.conf" > /etc/nginx/sites-available/balancert
+# Nginx con el dominio, y su certificado HTTPS. Primero el certificado, con el sitio mostrando solo un
+# aviso: si Let's Encrypt falla (por ejemplo, el dominio recién delegado todavía no se ve), la app nunca
+# queda publicada sin candado, donde la contraseña viajaría sin cifrar.
 ln -sfn /etc/nginx/sites-available/balancert /etc/nginx/sites-enabled/balancert
 rm -f /etc/nginx/sites-enabled/default
-nginx -t -q && systemctl reload nginx
-if [ -d "/etc/letsencrypt/live/$DOMINIO" ]; then
-  certbot install --nginx --cert-name "$DOMINIO" -d "$DOMINIO" -d "www.$DOMINIO" --non-interactive --redirect -q
-else
-  certbot --nginx -d "$DOMINIO" -d "www.$DOMINIO" --non-interactive --agree-tos --register-unsafely-without-email --redirect -q
+if [ ! -d "/etc/letsencrypt/live/$DOMINIO" ]; then
+  cat > /etc/nginx/sites-available/balancert <<CONF
+server {
+    listen 80;
+    listen [::]:80;
+    server_name $DOMINIO www.$DOMINIO;
+    location / {
+        default_type text/plain;
+        return 503 "BalanceRT: estamos terminando de instalar el certificado de seguridad. Proba de nuevo en un rato.";
+    }
+}
+CONF
+  nginx -t -q && systemctl reload nginx
+  certbot certonly --nginx -d "$DOMINIO" -d "www.$DOMINIO" --non-interactive --agree-tos --register-unsafely-without-email -q
 fi
+sed -e "s/__DOMINIO__/$DOMINIO/g" "$DIR/nginx.conf" > /etc/nginx/sites-available/balancert
+nginx -t -q && systemctl reload nginx
+certbot install --nginx --cert-name "$DOMINIO" -d "$DOMINIO" -d "www.$DOMINIO" --non-interactive --redirect -q
 # HTTP/2 en las líneas del 443 que pone certbot: todos los archivos de una pantalla por una sola conexión.
 sed -i -E '/listen .*443 ssl/{/http2/!s/443 ssl/443 ssl http2/}' /etc/nginx/sites-available/balancert
 nginx -t -q && systemctl reload nginx
