@@ -11,9 +11,10 @@ export function CaratulaDoc({ caratula: c }: { caratula: CaratulaModelo }) {
         </p>
         {c.domicilio && <p className="mt-2 text-[10pt]">{c.domicilio}</p>}
         {c.provinciaLinea && <p className="text-[10pt]">{c.provinciaLinea}</p>}
+        <p className="mt-5 text-[13pt] font-bold">{c.cuit}</p>
 
         {c.actividadesPrincipales.length > 0 && (
-          <div className="mt-8">
+          <div className="mt-3">
             <p className="text-[9pt] text-tinta-suave italic">
               {TEXTOS_CARATULA.actividadPrincipal}
             </p>

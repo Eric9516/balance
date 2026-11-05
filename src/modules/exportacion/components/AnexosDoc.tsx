@@ -228,23 +228,29 @@ export function AnexoGastosDoc({ titulo, subtitulo, anexo, columnas }: Props<Gas
             </tr>
           ))}
         </tbody>
+        {/* Como el modelo tradicional: las dos filas de totales por sección, y a la derecha el total
+            de cada ejercicio en una caja que ocupa las dos filas (corrección del cliente, 2026-11-04). */}
         <tfoot>
-          <tr className="fila-final">
+          <tr className={anteriorPorFila ? 'fila-total' : 'fila-final'}>
             <td>{T.anexos.totalActual}</td>
             {cols.map((s) => (
               <Importe key={s.key} valor={esSeccionHuerfana(s.key) ? null : s.total} />
             ))}
-            <Importe valor={totalActual} />
-            {anteriorPorFila && <Importe valor={totalColumnaAnterior} />}
+            <Importe
+              valor={totalActual}
+              className={anteriorPorFila ? 'total-ejercicio' : undefined}
+              rowSpan={anteriorPorFila ? 2 : undefined}
+            />
+            {anteriorPorFila && (
+              <Importe valor={totalColumnaAnterior} className="total-ejercicio" rowSpan={2} />
+            )}
           </tr>
-          {columnas.mostrarAnterior && (
-            <tr className="fila-total">
+          {anteriorPorFila && (
+            <tr className="fila-final">
               <td>{T.anexos.totalAnterior}</td>
               {cols.map((s) => (
                 <Importe key={s.key} valor={s.totalAnterior} />
               ))}
-              <Importe valor={totalAnteriorPorSeccion} />
-              {anteriorPorFila && <td />}
             </tr>
           )}
         </tfoot>

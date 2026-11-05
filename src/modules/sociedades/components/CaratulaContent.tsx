@@ -54,9 +54,10 @@ export function CaratulaContent({ sociedad, ejercicio }: Props) {
           </p>
           {c.domicilio && <p className="mt-2 text-sm text-slate-700">{c.domicilio}</p>}
           {c.provinciaLinea && <p className="mt-0.5 text-sm text-slate-700">{c.provinciaLinea}</p>}
+          <p className="mt-4 text-base font-bold text-slate-900">{c.cuit}</p>
 
           {c.actividadesPrincipales.length > 0 && (
-            <div className="mt-6">
+            <div className="mt-3">
               <p className="text-xs text-slate-500 italic">{TEXTOS_CARATULA.actividadPrincipal}</p>
               {c.actividadesPrincipales.map((act, i) => (
                 <p

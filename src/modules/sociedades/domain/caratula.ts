@@ -3,6 +3,7 @@
  * ejercicio. Fuente única para la pantalla (CaratulaContent) y el documento. Puro.
  */
 
+import { formatCuit } from '@/lib/utils/cuit'
 import { formatFechaLarga } from '@/lib/utils/dates'
 import type { EjercicioContableDTO } from '@/modules/ejercicios/domain/types'
 import type { SociedadDTO } from './types'
@@ -26,6 +27,8 @@ export type CaratulaModelo = {
   domicilio: string
   /** "Provincia - Republica Argentina". */
   provinciaLinea: string
+  /** CUIT de la sociedad con guiones (30-71823319-2): va debajo del domicilio. */
+  cuit: string
   actividadesPrincipales: string[]
   actividadesSecundarias: string[]
   /** "Por el ejercicio económico N° X iniciado el ..., expresado en moneda homogénea ..." */
@@ -73,6 +76,7 @@ export function armarCaratula(
     razonSocial: sociedad.razonSocial,
     domicilio: domicilioParts.join(' - '),
     provinciaLinea: [sociedad.provincia, TEXTOS_CARATULA.pais].filter(Boolean).join(' - '),
+    cuit: formatCuit(sociedad.cuit),
     actividadesPrincipales,
     actividadesSecundarias,
     parrafo,

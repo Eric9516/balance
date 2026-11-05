@@ -172,6 +172,16 @@
   border-top: 1px solid var(--tinta);
   border-bottom: 2px solid var(--tinta);
 }
+/* El total de cada ejercicio del Anexo de Gastos: una caja gris que ocupa las dos filas de
+   totales, como en el modelo tradicional. Se imprime con su fondo. */
+.doc-tabla td.total-ejercicio {
+  vertical-align: middle;
+  font-weight: 700;
+  background: #e7e5e0;
+  border: 1px solid var(--tinta);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
 /* Tablas con muchas columnas de importes (E.E.P.N., Anexo I): letra más chica y
    celdas ajustadas. Si aun así no entran, AjusteAncho achica la letra en el navegador. */
 .doc-tabla.ancha {

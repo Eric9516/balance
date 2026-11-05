@@ -22,12 +22,19 @@ export function Importe({
   valor,
   negativo = false,
   className,
+  rowSpan,
 }: {
   valor: number | null
   negativo?: boolean
   className?: string
+  /** Una celda que ocupa varias filas (los totales del Anexo de Gastos). */
+  rowSpan?: number
 }) {
-  return <td className={cn('num', className)}>{importeTexto(valor, negativo)}</td>
+  return (
+    <td className={cn('num', className)} rowSpan={rowSpan}>
+      {importeTexto(valor, negativo)}
+    </td>
+  )
 }
 
 // ─── Encabezados de tabla y de sección ───────────────────────────────────────

@@ -35,6 +35,13 @@ const ejercicio = {
 } as EjercicioContableDTO
 
 describe('armarCaratula', () => {
+  it('muestra el CUIT de la sociedad con guiones, aunque se haya guardado sin ellos', () => {
+    expect(armarCaratula(sociedad, ejercicio).cuit).toBe('30-12345678-9')
+    expect(armarCaratula({ ...sociedad, cuit: '30718233192' }, ejercicio).cuit).toBe(
+      '30-71823319-2',
+    )
+  })
+
   it('arma domicilio, provincia, actividades y párrafo del ejercicio', () => {
     const c = armarCaratula(sociedad, ejercicio)
     expect(c.domicilio).toBe('San Martín 123 - Leones (CP 2594)')
