@@ -220,6 +220,7 @@ export function insumosPrueba(overrides: Partial<InsumosDocumento> = {}): Insumo
     pn,
     flujo,
     anexos: { bienesDeUso: null, costoVentas: null, gastos: null },
+    formatoAnexoBienesUso: 'UN_CUADRO',
     documentos: [],
     notas: [],
     notaTransicion: null,

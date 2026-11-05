@@ -3,21 +3,26 @@
  * Puro: validación del color de acento y valores por defecto.
  */
 
-import type { DensidadTablas } from '@prisma/client'
+import type { DensidadTablas, FormatoAnexoBienesUso } from '@prisma/client'
 
-export type { DensidadTablas }
+export type { DensidadTablas, FormatoAnexoBienesUso }
 
 export const ACENTO_DEFAULT = '#2F6B55' // verde libro mayor
 export const DENSIDAD_DEFAULT: DensidadTablas = 'COMODA'
+/** El formato tradicional: valor de origen, amortizaciones y netos en la misma fila. */
+export const ANEXO_BIENES_USO_DEFAULT: FormatoAnexoBienesUso = 'UN_CUADRO'
 
 export type PreferenciasEstudio = {
   colorPrimario: string
   densidadTablas: DensidadTablas
+  /** Cómo se dibuja el Anexo de Bienes de Uso en el documento (los mismos números). */
+  anexoBienesUso: FormatoAnexoBienesUso
 }
 
 export const PREFERENCIAS_DEFAULT: PreferenciasEstudio = {
   colorPrimario: ACENTO_DEFAULT,
   densidadTablas: DENSIDAD_DEFAULT,
+  anexoBienesUso: ANEXO_BIENES_USO_DEFAULT,
 }
 
 export const DENSIDAD_LABELS: Record<DensidadTablas, string> = {

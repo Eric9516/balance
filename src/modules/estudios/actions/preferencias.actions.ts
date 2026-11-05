@@ -12,6 +12,7 @@ import { faltaPermiso } from '@/lib/estudio-context'
 const PreferenciasSchema = z.object({
   colorPrimario: z.string().optional(),
   densidadTablas: z.enum(['COMODA', 'COMPACTA']).optional(),
+  anexoBienesUso: z.enum(['UN_CUADRO', 'DOS_CUADROS']).optional(),
 })
 
 /**
@@ -34,7 +35,7 @@ export async function guardarPreferenciasAction(
         detalle: parsed.error.issues[0]?.message,
       })
     }
-    const { colorPrimario, densidadTablas } = parsed.data
+    const { colorPrimario, densidadTablas, anexoBienesUso } = parsed.data
     if (colorPrimario !== undefined) {
       const motivo = validarAcento(colorPrimario)
       if (motivo) {
@@ -51,6 +52,7 @@ export async function guardarPreferenciasAction(
     const prefs = await guardarPreferenciasEstudio(estudioId, {
       ...(colorPrimario !== undefined ? { colorPrimario: colorPrimario.toUpperCase() } : {}),
       ...(densidadTablas !== undefined ? { densidadTablas } : {}),
+      ...(anexoBienesUso !== undefined ? { anexoBienesUso } : {}),
     })
     // Las preferencias afectan todo el layout principal.
     revalidatePath('/', 'layout')

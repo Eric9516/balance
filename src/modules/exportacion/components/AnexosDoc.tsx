@@ -1,3 +1,4 @@
+import type { FormatoAnexoBienesUso } from '@prisma/client'
 import { cn } from '@/lib/utils'
 import type { ResultadoArrastreBDU } from '@/modules/bienes-de-uso/domain/saldosInicio'
 import {
@@ -5,6 +6,7 @@ import {
   GRUPOS_BDU,
   totalColumnaBDU,
   valorColumnaBDU,
+  type GrupoBDU,
 } from '@/modules/bienes-de-uso/domain/columnas'
 import { calcularCierre } from '@/modules/bienes-de-uso/domain/types'
 import {
@@ -24,91 +26,119 @@ import { sumar, sumarPor } from '@/lib/importe'
 type Props<A> = { titulo: string; subtitulo: string; anexo: A; columnas: ColumnasDocumento }
 
 // ─── Anexo I: Bienes de uso (apaisado) ───────────────────────────────────────
-// Dos bloques, uno debajo del otro: "Valor de origen" y "Amortizaciones acumuladas"
-// con el neto residual. Así ningún bloque pasa de siete columnas de importes y la
-// tabla entra en la hoja aunque los importes sean largos.
+// Dos vistas de los mismos números, según la preferencia del estudio (Configuración):
+// - Un solo cuadro (el formato tradicional): valor de origen, amortizaciones y los netos
+//   residuales en la misma fila de cada rubro.
+// - Dos cuadros, uno debajo del otro: "Valor de origen" y "Amortizaciones acumuladas" con el
+//   neto residual. Ningún cuadro pasa de siete columnas: entra aunque los importes sean largos.
 
 export function AnexoBienesUsoDoc({
   titulo,
   subtitulo,
   anexo,
   columnas,
-}: Props<ResultadoArrastreBDU>) {
+  formato,
+}: Props<ResultadoArrastreBDU> & { formato: FormatoAnexoBienesUso }) {
+  return (
+    <>
+      <TituloSeccion titulo={titulo} subtitulo={subtitulo} />
+      {formato === 'UN_CUADRO' ? (
+        <TablaBienesUso grupos={GRUPOS_BDU} anexo={anexo} columnas={columnas} />
+      ) : (
+        GRUPOS_BDU.map((grupo, indice) => (
+          <TablaBienesUso
+            key={grupo}
+            grupos={[grupo]}
+            anexo={anexo}
+            columnas={columnas}
+            className={cn(indice > 0 && 'mt-5')}
+          />
+        ))
+      )}
+    </>
+  )
+}
+
+/** Un cuadro del Anexo I con los grupos pedidos; con las amortizaciones, también los netos. */
+function TablaBienesUso({
+  grupos,
+  anexo,
+  columnas,
+  className,
+}: {
+  grupos: readonly GrupoBDU[]
+  anexo: ResultadoArrastreBDU
+  columnas: ColumnasDocumento
+  className?: string
+}) {
   const { bienes, netoAnteriorMap } = anexo
+  const cols = grupos.flatMap((g) => COLUMNAS_BDU[g].columnas)
+  const conNeto = grupos.includes('amortizaciones')
+  const conNetoAnterior = conNeto && columnas.mostrarAnterior
   const totalNeto = sumarPor(bienes, (b) => calcularCierre(b).netoResidual)
   const hayNetoAnterior = netoAnteriorMap.size > 0
   const totalNetoAnterior = sumar(...netoAnteriorMap.values())
 
   return (
-    <>
-      <TituloSeccion titulo={titulo} subtitulo={subtitulo} />
-      {GRUPOS_BDU.map((grupo, indice) => {
-        const { titulo: tituloGrupo, columnas: cols } = COLUMNAS_BDU[grupo]
-        const conNeto = grupo === 'amortizaciones'
-        const conNetoAnterior = conNeto && columnas.mostrarAnterior
-        return (
-          <table key={grupo} className={cn('doc-tabla ancha', indice > 0 && 'mt-5')}>
-            <thead>
-              <tr>
-                <th rowSpan={2} className="izq align-bottom">
-                  {T.anexos.rubros}
-                </th>
-                <th colSpan={cols.length} className="centro">
-                  {tituloGrupo}
-                </th>
-                {conNeto && (
-                  <th colSpan={columnas.mostrarAnterior ? 2 : 1} className="centro">
-                    {T.anexos.netoResidual}
-                  </th>
-                )}
-              </tr>
-              <tr>
-                {cols.map((col, i) => (
-                  <th key={i}>{col.label}</th>
-                ))}
-                {conNeto && <ThEjercicio columnas={columnas} cual="actual" />}
-                {conNetoAnterior && <ThEjercicio columnas={columnas} cual="anterior" />}
-              </tr>
-            </thead>
-            <tbody>
-              {bienes.map((bien) => (
-                <tr key={bien.id}>
-                  <td>{bien.categoria}</td>
-                  {cols.map((col, i) => (
-                    <Importe
-                      key={i}
-                      valor={valorColumnaBDU(col, bien)}
-                      negativo={col.tipo === 'campo' && col.negativo}
-                      className={cn(col.tipo === 'calc' && 'font-semibold')}
-                    />
-                  ))}
-                  {conNeto && (
-                    <Importe valor={calcularCierre(bien).netoResidual} className="font-semibold" />
-                  )}
-                  {conNetoAnterior && (
-                    <Importe valor={netoAnteriorMap.get(bien.categoria) ?? null} />
-                  )}
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="fila-final">
-                <td>{T.anexos.totales}</td>
-                {cols.map((col, i) => (
-                  <Importe
-                    key={i}
-                    valor={totalColumnaBDU(col, bienes)}
-                    negativo={col.tipo === 'campo' && col.negativo}
-                  />
-                ))}
-                {conNeto && <Importe valor={totalNeto} />}
-                {conNetoAnterior && <Importe valor={hayNetoAnterior ? totalNetoAnterior : null} />}
-              </tr>
-            </tfoot>
-          </table>
-        )
-      })}
-    </>
+    <table className={cn('doc-tabla ancha', className)}>
+      <thead>
+        <tr>
+          <th rowSpan={2} className="izq align-bottom">
+            {T.anexos.rubros}
+          </th>
+          {grupos.map((g) => (
+            <th key={g} colSpan={COLUMNAS_BDU[g].columnas.length} className="centro">
+              {COLUMNAS_BDU[g].titulo}
+            </th>
+          ))}
+          {conNeto && (
+            <th colSpan={columnas.mostrarAnterior ? 2 : 1} className="centro">
+              {T.anexos.netoResidual}
+            </th>
+          )}
+        </tr>
+        <tr>
+          {cols.map((col, i) => (
+            <th key={i}>{col.label}</th>
+          ))}
+          {conNeto && <ThEjercicio columnas={columnas} cual="actual" />}
+          {conNetoAnterior && <ThEjercicio columnas={columnas} cual="anterior" />}
+        </tr>
+      </thead>
+      <tbody>
+        {bienes.map((bien) => (
+          <tr key={bien.id}>
+            <td>{bien.categoria}</td>
+            {cols.map((col, i) => (
+              <Importe
+                key={i}
+                valor={valorColumnaBDU(col, bien)}
+                negativo={col.tipo === 'campo' && col.negativo}
+                className={cn(col.tipo === 'calc' && 'font-semibold')}
+              />
+            ))}
+            {conNeto && (
+              <Importe valor={calcularCierre(bien).netoResidual} className="font-semibold" />
+            )}
+            {conNetoAnterior && <Importe valor={netoAnteriorMap.get(bien.categoria) ?? null} />}
+          </tr>
+        ))}
+      </tbody>
+      <tfoot>
+        <tr className="fila-final">
+          <td>{T.anexos.totales}</td>
+          {cols.map((col, i) => (
+            <Importe
+              key={i}
+              valor={totalColumnaBDU(col, bienes)}
+              negativo={col.tipo === 'campo' && col.negativo}
+            />
+          ))}
+          {conNeto && <Importe valor={totalNeto} />}
+          {conNetoAnterior && <Importe valor={hayNetoAnterior ? totalNetoAnterior : null} />}
+        </tr>
+      </tfoot>
+    </table>
   )
 }
 

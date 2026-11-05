@@ -285,6 +285,8 @@ export const INICIO: ArticuloAyuda[] = [
       'color',
       'marca',
       'preferencias',
+      'anexo de bienes de uso',
+      'un solo cuadro',
     ],
     bloques: [
       p(
@@ -293,6 +295,7 @@ export const INICIO: ArticuloAyuda[] = [
       lista(
         'Podés elegir el color principal de la app.',
         'Si el color es muy claro, la app lo rechaza y te dice el contraste: el texto blanco encima tiene que leerse bien. Elegí un tono más oscuro.',
+        'El Anexo de Bienes de Uso del documento sale en un solo cuadro (el formato tradicional: valor de origen, amortizaciones y netos en la misma fila) o en dos cuadros, uno debajo del otro. Los importes son los mismos en las dos vistas.',
       ),
     ],
   },

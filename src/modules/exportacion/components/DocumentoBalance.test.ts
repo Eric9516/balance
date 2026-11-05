@@ -99,7 +99,8 @@ describe('DocumentoBalance (HTML)', () => {
     expect(html).toContain('El Estado de Flujo de Efectivo no cuadra.')
   })
 
-  it('imprime el Anexo I en dos bloques: valor de origen y amortizaciones con neto residual', () => {
+  // Las dos vistas del Anexo I (preferencia del estudio), con los mismos números.
+  const conAnexoI = (formatoAnexoBienesUso: 'UN_CUADRO' | 'DOS_CUADROS') => {
     const html = render({
       documentos: [
         {
@@ -138,8 +139,28 @@ describe('DocumentoBalance (HTML)', () => {
         costoVentas: null,
         gastos: null,
       },
+      formatoAnexoBienesUso,
     })
-    const anexo = html.slice(html.indexOf('Anexo I — Bienes de uso'))
+    return html.slice(html.indexOf('Anexo I — Bienes de uso'))
+  }
+
+  it('imprime el Anexo I en un solo cuadro: origen, amortizaciones y neto en la misma fila', () => {
+    const anexo = conAnexoI('UN_CUADRO')
+    expect(anexo).toContain('Valor de origen')
+    expect(anexo).toContain('Amortizaciones acumuladas')
+    expect(anexo).toContain('Neto residual')
+    expect(anexo.match(/<table class="doc-tabla ancha/g)).toHaveLength(1)
+    expect(anexo.match(/>Rubros</g)).toHaveLength(1)
+    expect(anexo.match(/>Totales</g)).toHaveLength(1)
+    // La fila de Rodados lleva juntos el valor de origen al cierre y el neto residual
+    const desdeFila = anexo.indexOf('>Rodados<')
+    const fila = anexo.slice(desdeFila, anexo.indexOf('</tr>', desdeFila))
+    expect(fila).toContain('5.300.000,00')
+    expect(fila).toContain('4.500.000,00')
+  })
+
+  it('imprime el Anexo I en dos cuadros: valor de origen y amortizaciones con neto residual', () => {
+    const anexo = conAnexoI('DOS_CUADROS')
     expect(anexo).toContain('Valor de origen')
     expect(anexo).toContain('Amortizaciones acumuladas')
     expect(anexo).toContain('Neto residual')

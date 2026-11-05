@@ -4,6 +4,7 @@
  * decide qué se incluye, en qué orden y con qué textos.
  */
 
+import type { FormatoAnexoBienesUso } from '@prisma/client'
 import type { ResultadoAutorizacion } from '@/modules/ejercicios/domain/autorizacion'
 import type { EjercicioContableDTO } from '@/modules/ejercicios/domain/types'
 import type { SociedadDTO } from '@/modules/sociedades/domain/types'
@@ -58,7 +59,14 @@ export type SeccionDocumento =
   | { tipo: 'eerr'; titulo: string; subtitulo: string; lineas: LineaEERR[] }
   | { tipo: 'eepn'; titulo: string; subtitulo: string; pn: EvolucionPNData }
   | { tipo: 'flujo'; titulo: string; subtitulo: string; flujo: FlujoData }
-  | { tipo: 'anexo-bienes-uso'; titulo: string; subtitulo: string; anexo: ResultadoArrastreBDU }
+  | {
+      tipo: 'anexo-bienes-uso'
+      titulo: string
+      subtitulo: string
+      anexo: ResultadoArrastreBDU
+      /** Preferencia del estudio: un solo cuadro (tradicional) o dos. Los mismos números. */
+      formato: FormatoAnexoBienesUso
+    }
   | { tipo: 'anexo-costo-ventas'; titulo: string; subtitulo: string; anexo: AnexoCostoVentas }
   | { tipo: 'anexo-gastos'; titulo: string; subtitulo: string; anexo: GastosSecciones }
   | {
@@ -105,6 +113,8 @@ export type InsumosDocumento = {
     costoVentas: AnexoCostoVentas | null
     gastos: GastosSecciones | null
   }
+  /** Cómo dibujar el Anexo de Bienes de Uso (preferencia del estudio). */
+  formatoAnexoBienesUso: FormatoAnexoBienesUso
   /** Decisiones de "Anexos y notas" (qué anexos están aceptados). */
   documentos: Pick<DocumentoEvaluado, 'clave' | 'tipo' | 'titulo' | 'estado'>[]
   notas: NotaDTO[]

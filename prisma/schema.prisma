@@ -181,6 +181,13 @@ enum DensidadTablas {
   COMPACTA
 }
 
+// Cómo se dibuja el Anexo de Bienes de Uso en el documento: los mismos números, en un solo cuadro
+// (valor de origen, amortizaciones y netos en la misma fila) o en dos cuadros, uno debajo del otro.
+enum FormatoAnexoBienesUso {
+  UN_CUADRO
+  DOS_CUADROS
+}
+
 enum NivelComparativoSSP {
   SECCION
   RUBRO
@@ -343,6 +350,7 @@ model EstudioConfiguracion {
   colorPrimario          String   @default("#2F6B55") @map("color_primario")
   // Densidad de las tablas de trabajo (EEPN, anexos, estados).
   densidadTablas         DensidadTablas @default(COMODA) @map("densidad_tablas")
+  anexoBienesUso         FormatoAnexoBienesUso @default(UN_CUADRO) @map("anexo_bienes_uso")
   monedaDisplay          String   @default("ARS") @map("moneda_display")
   decimalesDisplay       Int      @default(0) @map("decimales_display")
   mostrarNotasEnPreview  Boolean  @default(true) @map("mostrar_notas_en_preview")
