@@ -14,6 +14,7 @@ import {
   type CambiosCuenta,
 } from '../repository/cuentas.repository'
 import { resetEstadosConfirmado } from '@/modules/ejercicios/repository/ejercicio.repository'
+import { errorDescuadre, type EfectoEnCuadre } from '../domain/importacion'
 
 const importe = z.number().finite()
 
@@ -31,6 +32,12 @@ const CUENTA_NO_ENCONTRADA: AppError = {
   codigo: 'TECH-002',
   mensaje: 'No se encontró esa cuenta en este ejercicio. Recargá la página y volvé a intentar.',
 }
+
+/** Lo que se confirma en el cartel: guardar aunque el balance deje de cuadrar. */
+export type OpcionesCambioCuenta = { aceptarDescuadre?: boolean }
+
+/** Qué le hizo el cambio al cuadre (null si no tocó el debe ni el haber). */
+export type CambioCuentaHecho = { efecto: EfectoEnCuadre | null }
 
 function revalidateClasificacion(sociedadId: string, ejercicioId: string) {
   revalidatePath(`/sociedades/${sociedadId}/ejercicios/${ejercicioId}/clasificar`)
@@ -61,7 +68,8 @@ export async function actualizarCuentaAction(
   data: CambiosCuenta,
   ejercicioId: string,
   sociedadId: string,
-): Promise<ActionResult<void>> {
+  opciones?: OpcionesCambioCuenta,
+): Promise<ActionResult<CambioCuentaHecho>> {
   try {
     await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
     const parsed = CambiosCuentaSchema.safeParse(data)
@@ -74,12 +82,17 @@ export async function actualizarCuentaAction(
         campo: parsed.error.issues[0]?.path.join('.'),
       })
     }
-    if (!(await updateCuenta(ejercicioId, cuentaId, parsed.data))) {
-      return actionError(CUENTA_NO_ENCONTRADA)
-    }
+    const r = await updateCuenta(
+      ejercicioId,
+      cuentaId,
+      parsed.data,
+      opciones?.aceptarDescuadre === true,
+    )
+    if (r.estado === 'NO_ENCONTRADA') return actionError(CUENTA_NO_ENCONTRADA)
+    if (r.estado === 'DESCUADRA') return actionError(errorDescuadre(r.efecto))
     await resetEstadosConfirmado(ejercicioId)
     revalidateClasificacion(sociedadId, ejercicioId)
-    return actionOk(undefined)
+    return actionOk({ efecto: r.efecto })
   } catch (error) {
     return actionError(
       errorHandler(error, { modulo: 'clasificacion', operacion: 'actualizar-cuenta' }),
@@ -91,13 +104,16 @@ export async function eliminarCuentaAction(
   cuentaId: string,
   ejercicioId: string,
   sociedadId: string,
-): Promise<ActionResult<void>> {
+  opciones?: OpcionesCambioCuenta,
+): Promise<ActionResult<CambioCuentaHecho>> {
   try {
     await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
-    if (!(await deleteCuenta(ejercicioId, cuentaId))) return actionError(CUENTA_NO_ENCONTRADA)
+    const r = await deleteCuenta(ejercicioId, cuentaId, opciones?.aceptarDescuadre === true)
+    if (r.estado === 'NO_ENCONTRADA') return actionError(CUENTA_NO_ENCONTRADA)
+    if (r.estado === 'DESCUADRA') return actionError(errorDescuadre(r.efecto))
     await resetEstadosConfirmado(ejercicioId)
     revalidateClasificacion(sociedadId, ejercicioId)
-    return actionOk(undefined)
+    return actionOk({ efecto: r.efecto })
   } catch (error) {
     return actionError(
       errorHandler(error, { modulo: 'clasificacion', operacion: 'eliminar-cuenta' }),

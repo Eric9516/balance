@@ -7,6 +7,7 @@ import { useFilaCuentaEdicion } from '../hooks/useFilaCuentaEdicion'
 import { useClasificacionBulk } from '../hooks/useClasificacionBulk'
 import { FilaCuenta } from './FilaCuenta'
 import { BarraAsignacionBulk } from './BarraAsignacionBulk'
+import { CartelDescuadre } from './CartelDescuadre'
 import type { CuentaContableDTO, RubroBaseSimple } from '../domain/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -72,10 +73,12 @@ export function ClasificacionTable({ cuentas, rubros, ejercicioId, sociedadId }:
     edicion.resetSeleccion()
   }
 
-  // Pedir confirmación de borrado cancela cualquier edición en curso (otra fila).
+  // Pedir confirmación de borrado cancela cualquier edición en curso (otra fila). Si borrarla
+  // descuadra el balance, pregunta el cartel en vez del "¿Borrar?" de la fila.
   function handleRequestDelete(id: string | null) {
-    edicion.setConfirmDeleteId(id)
-    if (id) edicion.handleEditCancel()
+    const c = id ? cuentas.find((x) => x.id === id) : undefined
+    if (c) edicion.pedirBorrado(c, cuentas)
+    else edicion.setConfirmDeleteId(null)
   }
 
   // ─── Render ──────────────────────────────────────────────────────────────────
@@ -232,7 +235,7 @@ export function ClasificacionTable({ cuentas, rubros, ejercicioId, sociedadId }:
                   onDraftDeudorChange={edicion.handleDraftDeudorChange}
                   onDraftAcreedorChange={edicion.handleDraftAcreedorChange}
                   onConfirmDeleteIdChange={handleRequestDelete}
-                  onDeleteConfirm={() => edicion.handleDeleteConfirm(c.id)}
+                  onDeleteConfirm={() => edicion.handleDeleteConfirm(c)}
                 />
               ))}
             </tbody>
@@ -258,6 +261,14 @@ export function ClasificacionTable({ cuentas, rubros, ejercicioId, sociedadId }:
 
       {/* Spacer so bulk bar doesn't cover last rows */}
       {bulk.selected.size > 0 && <div className="h-16" />}
+
+      {/* Un cambio que descuadra el balance se confirma antes de guardar */}
+      <CartelDescuadre
+        cambio={edicion.porConfirmar}
+        guardando={edicion.guardandoConfirmado}
+        onVolver={edicion.cancelarDescuadre}
+        onConfirmar={edicion.confirmarDescuadre}
+      />
     </>
   )
 }

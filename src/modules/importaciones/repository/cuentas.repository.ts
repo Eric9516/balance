@@ -2,7 +2,8 @@ import { cache } from 'react'
 import type { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { esUuid } from '@/lib/utils/uuid'
-import type { CuentaImportada } from '../domain/importacion'
+import { importe, restar } from '@/lib/importe'
+import { efectoEnCuadre, type CuentaImportada, type EfectoEnCuadre } from '../domain/importacion'
 import type { AppError } from '@/modules/errores/types'
 import { toCuentaDTO, type CuentaContableDTO, type RubroBaseSimple } from '../domain/types'
 
@@ -41,29 +42,99 @@ export type CambiosCuenta = {
   saldoFinal?: number
 }
 
-/** Solo las columnas que se editan en la pantalla: nunca copia el objeto recibido. */
+/**
+ * Cómo terminó un cambio de una cuenta. `efecto` es null cuando el cambio no toca el debe ni el
+ * haber (por ejemplo, solo el nombre): entonces no puede descuadrar y no se controla.
+ */
+export type ResultadoCambioCuenta =
+  | { estado: 'GUARDADO'; efecto: EfectoEnCuadre | null }
+  | { estado: 'NO_ENCONTRADA' }
+  | { estado: 'DESCUADRA'; efecto: EfectoEnCuadre }
+
+/** Debe − haber de todas las cuentas del ejercicio, en una sola consulta agregada. */
+async function diferenciaDelBalance(
+  tx: Prisma.TransactionClient,
+  ejercicioId: string,
+): Promise<number> {
+  const { _sum } = await tx.cuentaContable.aggregate({
+    where: { ejercicioId },
+    _sum: { saldoDeudor: true, saldoAcreedor: true },
+  })
+  return restar(importe(_sum.saldoDeudor), importe(_sum.saldoAcreedor))
+}
+
+/** Deshace la transacción de un cambio que descuadra sin confirmar (no es un error de la base). */
+class CambioQueDescuadra extends Error {
+  constructor(readonly efecto: EfectoEnCuadre) {
+    super('El cambio descuadra el balance y nadie lo confirmó')
+  }
+}
+
+/**
+ * Hace un cambio de cuentas y controla el cuadre en la misma transacción: si el balance deja de
+ * cuadrar, o crece la diferencia, y nadie lo confirmó en el cartel, lo deshace (NEG-069). El
+ * ejercicio queda trabado hasta terminar: dos cambios a la vez no se controlan cada uno sin ver
+ * el otro. FOR NO KEY UPDATE no frena a quien solo apunta al ejercicio (las claves foráneas).
+ */
+async function cambiarControlandoCuadre(
+  ejercicioId: string,
+  aceptarDescuadre: boolean,
+  cambiar: (tx: Prisma.TransactionClient) => Promise<boolean>,
+): Promise<ResultadoCambioCuenta> {
+  try {
+    return await db.$transaction(async (tx): Promise<ResultadoCambioCuenta> => {
+      await tx.$queryRaw`SELECT 1 FROM ejercicios_contables WHERE id = ${ejercicioId}::uuid FOR NO KEY UPDATE`
+      const antes = await diferenciaDelBalance(tx, ejercicioId)
+      if (!(await cambiar(tx))) return { estado: 'NO_ENCONTRADA' }
+      const efecto = efectoEnCuadre(antes, await diferenciaDelBalance(tx, ejercicioId))
+      if (efecto.descuadra && !aceptarDescuadre) throw new CambioQueDescuadra(efecto)
+      return { estado: 'GUARDADO', efecto }
+    })
+  } catch (e) {
+    if (e instanceof CambioQueDescuadra) return { estado: 'DESCUADRA', efecto: e.efecto }
+    throw e
+  }
+}
+
+/**
+ * Solo las columnas que se editan en la pantalla: nunca copia el objeto recibido. Si cambia el
+ * debe o el haber, controla el cuadre (ver cambiarControlandoCuadre).
+ */
 export async function updateCuenta(
   ejercicioId: string,
   cuentaId: string,
   cambios: CambiosCuenta,
-): Promise<boolean> {
-  if (!esUuid(cuentaId)) return false
-  const { count } = await db.cuentaContable.updateMany({
-    where: { id: cuentaId, ejercicioId },
-    data: {
-      ...(cambios.nombre !== undefined && { nombre: cambios.nombre }),
-      ...(cambios.saldoDeudor !== undefined && { saldoDeudor: cambios.saldoDeudor }),
-      ...(cambios.saldoAcreedor !== undefined && { saldoAcreedor: cambios.saldoAcreedor }),
-      ...(cambios.saldoFinal !== undefined && { saldoFinal: cambios.saldoFinal }),
-    },
+  aceptarDescuadre = false,
+): Promise<ResultadoCambioCuenta> {
+  if (!esUuid(cuentaId) || !esUuid(ejercicioId)) return { estado: 'NO_ENCONTRADA' }
+  const data = {
+    ...(cambios.nombre !== undefined && { nombre: cambios.nombre }),
+    ...(cambios.saldoDeudor !== undefined && { saldoDeudor: cambios.saldoDeudor }),
+    ...(cambios.saldoAcreedor !== undefined && { saldoAcreedor: cambios.saldoAcreedor }),
+    ...(cambios.saldoFinal !== undefined && { saldoFinal: cambios.saldoFinal }),
+  }
+  const where = { id: cuentaId, ejercicioId }
+  if (cambios.saldoDeudor === undefined && cambios.saldoAcreedor === undefined) {
+    const { count } = await db.cuentaContable.updateMany({ where, data })
+    return count > 0 ? { estado: 'GUARDADO', efecto: null } : { estado: 'NO_ENCONTRADA' }
+  }
+  return cambiarControlandoCuadre(ejercicioId, aceptarDescuadre, async (tx) => {
+    const { count } = await tx.cuentaContable.updateMany({ where, data })
+    return count > 0
   })
-  return count > 0
 }
 
-export async function deleteCuenta(ejercicioId: string, cuentaId: string): Promise<boolean> {
-  if (!esUuid(cuentaId)) return false
-  const { count } = await db.cuentaContable.deleteMany({ where: { id: cuentaId, ejercicioId } })
-  return count > 0
+/** Borra una cuenta del ejercicio controlando el cuadre (ver cambiarControlandoCuadre). */
+export async function deleteCuenta(
+  ejercicioId: string,
+  cuentaId: string,
+  aceptarDescuadre = false,
+): Promise<ResultadoCambioCuenta> {
+  if (!esUuid(cuentaId) || !esUuid(ejercicioId)) return { estado: 'NO_ENCONTRADA' }
+  return cambiarControlandoCuadre(ejercicioId, aceptarDescuadre, async (tx) => {
+    const { count } = await tx.cuentaContable.deleteMany({ where: { id: cuentaId, ejercicioId } })
+    return count > 0
+  })
 }
 
 /** Agrega sin borrar ni reclasificar; la confirmación se revoca en la misma transacción. */

@@ -87,7 +87,8 @@ export const PASOS: ArticuloAyuda[] = [
     titulo: 'Clasificar cuentas',
     categoria: 'pasos',
     paso: 'clasificar',
-    resumen: 'Cómo asignar cada cuenta a su rubro, de a una o varias juntas.',
+    resumen:
+      'Cómo asignar cada cuenta a su rubro, de a una o varias juntas, y cómo corregir o borrar una cuenta sin descuadrar el balance.',
     claves: [
       'clasificar',
       'asignar rubro',
@@ -95,6 +96,10 @@ export const PASOS: ArticuloAyuda[] = [
       'clasificacion en lote',
       'varias cuentas',
       'cuentas pendientes',
+      'editar cuenta',
+      'borrar cuenta',
+      'descuadre',
+      'no cuadra',
     ],
     bloques: [
       pasos(
@@ -111,8 +116,21 @@ export const PASOS: ArticuloAyuda[] = [
       aviso(
         'Una cuenta mal clasificada cambia los totales de los estados y de las notas. Revisá especialmente que ingresos y costos vayan al Estado de Resultados.',
       ),
+      p('Para corregir o borrar una cuenta:'),
+      pasos(
+        'Pasá el mouse por la fila: el lápiz edita el nombre y los importes, y el tacho borra la cuenta.',
+        'Al cambiar el debe o el haber, el saldo se recalcula solo. Tocá el tilde para guardar o la X para cancelar.',
+      ),
+      lista(
+        'Si el cambio descuadra el balance de sumas y saldos, antes de guardar aparece un cartel con la diferencia de hoy y la que quedaría. "Volver sin guardar" no cambia nada; "Guardar igual" lo guarda así.',
+        'El cartel también aparece si el balance ya no cuadraba y el cambio agranda la diferencia. Si el cambio lo arregla, no hay cartel y la app avisa que el balance cuadra.',
+        'Un centavo de diferencia también cuenta: la app nunca redondea.',
+      ),
+      aviso(
+        'Borrar una cuenta no se puede deshacer desde la app. Si una cuenta tiene un importe mal cargado, corregí el importe en vez de borrarla.',
+      ),
     ],
-    relacionados: ['clasificaciones', 'paso-documentos'],
+    relacionados: ['clasificaciones', 'paso-documentos', 'neg-069'],
   },
   {
     id: 'paso-anterior',

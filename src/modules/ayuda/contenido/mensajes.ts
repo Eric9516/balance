@@ -478,6 +478,26 @@ const MENSAJES: Mensaje[] = [
     relacionados: ['paso-bienes-de-uso', 'estados-ejercicio'],
   },
   {
+    codigo: 'NEG-069',
+    titulo: 'El cambio descuadra el balance',
+    significa:
+      'Quisiste cambiar el debe o el haber de una cuenta, o borrarla, y con eso el balance de sumas y saldos deja de cuadrar (o la diferencia que ya tenía crece). No se guardó nada: un cambio así se confirma a propósito. Un centavo de diferencia también cuenta.',
+    solucion: [
+      'Si fue sin querer, no hagas nada: el balance quedó como estaba.',
+      'Si es lo que querés (por ejemplo, vas a corregir otra cuenta después), volvé a guardar y confirmalo en el cartel con "Guardar igual" o "Borrar igual".',
+      'Si el mensaje apareció sin cartel, recargá la página: otra persona pudo haber cambiado cuentas mientras tanto.',
+    ],
+    claves: [
+      'no cuadra',
+      'descuadre',
+      'descuadra',
+      'debe y haber',
+      'borrar cuenta',
+      'editar cuenta',
+    ],
+    relacionados: ['paso-clasificar'],
+  },
+  {
     codigo: 'NEG-064',
     titulo: 'Faltan los índices para ajustar el anterior',
     significa:

@@ -104,6 +104,7 @@ export const PASO_INFO: Record<InfoPasoKey, InfoPaso> = {
     notes: [
       'Una cuenta sin clasificar no aparece en ningún estado. Clasificalas todas antes de confirmar.',
       'Podés seleccionar varias cuentas y asignarlas juntas con la barra de abajo.',
+      'Si corregir o borrar una cuenta descuadra el balance, antes de guardar aparece un cartel con la diferencia que quedaría.',
     ],
   },
   anterior: {

@@ -15,7 +15,7 @@ import { db } from '@/lib/db'
 import { comoPlataforma } from '@/lib/contexto-base'
 import { darDeAltaUsuario } from '@/modules/acceso/services/entrada.service'
 import { codigoDelPaso, desdeBase32, pasoDe } from '@/modules/acceso/domain/codigo'
-import { sumarPor } from '@/lib/importe'
+import { comparaImportes, sumarPor } from '@/lib/importe'
 import { formatCurrency } from '@/lib/utils/currency'
 import type { Escenario } from './referencia'
 import type { Contexto } from './motor'
@@ -251,6 +251,17 @@ export async function recorrerPantallas(ctx: Contexto, escenarios: Escenario[], 
         for (const e of new Set(errores))
           reg.hallazgo('error', esc.id, area, `Error en la consola: ${e}`)
         const texto = (await page.locator('body').innerText()).replace(/\s+/g, ' ')
+        if (esc.id === 'A' && p.nombre === 'Clasificar cuentas') {
+          errores = []
+          await probarCartelDescuadre(ctx, page, esc.id, hecho.ejercicioId)
+          for (const e of new Set(errores))
+            reg.hallazgo(
+              'error',
+              esc.id,
+              area,
+              `Error en la consola en el cartel de descuadre: ${e}`,
+            )
+        }
         if (esc.id === 'B' && p.nombre === 'Notas') {
           await page.screenshot({
             path: join(process.cwd(), 'auditoria', 'informes', 'nota-uno.png'),
@@ -299,6 +310,68 @@ export async function recorrerPantallas(ctx: Contexto, escenarios: Escenario[], 
       writeFileSync(agents, agentsAntes)
     }
   }
+}
+
+/**
+ * Clasificar cuentas: cambiar el debe de una cuenta de un balance que cuadra muestra el cartel de
+ * descuadre antes de guardar, y "Volver sin guardar" no cambia nada en la base. Deja una captura.
+ */
+async function probarCartelDescuadre(
+  ctx: Contexto,
+  page: import('playwright-core').Page,
+  escenario: string,
+  ejercicioId: string,
+) {
+  const { reg } = ctx
+  const area = 'Pantalla Clasificar cuentas'
+  const control = (ok: boolean, falla: string) => {
+    reg.controles++
+    if (!ok) reg.hallazgo('error', escenario, area, falla)
+  }
+  const visible = (l: import('playwright-core').Locator, estado: 'visible' | 'hidden') =>
+    l
+      .waitFor({ state: estado, timeout: 5_000 })
+      .then(() => true)
+      .catch(() => false)
+  const totales = () =>
+    comoPlataforma(() =>
+      db.cuentaContable.aggregate({
+        where: { ejercicioId },
+        _sum: { saldoDeudor: true, saldoAcreedor: true },
+      }),
+    )
+
+  const antes = await totales()
+  await page.getByRole('button', { name: /^Todas \(\d+\)$/ }).click()
+  const fila = page.locator('tbody tr').first()
+  await fila.hover()
+  await fila.getByTitle('Editar cuenta').click()
+  const debe = page.locator('tbody tr input[inputmode="decimal"]').first()
+  await debe.fill(`${await debe.inputValue()}1`)
+  await page.getByTitle('Guardar cambios').click()
+
+  const cartel = page.getByRole('dialog', { name: 'Este cambio descuadra el balance' })
+  const abre = await visible(cartel, 'visible')
+  control(abre, 'Cambiar el debe de una cuenta de un balance que cuadra no muestra el cartel.')
+  if (abre) {
+    control(
+      (await cartel.innerText()).includes('El debe y el haber son iguales'),
+      'El cartel de descuadre no dice que hoy el balance cuadra.',
+    )
+    await page.screenshot({
+      path: join(process.cwd(), 'auditoria', 'informes', 'cartel-descuadre.png'),
+    })
+    await cartel.getByRole('button', { name: 'Volver sin guardar' }).click()
+    control(await visible(cartel, 'hidden'), '"Volver sin guardar" no cierra el cartel.')
+  }
+  await page.locator('tbody tr').getByTitle('Cancelar').click()
+
+  const despues = await totales()
+  control(
+    comparaImportes(antes._sum.saldoDeudor, despues._sum.saldoDeudor) &&
+      comparaImportes(antes._sum.saldoAcreedor, despues._sum.saldoAcreedor),
+    'Después de "Volver sin guardar" cambió el balance: no tenía que guardarse nada.',
+  )
 }
 
 /**
