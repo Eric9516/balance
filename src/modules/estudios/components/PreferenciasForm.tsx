@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, Columns3, Palette, Rows3, Rows4, TableProperties } from 'lucide-react'
+import { Columns3, Rows3, Rows4, TableProperties } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,9 +10,7 @@ import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
 import { toastSuccess } from '@/modules/errores/components/Toast'
 import { guardarPreferenciasAction } from '../actions/preferencias.actions'
 import {
-  ACENTOS_SUGERIDOS,
   DENSIDAD_LABELS,
-  validarAcento,
   type DensidadTablas,
   type FormatoAnexoBienesUso,
   type PreferenciasEstudio,
@@ -49,27 +47,17 @@ const FORMATOS_BDU: {
   },
 ]
 
-/** Identidad visual, densidad de tablas y formato del documento del estudio (en la base). */
+/** Densidad de las tablas y formato del documento del estudio (en la base). El color es fijo. */
 export function PreferenciasForm({ inicial }: { inicial: PreferenciasEstudio }) {
   const router = useRouter()
   const { isPending, ejecutar } = useGuardarAccion()
-  const [color, setColor] = useState(inicial.colorPrimario.toUpperCase())
   const [densidad, setDensidad] = useState<DensidadTablas>(inicial.densidadTablas)
   const [anexoBdu, setAnexoBdu] = useState<FormatoAnexoBienesUso>(inicial.anexoBienesUso)
-  const error = validarAcento(color)
-  const cambiado =
-    color !== inicial.colorPrimario.toUpperCase() ||
-    densidad !== inicial.densidadTablas ||
-    anexoBdu !== inicial.anexoBienesUso
+  const cambiado = densidad !== inicial.densidadTablas || anexoBdu !== inicial.anexoBienesUso
 
   function guardar() {
     ejecutar(
-      () =>
-        guardarPreferenciasAction({
-          colorPrimario: color,
-          densidadTablas: densidad,
-          anexoBienesUso: anexoBdu,
-        }),
+      () => guardarPreferenciasAction({ densidadTablas: densidad, anexoBienesUso: anexoBdu }),
       () => {
         toastSuccess('Preferencias guardadas')
         router.refresh()
@@ -82,68 +70,11 @@ export function PreferenciasForm({ inicial }: { inicial: PreferenciasEstudio }) 
       <CardHeader>
         <CardTitle>Apariencia</CardTitle>
         <p className="mt-1 text-sm text-slate-500">
-          El color de acento identifica al estudio en toda la aplicación. La densidad define cómo se
-          ven las tablas de trabajo, y el formato del anexo, cómo sale en el documento.
+          La densidad define cómo se ven las tablas de trabajo, y el formato del anexo, cómo sale en
+          el documento.
         </p>
       </CardHeader>
       <CardContent className="space-y-7">
-        {/* Acento */}
-        <section className="space-y-3">
-          <p className="flex items-center gap-2 text-xs font-semibold tracking-wider text-slate-500 uppercase">
-            <Palette className="h-3.5 w-3.5" /> Color de acento
-          </p>
-          <div className="flex flex-wrap gap-2.5">
-            {ACENTOS_SUGERIDOS.map((a) => {
-              const activo = a.hex.toUpperCase() === color
-              return (
-                <button
-                  key={a.hex}
-                  type="button"
-                  onClick={() => setColor(a.hex.toUpperCase())}
-                  className={cn(
-                    'flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors',
-                    activo
-                      ? 'border-slate-900 bg-white text-slate-900'
-                      : 'border-linea bg-white text-slate-600 hover:border-slate-300',
-                  )}
-                >
-                  <span
-                    className="flex h-5 w-5 items-center justify-center rounded-full"
-                    style={{ backgroundColor: a.hex }}
-                  >
-                    {activo && <Check className="h-3 w-3 text-white" />}
-                  </span>
-                  {a.nombre}
-                </button>
-              )
-            })}
-          </div>
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-              value={color}
-              onChange={(e) => setColor(e.target.value.toUpperCase())}
-              className="h-9 w-12 cursor-pointer rounded border border-linea bg-white"
-              aria-label="Elegir otro color"
-            />
-            <input
-              type="text"
-              value={color}
-              onChange={(e) => setColor(e.target.value.trim().toUpperCase())}
-              maxLength={7}
-              className="w-28 rounded-lg border border-linea bg-white px-3 py-2 font-mono text-sm text-slate-900 focus:border-blue-400 focus:outline-none"
-            />
-            {/* Vista previa con el color elegido, sin depender del CSS global */}
-            <span
-              className="rounded-lg px-3 py-2 text-sm font-medium text-white"
-              style={{ backgroundColor: error ? '#9a9488' : color }}
-            >
-              Botón de ejemplo
-            </span>
-          </div>
-          {error && <p className="text-xs text-red-600">{error}</p>}
-        </section>
-
         {/* Densidad */}
         <section className="space-y-3">
           <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
@@ -218,7 +149,7 @@ export function PreferenciasForm({ inicial }: { inicial: PreferenciasEstudio }) 
         </section>
       </CardContent>
       <CardFooter className="flex justify-end">
-        <Button onClick={guardar} disabled={isPending || !cambiado || error !== null}>
+        <Button onClick={guardar} disabled={isPending || !cambiado}>
           {isPending ? 'Guardando...' : 'Guardar apariencia'}
         </Button>
       </CardFooter>

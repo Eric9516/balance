@@ -12,7 +12,7 @@
  * Paletas remapeadas (para no tocar ~1000 clases existentes):
  *   slate-*  → neutros cálidos de "papel" (50–300) a "tinta" azul noche (700–950)
  *   blue-*   → escala del ACENTO del estudio, derivada de --acento con color-mix.
- *              --acento sale de EstudioConfiguracion.colorPrimario (layout principal).
+ *              --acento es el verde de BalanceRT, el mismo para todos los estudios (no se configura).
  */
 
 :root {

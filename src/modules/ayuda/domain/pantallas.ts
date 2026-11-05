@@ -67,7 +67,10 @@ export const INFO_PANTALLAS = {
     info: {
       title: 'Configuración del estudio',
       purpose: 'Los datos del estudio contable y la apariencia de la app.',
-      sources: ['Nombre comercial, CUIT y tipo de estudio.', 'Color principal de la app.'],
+      sources: [
+        'Nombre comercial, CUIT y tipo de estudio.',
+        'Densidad de las tablas y formato del Anexo de Bienes de Uso en el documento.',
+      ],
       formulas: [
         'El color tiene que tener contraste suficiente con el texto blanco: si es muy claro, la app lo rechaza y dice el contraste.',
       ],

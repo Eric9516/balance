@@ -40,12 +40,6 @@ const PERMITIDOS: Permitido[] = [
       'Solo presentación y sin redondear: corta los decimales de más (ROUND_DOWN), por decisión del dueño del producto (2026-10-31). Cálculos y base conservan el valor completo.',
   },
   {
-    archivo: 'src/modules/estudios/domain/preferencias.ts',
-    linea:
-      'return `El color ${hex.toUpperCase()} es demasiado claro: el texto blanco sobre él tendría contraste ${c.toFixed(1)}:1 y el mínimo es ${CONTRASTE_MINIMO}:1. Elegí un tono más oscuro.`',
-    motivo: 'Contraste de un color en un mensaje: no es un importe.',
-  },
-  {
     archivo: 'src/modules/importaciones/lib/excelParsing.ts',
     linea: 'n = Math.floor((n - 1) / 26)',
     motivo:
