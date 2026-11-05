@@ -466,6 +466,18 @@ const MENSAJES: Mensaje[] = [
     relacionados: ['anterior-manual'],
   },
   {
+    codigo: 'NEG-068',
+    titulo: 'El formato del Anexo de Bienes de Uso de un balance cerrado no se cambia',
+    significa:
+      'El balance está cerrado: su Anexo de Bienes de Uso queda con el formato (un solo cuadro o dos) con que se emitió, para que el documento no cambie después de firmado.',
+    solucion: [
+      'Podés abrir "Apariencia" y mirar la vista previa en cualquier momento.',
+      'Si hay que cambiarlo, tiene que ser antes de cerrar: desde Revisión se puede volver a En proceso.',
+    ],
+    claves: ['no puedo cambiar el formato', 'apariencia', 'un solo cuadro', 'dos cuadros'],
+    relacionados: ['paso-bienes-de-uso', 'estados-ejercicio'],
+  },
+  {
     codigo: 'NEG-064',
     titulo: 'Faltan los índices para ajustar el anterior',
     significa:

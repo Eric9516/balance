@@ -6,9 +6,10 @@ import type {
   NivelComparativoSSP,
   ModoEjercicioAnterior,
   CategoriaEnteRT54,
+  FormatoAnexoBienesUso,
 } from '@prisma/client'
 
-export type { ModoEjercicioAnterior, CategoriaEnteRT54 }
+export type { ModoEjercicioAnterior, CategoriaEnteRT54, FormatoAnexoBienesUso }
 
 export type EjercicioContableDTO = {
   id: string
@@ -23,6 +24,8 @@ export type EjercicioContableDTO = {
   comparativoAutorizadoPor: string | null
   anteriorAjustadoEn: Date | null
   categoriaEnte: CategoriaEnteRT54 | null
+  /** Cómo sale el Anexo de Bienes de Uso en el documento (paso Bienes de Uso → Apariencia). */
+  anexoBienesUso: FormatoAnexoBienesUso
   numeroEjercicio: number | null
   fechaInicio: Date
   fechaCierre: Date
@@ -119,6 +122,7 @@ export function toEjercicioDTO(e: WithAuditor): EjercicioContableDTO {
     comparativoAutorizadoPor: e.comparativoAutorizadoPor ?? null,
     anteriorAjustadoEn: e.anteriorAjustadoEn ?? null,
     categoriaEnte: e.categoriaEnte ?? null,
+    anexoBienesUso: e.anexoBienesUso,
     numeroEjercicio: e.numeroEjercicio,
     fechaInicio: e.fechaInicio,
     fechaCierre: e.fechaCierre,

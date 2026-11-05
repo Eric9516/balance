@@ -1,7 +1,7 @@
 import { cache } from 'react'
 import { db } from '@/lib/db'
 import { esUuid } from '@/lib/utils/uuid'
-import type { EstadoEjercicio, ModoEjercicioAnterior } from '@prisma/client'
+import type { EstadoEjercicio, FormatoAnexoBienesUso, ModoEjercicioAnterior } from '@prisma/client'
 import { CATEGORIA_ENTE_LABELS, toEjercicioDTO, type EjercicioContableDTO } from '../domain/types'
 import type {
   ConfigAnterior,
@@ -205,9 +205,16 @@ export async function createEjercicio(
   sociedadId: string,
   estudioId: string,
   input: CreateEjercicioInput,
+  /** Heredado del balance anterior de la sociedad; sin anterior, el de por defecto. */
+  anexoBienesUso?: FormatoAnexoBienesUso,
 ): Promise<EjercicioContableDTO> {
   const e = await db.ejercicioContable.create({
-    data: { estudioId, sociedadId, ...buildData(input) },
+    data: {
+      estudioId,
+      sociedadId,
+      ...buildData(input),
+      ...(anexoBienesUso ? { anexoBienesUso } : {}),
+    },
     include: { auditor: auditorSelect },
   })
   return toEjercicioDTO(e)
@@ -330,4 +337,32 @@ export async function marcarComparativoModificado(ejercicioId: string): Promise<
       estadosConfirmado: false,
     },
   })
+}
+
+/** Cómo sale el Anexo de Bienes de Uso en el documento de este balance (paso Bienes de Uso). */
+export async function actualizarFormatoAnexoBienesUso(
+  id: string,
+  formato: FormatoAnexoBienesUso,
+): Promise<void> {
+  await db.ejercicioContable.update({
+    where: { id },
+    data: { anexoBienesUso: formato },
+    select: { id: true },
+  })
+}
+
+/**
+ * El formato del Anexo de Bienes de Uso del último balance de la sociedad que cierra antes de
+ * `fechaInicio`: un balance nuevo lo hereda. Sin anterior, null.
+ */
+export async function formatoAnexoDelAnterior(
+  sociedadId: string,
+  fechaInicio: Date,
+): Promise<FormatoAnexoBienesUso | null> {
+  const anterior = await db.ejercicioContable.findFirst({
+    where: { sociedadId, fechaCierre: { lt: fechaInicio } },
+    orderBy: { fechaCierre: 'desc' },
+    select: { anexoBienesUso: true },
+  })
+  return anterior?.anexoBienesUso ?? null
 }

@@ -1,0 +1,104 @@
+/*
+ * Las tablas de importes del documento (estados, anexos, notas). Aparte de documento.css para
+ * poder usarlas también dentro de la app (vista previa del Anexo I en el paso Bienes de Uso) sin
+ * llevar las reglas de página e impresión de documento.css, que afectarían a toda la app.
+ */
+
+/* Tablas de importes */
+.doc-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+}
+/* El total de cada tabla va en <tfoot> por semántica, pero se pagina como una fila
+   más: como grupo de pie, Chromium lo manda a otra hoja junto con las firmas. */
+.doc-tabla > tfoot {
+  display: table-row-group;
+}
+.doc-tabla th,
+.doc-tabla td {
+  padding: 2.5pt 5pt;
+  vertical-align: bottom;
+}
+.doc-tabla th {
+  text-align: right;
+  font-weight: 600;
+  border-bottom: 1px solid var(--tinta);
+}
+.doc-tabla th:first-child,
+.doc-tabla th.izq {
+  text-align: left;
+}
+.doc-tabla th.centro {
+  text-align: center;
+}
+/* Tamaños intermedios (las utilidades de Tailwind no pisan este CSS: va fuera de @layer). */
+.doc-tabla.media {
+  font-size: 8pt;
+}
+.doc-tabla th .fecha {
+  font-weight: 400;
+  color: #6e6a62;
+  font-size: 8pt;
+}
+.doc-tabla td.num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.doc-tabla tr {
+  break-inside: avoid;
+}
+.doc-tabla tr.fila-bloque td {
+  padding-top: 6pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.doc-tabla tr.fila-seccion td {
+  padding-top: 4pt;
+  font-size: 8pt;
+  font-weight: 600;
+  color: #4f4c47;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.doc-tabla tr.fila-subtotal td {
+  font-weight: 600;
+  border-top: 1px solid #9a9488;
+}
+.doc-tabla tr.fila-total td {
+  font-weight: 700;
+  border-top: 1px solid var(--tinta);
+}
+.doc-tabla tr.fila-final td {
+  font-weight: 700;
+  border-top: 1px solid var(--tinta);
+  border-bottom: 2px solid var(--tinta);
+}
+/* El total de cada ejercicio del Anexo de Gastos: una caja gris que ocupa las dos filas de
+   totales, como en el modelo tradicional. Se imprime con su fondo. */
+.doc-tabla td.total-ejercicio {
+  vertical-align: middle;
+  font-weight: 700;
+  background: #e7e5e0;
+  border: 1px solid var(--tinta);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+/* Tablas con muchas columnas de importes (E.E.P.N., Anexo I): letra más chica y
+   celdas ajustadas. Si aun así no entran, AjusteAncho achica la letra en el navegador. */
+.doc-tabla.ancha {
+  font-size: 7pt;
+}
+.doc-tabla.ancha th,
+.doc-tabla.ancha td {
+  padding: 2pt 3pt;
+}
+.doc-tabla td.sangria {
+  padding-left: 14pt;
+}
+.nota-ref {
+  color: #6e6a62;
+  font-size: 8pt;
+}

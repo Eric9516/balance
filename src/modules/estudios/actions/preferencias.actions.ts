@@ -14,7 +14,6 @@ import { faltaPermiso } from '@/lib/estudio-context'
 const PreferenciasSchema = z
   .object({
     densidadTablas: z.enum(['COMODA', 'COMPACTA']).optional(),
-    anexoBienesUso: z.enum(['UN_CUADRO', 'DOS_CUADROS']).optional(),
   })
   .strict()
 
@@ -35,11 +34,10 @@ export async function guardarPreferenciasAction(
         detalle: parsed.error.issues[0]?.message,
       })
     }
-    const { densidadTablas, anexoBienesUso } = parsed.data
+    const { densidadTablas } = parsed.data
     const estudioId = await getCurrentEstudioId()
     const prefs = await guardarPreferenciasEstudio(estudioId, {
       ...(densidadTablas !== undefined ? { densidadTablas } : {}),
-      ...(anexoBienesUso !== undefined ? { anexoBienesUso } : {}),
     })
     // Las preferencias afectan todo el layout principal.
     revalidatePath('/', 'layout')

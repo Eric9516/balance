@@ -1,4 +1,5 @@
 import '@/modules/exportacion/components/documento.css'
+import '@/modules/exportacion/components/tablas-documento.css'
 
 /** Rutas de impresión: sin menú lateral, fondo papel en pantalla y blanco al imprimir. */
 export default function ImpresionLayout({ children }: { children: React.ReactNode }) {

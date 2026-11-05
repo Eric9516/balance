@@ -99,7 +99,7 @@ describe('DocumentoBalance (HTML)', () => {
     expect(html).toContain('El Estado de Flujo de Efectivo no cuadra.')
   })
 
-  // Las dos vistas del Anexo I (preferencia del estudio), con los mismos números.
+  // Las dos vistas del Anexo I (elegidas en cada balance), con los mismos números.
   const conAnexoI = (formatoAnexoBienesUso: 'UN_CUADRO' | 'DOS_CUADROS') => {
     const html = render({
       documentos: [
@@ -139,7 +139,7 @@ describe('DocumentoBalance (HTML)', () => {
         costoVentas: null,
         gastos: null,
       },
-      formatoAnexoBienesUso,
+      ejercicio: ejercicioPrueba({ anexoBienesUso: formatoAnexoBienesUso }),
     })
     return html.slice(html.indexOf('Anexo I — Bienes de uso'))
   }

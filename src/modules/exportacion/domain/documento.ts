@@ -90,7 +90,7 @@ function seccionAnexo(
         titulo: anexo.titulo,
         subtitulo: T.subtitulos.al(fechaCierre, fechaCierreAnterior),
         anexo: datos,
-        formato: insumos.formatoAnexoBienesUso,
+        formato: insumos.ejercicio.anexoBienesUso,
       }
     }
     case 'ANEXO_COSTO_VENTAS': {

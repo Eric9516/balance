@@ -5,7 +5,10 @@ import { actionOk, actionError } from '@/modules/errores/types'
 import { errorHandler } from '@/modules/errores/handler'
 import type { ActionResult } from '@/modules/errores/types'
 import { assertEjercicioBelongsToCurrentEstudio } from '@/lib/authz'
+import type { FormatoAnexoBienesUso } from '@prisma/client'
+import { exigirSesion } from '@/lib/estudio-context'
 import {
+  actualizarFormatoAnexoBienesUso,
   findEjercicioById,
   marcarComparativoModificado,
 } from '@/modules/ejercicios/repository/ejercicio.repository'
@@ -123,6 +126,63 @@ export async function eliminarBienDeUsoAction(
   } catch (error) {
     return actionError(
       errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'eliminar_bien_de_uso' }),
+    )
+  }
+}
+
+/**
+ * Cómo sale el Anexo de Bienes de Uso en el documento de este balance (paso Bienes de Uso →
+ * Apariencia): un solo cuadro o dos. Los números son los mismos. Lo elige el dueño o un contador
+ * (la base lo controla también); en un balance cerrado no se cambia.
+ */
+export async function cambiarFormatoAnexoAction(
+  ejercicioId: string,
+  sociedadId: string,
+  formato: FormatoAnexoBienesUso,
+): Promise<ActionResult<void>> {
+  try {
+    if (formato !== 'UN_CUADRO' && formato !== 'DOS_CUADROS') {
+      return actionError({
+        tipo: 'FORMULARIO',
+        severidad: 'BAJO',
+        codigo: 'FORM-001',
+        mensaje: 'Elegí "Un solo cuadro" o "Dos cuadros".',
+      })
+    }
+    await assertEjercicioBelongsToCurrentEstudio(ejercicioId)
+    const [sesion, ejercicio] = await Promise.all([exigirSesion(), findEjercicioById(ejercicioId)])
+    if (sesion.rol === 'ASISTENTE') {
+      return actionError({
+        tipo: 'AUTORIZACION',
+        severidad: 'MEDIO',
+        codigo: 'AUTH-007',
+        mensaje:
+          'Un asistente no puede cambiar el formato del Anexo de Bienes de Uso: lo elige el dueño o un contador.',
+      })
+    }
+    if (!ejercicio) {
+      return actionError({
+        tipo: 'NEGOCIO',
+        severidad: 'BAJO',
+        codigo: 'NEG-063',
+        mensaje: 'No se encontró el ejercicio. Recargá la página y volvé a intentar.',
+      })
+    }
+    if (ejercicio.estado === 'CERRADO') {
+      return actionError({
+        tipo: 'NEGOCIO',
+        severidad: 'BAJO',
+        codigo: 'NEG-068',
+        mensaje:
+          'Este balance está cerrado: el Anexo de Bienes de Uso queda con el formato con que se emitió. Podés ver la vista previa, pero no cambiarlo.',
+      })
+    }
+    await actualizarFormatoAnexoBienesUso(ejercicioId, formato)
+    revalPath(sociedadId, ejercicioId)
+    return actionOk(undefined)
+  } catch (error) {
+    return actionError(
+      errorHandler(error, { modulo: 'ESTADOS_CONTABLES', operacion: 'formato_anexo_bienes_uso' }),
     )
   }
 }

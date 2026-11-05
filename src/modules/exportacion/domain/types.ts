@@ -64,7 +64,7 @@ export type SeccionDocumento =
       titulo: string
       subtitulo: string
       anexo: ResultadoArrastreBDU
-      /** Preferencia del estudio: un solo cuadro (tradicional) o dos. Los mismos números. */
+      /** Lo elegido en el balance: un solo cuadro (tradicional) o dos. Los mismos números. */
       formato: FormatoAnexoBienesUso
     }
   | { tipo: 'anexo-costo-ventas'; titulo: string; subtitulo: string; anexo: AnexoCostoVentas }
@@ -113,8 +113,6 @@ export type InsumosDocumento = {
     costoVentas: AnexoCostoVentas | null
     gastos: GastosSecciones | null
   }
-  /** Cómo dibujar el Anexo de Bienes de Uso (preferencia del estudio). */
-  formatoAnexoBienesUso: FormatoAnexoBienesUso
   /** Decisiones de "Anexos y notas" (qué anexos están aceptados). */
   documentos: Pick<DocumentoEvaluado, 'clave' | 'tipo' | 'titulo' | 'estado'>[]
   notas: NotaDTO[]

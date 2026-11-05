@@ -11,6 +11,9 @@ import { toastSuccess } from '@/modules/errores/components/Toast'
 import { crearBienDeUsoAction, eliminarBienDeUsoAction } from '../actions/bienes-de-uso.actions'
 import { guardarLoteBienes } from '../lib/guardarLoteBienes'
 import { calcularCierre, type BienDeUsoDTO } from '../domain/types'
+import type { FormatoAnexoBienesUso } from '@prisma/client'
+import type { ColumnasDocumento } from '@/modules/exportacion/domain/types'
+import { AparienciaAnexo } from './AparienciaAnexo'
 import { BotonEditar } from '@/components/shared/BotonEditar'
 import { AvisosArrastre } from '@/components/shared/AvisosArrastre'
 import { useEdicionLote } from '@/components/shared/useEdicionLote'
@@ -49,6 +52,12 @@ interface Props {
   sociedadId: string
   fechaCierre: Date
   fechaCierreAnterior: Date | null
+  /** Cómo sale el anexo en el documento de este balance (botón Apariencia). */
+  formatoAnexo: FormatoAnexoBienesUso
+  /** Las columnas del documento, para la vista previa (las mismas que arma el documento). */
+  columnasDocumento: ColumnasDocumento
+  /** Por qué no se puede cambiar el formato (balance cerrado, rol); null si se puede. */
+  formatoNoSePuedeCambiar: string | null
 }
 
 export function BienesDeUsoView({
@@ -63,6 +72,9 @@ export function BienesDeUsoView({
   sociedadId,
   fechaCierre,
   fechaCierreAnterior,
+  formatoAnexo,
+  columnasDocumento,
+  formatoNoSePuedeCambiar,
 }: Props) {
   const [verCargado, setVerCargado] = useState(false)
   const conCargado = verCargado && netoCargadoMap !== undefined
@@ -177,6 +189,15 @@ export function BienesDeUsoView({
             onPlegar={grupos.plegarTodos}
             onExpandir={grupos.expandirTodos}
             disabled={editando}
+          />
+          <AparienciaAnexo
+            formato={formatoAnexo}
+            bienes={initialBienes}
+            netoAnteriorMap={netoAnteriorMap}
+            columnas={columnasDocumento}
+            noSePuedeCambiar={formatoNoSePuedeCambiar}
+            ejercicioId={ejercicioId}
+            sociedadId={sociedadId}
           />
           {netoCargadoMap && (
             <BotonVerCargado visible={verCargado} onToggle={() => setVerCargado((v) => !v)} />

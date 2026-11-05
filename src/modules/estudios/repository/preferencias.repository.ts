@@ -1,6 +1,6 @@
 import { cache } from 'react'
 import { db } from '@/lib/db'
-import type { DensidadTablas, FormatoAnexoBienesUso } from '@prisma/client'
+import type { DensidadTablas } from '@prisma/client'
 import { PREFERENCIAS_DEFAULT, type PreferenciasEstudio } from '../domain/preferencias'
 
 /**
@@ -12,7 +12,7 @@ export const findPreferenciasEstudio = cache(
   async (estudioId: string): Promise<PreferenciasEstudio> => {
     const cfg = await db.estudioConfiguracion.findUnique({
       where: { estudioId },
-      select: { densidadTablas: true, anexoBienesUso: true },
+      select: { densidadTablas: true },
     })
     return cfg ?? PREFERENCIAS_DEFAULT
   },
@@ -21,12 +21,12 @@ export const findPreferenciasEstudio = cache(
 /** Upsert parcial de las preferencias (crea la fila de configuración si no existe). */
 export async function guardarPreferenciasEstudio(
   estudioId: string,
-  data: Partial<{ densidadTablas: DensidadTablas; anexoBienesUso: FormatoAnexoBienesUso }>,
+  data: Partial<{ densidadTablas: DensidadTablas }>,
 ): Promise<PreferenciasEstudio> {
   return db.estudioConfiguracion.upsert({
     where: { estudioId },
     create: { estudioId, ...data },
     update: data,
-    select: { densidadTablas: true, anexoBienesUso: true },
+    select: { densidadTablas: true },
   })
 }

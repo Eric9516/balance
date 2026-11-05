@@ -1,3 +1,4 @@
+import { exigirSesion } from '@/lib/estudio-context'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { esUuid } from '@/lib/utils/uuid'
@@ -269,7 +270,14 @@ export default async function CuentasPage({ params, searchParams }: Props) {
         />
       )
     } else if (activeSlug === 'bienes-de-uso') {
-      const arrastre = await cargarBienesDeUso(ejercicio)
+      const [arrastre, sesion] = await Promise.all([cargarBienesDeUso(ejercicio), exigirSesion()])
+      // El formato del anexo en el documento: lo cambia el dueño o un contador, y no en un cerrado
+      const formatoNoSePuedeCambiar =
+        ejercicio.estado === 'CERRADO'
+          ? 'Este balance está cerrado: el anexo queda con el formato con que se emitió.'
+          : sesion.rol === 'ASISTENTE'
+            ? 'El formato lo elige el dueño o un contador del estudio.'
+            : null
       anexoContent = (
         <BienesDeUsoView
           bienes={arrastre.bienes}
@@ -283,6 +291,15 @@ export default async function CuentasPage({ params, searchParams }: Props) {
           sociedadId={id}
           fechaCierre={ejercicio.fechaCierre}
           fechaCierreAnterior={fechaCierreAnterior}
+          formatoAnexo={ejercicio.anexoBienesUso}
+          columnasDocumento={{
+            fechaInicio: ejercicio.fechaInicio,
+            fechaCierre: ejercicio.fechaCierre,
+            fechaCierreAnterior,
+            mostrarAnterior,
+            anteriorManual: editarAnteriorManual(modo),
+          }}
+          formatoNoSePuedeCambiar={formatoNoSePuedeCambiar}
         />
       )
     } else if (activeSlug === 'costo-ventas') {

@@ -21,6 +21,7 @@ import {
   findSucesorId,
   aplicarEfectosCambioModo,
   autorizarComparativo,
+  formatoAnexoDelAnterior,
 } from '../repository/ejercicio.repository'
 import { efectosCambioModo } from '../domain/ejercicioAnterior'
 import { faltaConfirmarParaAvanzar } from '../domain/avance'
@@ -110,9 +111,11 @@ export async function crearEjercicio(
     const parsed = CreateEjercicioSchema.safeParse(input)
     if (!parsed.success) return formError(parsed)
     // La sociedad viene de la pantalla: tiene que ser del estudio actual.
-    const [sociedad, estudioId] = await Promise.all([
+    // El formato del Anexo de Bienes de Uso se hereda del balance anterior de la sociedad.
+    const [sociedad, estudioId, formatoAnterior] = await Promise.all([
       findSociedadById(sociedadId),
       getCurrentEstudioId(),
+      formatoAnexoDelAnterior(sociedadId, new Date(parsed.data.fechaInicio)),
     ])
     if (!sociedad || sociedad.estudioId !== estudioId) {
       return actionError({
@@ -127,7 +130,12 @@ export async function crearEjercicio(
       (await validarAnterior(sociedadId, null, parsed.data))
     if (invalido) return invalido
 
-    const ejercicio = await createEjercicio(sociedadId, estudioId, parsed.data)
+    const ejercicio = await createEjercicio(
+      sociedadId,
+      estudioId,
+      parsed.data,
+      formatoAnterior ?? undefined,
+    )
     revalidatePath(`/sociedades/${sociedadId}/ejercicios`)
     return actionOk(ejercicio)
   } catch (error) {

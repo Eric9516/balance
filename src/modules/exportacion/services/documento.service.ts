@@ -26,7 +26,6 @@ import { findAjustesByEjercicio } from '@/modules/transicion-rt54/repository/aju
 import { previsualizarNotaTransicion } from '@/modules/transicion-rt54/services/nota-transicion.service'
 import { inclusionNotaTransicion } from '@/modules/transicion-rt54/domain/inclusion'
 import { mostrarColumnaAnterior } from '@/modules/comparativo-manual/lib/politica'
-import { findPreferenciasEstudio } from '@/modules/estudios/repository/preferencias.repository'
 import { armarDocumento } from '../domain/documento'
 import type { DocumentoBalance } from '../domain/types'
 
@@ -41,7 +40,7 @@ export async function cargarDocumentoBalance(
   const anteriorId = idAnteriorDerivable(ejercicio)
   const esPrimeraAdopcion = ejercicio.adopcionRT54 === 'PRIMERA_ADOPCION'
 
-  const [sociedad, auditor, cuentas, documentos, notas, ajustes, ejercicioAnterior, preferencias] =
+  const [sociedad, auditor, cuentas, documentos, notas, ajustes, ejercicioAnterior] =
     await Promise.all([
       findSociedadById(ejercicio.sociedadId),
       ejercicio.auditorId ? findAuditorById(ejercicio.auditorId) : Promise.resolve(null),
@@ -50,7 +49,6 @@ export async function cargarDocumentoBalance(
       cargarNotas(ejercicio),
       esPrimeraAdopcion ? findAjustesByEjercicio(ejercicioId) : Promise.resolve([]),
       anteriorId ? findEjercicioById(anteriorId) : Promise.resolve(null),
-      findPreferenciasEstudio(ejercicio.estudioId),
     ])
   if (!sociedad) return null
 
@@ -86,7 +84,6 @@ export async function cargarDocumentoBalance(
     pn: estados.pnData,
     flujo,
     anexos: { bienesDeUso, costoVentas, gastos },
-    formatoAnexoBienesUso: preferencias.anexoBienesUso,
     documentos,
     notas,
     notaTransicion,

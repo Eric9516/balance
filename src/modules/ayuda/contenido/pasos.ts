@@ -236,7 +236,7 @@ export const PASOS: ArticuloAyuda[] = [
     categoria: 'pasos',
     paso: 'bienes-de-uso',
     resumen:
-      'Cómo cargar las categorías, sus valores y amortizaciones, y de dónde sale el año anterior.',
+      'Cómo cargar las categorías, sus valores y amortizaciones, de dónde sale el año anterior y cómo elegir cómo sale el anexo en el documento (Apariencia).',
     claves: [
       'bienes de uso',
       'amortizaciones',
@@ -248,6 +248,12 @@ export const PASOS: ArticuloAyuda[] = [
       'agregar categoria',
       'altas',
       'bajas',
+      'apariencia',
+      'un solo cuadro',
+      'dos cuadros',
+      'formato del anexo',
+      'como sale impreso',
+      'vista previa',
     ],
     bloques: [
       pasos(
@@ -272,6 +278,25 @@ export const PASOS: ArticuloAyuda[] = [
         'Anterior vinculado: el valor y la amortización al comienzo son el cierre del anterior, con candado. La reexpresión por inflación se carga en las columnas "Ajuste por inflación".',
         'Anterior cargado a mano: el neto del año anterior se calcula solo (valor al comienzo menos amortización al comienzo, con sus ajustes). Si había uno escrito a mano que no coincide, el anexo lo avisa.',
         'La amortización del ejercicio debería coincidir con el gasto de amortizaciones del Anexo III.',
+      ),
+      p(
+        'Apariencia: cómo sale este anexo en el documento impreso. Es el botón chico "Apariencia", arriba a la derecha, al lado de "Editar". Abre una vista previa con los datos guardados del balance, tal como se imprime.',
+      ),
+      defs(
+        [
+          'Un solo cuadro',
+          'El formato tradicional: en cada fila, el valor de origen, las amortizaciones y el neto residual del ejercicio y del anterior. Sale en hoja apaisada. Es el que viene por defecto.',
+        ],
+        [
+          'Dos cuadros',
+          'Arriba el valor de origen y abajo las amortizaciones con los netos. Se lee mejor cuando los importes son muy largos.',
+        ],
+      ),
+      lista(
+        'Elegí uno en la vista previa y tocá "Usar este formato". Vale para el documento de este balance: los demás no cambian.',
+        'Los importes son los mismos en los dos formatos: solo cambia cómo se dibuja la tabla.',
+        'Un balance nuevo arranca con el formato del balance anterior de la misma sociedad.',
+        'Lo elige el dueño o un contador. En un balance cerrado se puede mirar la vista previa, pero no cambiar el formato.',
       ),
     ],
     relacionados: ['anterior-vinculado', 'anterior-manual', 'editar-tablas'],

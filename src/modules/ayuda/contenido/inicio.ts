@@ -276,7 +276,7 @@ export const INICIO: ArticuloAyuda[] = [
     id: 'estudio',
     titulo: 'Datos y apariencia del estudio',
     categoria: 'configuracion',
-    resumen: 'Nombre, CUIT y tipo del estudio contable, y cómo se ven las tablas y el documento.',
+    resumen: 'Nombre, CUIT y tipo del estudio contable, y cómo se ven las tablas de trabajo.',
     claves: [
       'configuracion',
       'estudio',
@@ -284,17 +284,12 @@ export const INICIO: ArticuloAyuda[] = [
       'apariencia',
       'densidad',
       'preferencias',
-      'anexo de bienes de uso',
-      'un solo cuadro',
     ],
     bloques: [
       p(
         'Configuración → Estudio. Arriba, los datos del estudio (nombre comercial, CUIT y tipo de estudio). Abajo, la apariencia.',
       ),
-      lista(
-        'Podés elegir la densidad de las tablas de trabajo: cómoda o compacta.',
-        'El Anexo de Bienes de Uso del documento sale en un solo cuadro (el formato tradicional: valor de origen, amortizaciones y netos en la misma fila) o en dos cuadros, uno debajo del otro. Los importes son los mismos en las dos vistas.',
-      ),
+      lista('Podés elegir la densidad de las tablas de trabajo: cómoda o compacta.'),
     ],
   },
   {

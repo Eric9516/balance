@@ -350,6 +350,7 @@ model EstudioConfiguracion {
   colorPrimario          String   @default("#2F6B55") @map("color_primario")
   // Densidad de las tablas de trabajo (EEPN, anexos, estados).
   densidadTablas         DensidadTablas @default(COMODA) @map("densidad_tablas")
+  // Sin uso desde 20261105120000 (el formato va en cada ejercicio): se quita en una migración aparte.
   anexoBienesUso         FormatoAnexoBienesUso @default(UN_CUADRO) @map("anexo_bienes_uso")
   monedaDisplay          String   @default("ARS") @map("moneda_display")
   decimalesDisplay       Int      @default(0) @map("decimales_display")
@@ -484,6 +485,9 @@ model EjercicioContable {
   anteriorAjustadoEn          DateTime? @db.Timestamptz(3) @map("anterior_ajustado_en")
   // Categoría del ente según RT 54 para este ejercicio (puede diferir de la sociedad).
   categoriaEnte               CategoriaEnteRT54? @map("categoria_ente")
+  // Cómo sale el Anexo de Bienes de Uso en el documento (paso Bienes de Uso → Apariencia). Un
+  // ejercicio nuevo hereda el del anterior de la sociedad. Los mismos números en las dos vistas.
+  anexoBienesUso              FormatoAnexoBienesUso @default(UN_CUADRO) @map("anexo_bienes_uso")
   // Legacy (reemplazados por modoAnterior; se eliminan en una migración posterior)
   balanceAnteriorDisponible   Boolean              @default(true) @map("balance_anterior_disponible")
   nivelComparativoSSP         NivelComparativoSSP? @map("nivel_comparativo_ssp")
