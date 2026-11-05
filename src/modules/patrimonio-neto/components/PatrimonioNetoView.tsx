@@ -13,7 +13,7 @@ import { CeldaNumero } from '@/components/shared/CeldaNumero'
 import { CeldaBloqueada } from '@/components/shared/CeldaBloqueada'
 import { AvisosArrastre } from '@/components/shared/AvisosArrastre'
 import { BotonEditar } from '@/components/shared/BotonEditar'
-import { ToggleDensidad, TogglePlegarTodos } from '@/components/shared/ControlesTabla'
+import { TogglePlegarTodos } from '@/components/shared/ControlesTabla'
 import { useEdicionLote } from '@/components/shared/useEdicionLote'
 import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
 import { useGruposColumnas } from '@/components/shared/useGruposColumnas'
@@ -278,7 +278,6 @@ export function PatrimonioNetoView({
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <ToggleDensidad />
           <TogglePlegarTodos
             todosPlegados={grupos.todosPlegados}
             onPlegar={grupos.plegarTodos}

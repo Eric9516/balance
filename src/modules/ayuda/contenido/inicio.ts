@@ -274,22 +274,25 @@ export const INICIO: ArticuloAyuda[] = [
   },
   {
     id: 'estudio',
-    titulo: 'Datos y apariencia del estudio',
+    titulo: 'Los datos del estudio',
     categoria: 'configuracion',
-    resumen: 'Nombre, CUIT y tipo del estudio contable, y cómo se ven las tablas de trabajo.',
+    resumen: 'Nombre comercial, razón social, CUIT, tipo y datos de contacto del estudio contable.',
     claves: [
       'configuracion',
       'estudio',
       'nombre comercial',
-      'apariencia',
-      'densidad',
+      'razon social',
+      'cuit del estudio',
       'preferencias',
     ],
     bloques: [
       p(
-        'Configuración → Estudio. Arriba, los datos del estudio (nombre comercial, CUIT y tipo de estudio). Abajo, la apariencia.',
+        'Configuración → Estudio: los datos del estudio (nombre comercial, razón social, CUIT, tipo de estudio, domicilio y contacto). Los ve y los cambia el dueño.',
       ),
-      lista('Podés elegir la densidad de las tablas de trabajo: cómoda o compacta.'),
+      lista(
+        'El color de la app y el tamaño de las tablas son los mismos para todos los estudios: no se configuran.',
+        'Cómo sale el Anexo de Bienes de Uso en el documento se elige en cada balance, en el paso Bienes de Uso → Apariencia.',
+      ),
     ],
   },
   {

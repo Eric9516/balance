@@ -15,7 +15,6 @@ import { BotonEditar } from '@/components/shared/BotonEditar'
 import { CeldaNumero } from '@/components/shared/CeldaNumero'
 import { CeldaBloqueada } from '@/components/shared/CeldaBloqueada'
 import { AvisosArrastre } from '@/components/shared/AvisosArrastre'
-import { ToggleDensidad } from '@/components/shared/ControlesTabla'
 import { useEdicionLote } from '@/components/shared/useEdicionLote'
 import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
 import {
@@ -165,7 +164,6 @@ export function FlujoEfectivoView({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <ToggleDensidad />
           {data.cargado && (
             <BotonVerCargado visible={verCargado} onToggle={() => setVerCargado((v) => !v)} />
           )}

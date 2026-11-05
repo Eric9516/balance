@@ -19,7 +19,7 @@ import { AvisosArrastre } from '@/components/shared/AvisosArrastre'
 import { useEdicionLote } from '@/components/shared/useEdicionLote'
 import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
 import { useGruposColumnas } from '@/components/shared/useGruposColumnas'
-import { ToggleDensidad, TogglePlegarTodos } from '@/components/shared/ControlesTabla'
+import { TogglePlegarTodos } from '@/components/shared/ControlesTabla'
 import { COLUMNAS_BDU, GRUPOS_BDU, type GrupoBDU } from '../domain/columnas'
 import { FilaCategoria, FilaTotal } from './FilaCategoria'
 
@@ -183,7 +183,6 @@ export function BienesDeUsoView({
           <AvisosArrastre bloqueado={bloqueadas.length > 0} advertencias={advertencias} />
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <ToggleDensidad />
           <TogglePlegarTodos
             todosPlegados={grupos.todosPlegados}
             onPlegar={grupos.plegarTodos}

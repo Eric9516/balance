@@ -39,7 +39,7 @@ export function CeldaNumero({
 }) {
   const [draft, setDraft] = useState('')
   const [focus, setFocus] = useState(false)
-  // dense = celda de matriz de trabajo: su tamaño sigue la densidad del estudio.
+  // dense = celda de matriz de trabajo: usa el tamaño de las tablas de trabajo (globals.css).
   const tam = dense ? 'text-tabla' : 'text-sm'
 
   // ── Modo lectura ──────────────────────────────────────────────────────────

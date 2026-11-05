@@ -349,6 +349,7 @@ model EstudioConfiguracion {
   // sobre blanco (validado en dominio: estudios/domain/preferencias.ts).
   colorPrimario          String   @default("#2F6B55") @map("color_primario")
   // Densidad de las tablas de trabajo (EEPN, anexos, estados).
+  // Sin uso desde 2026-11-05 (color fijo y tablas siempre "Cómoda"): se quitan en una migración aparte.
   densidadTablas         DensidadTablas @default(COMODA) @map("densidad_tablas")
   // Sin uso desde 20261105120000 (el formato va en cada ejercicio): se quita en una migración aparte.
   anexoBienesUso         FormatoAnexoBienesUso @default(UN_CUADRO) @map("anexo_bienes_uso")

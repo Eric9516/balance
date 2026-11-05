@@ -94,23 +94,15 @@ body {
 }
 
 /*
- * ─── Densidad de tablas (preferencia por estudio) ───────────────────────────
- * El layout principal pone data-densidad en el contenedor. Las tablas de trabajo
- * usan estas utilidades en vez de tamaños fijos.
+ * ─── Tamaño de las tablas de trabajo ────────────────────────────────────────
+ * Uno solo para todos (decisión del dueño del producto, 2026-11-05: el selector
+ * Cómoda/Compacta confundía). Las tablas usan estas utilidades en vez de tamaños fijos.
  */
-:root,
-[data-densidad='comoda'] {
+:root {
   --tabla-fs: 0.875rem; /* 14px */
   --tabla-fs-sm: 0.8125rem; /* 13px: encabezados y celdas secundarias */
   --tabla-py: 0.5rem;
   --tabla-px: 0.75rem;
-}
-
-[data-densidad='compacta'] {
-  --tabla-fs: 0.8125rem; /* 13px */
-  --tabla-fs-sm: 0.75rem; /* 12px */
-  --tabla-py: 0.3125rem;
-  --tabla-px: 0.5rem;
 }
 
 @utility text-tabla {

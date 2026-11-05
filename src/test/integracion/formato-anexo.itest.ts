@@ -10,12 +10,13 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn(), 
 import { cambiarFormatoAnexoAction } from '@/modules/bienes-de-uso/actions/bienes-de-uso.actions'
 import { db } from '@/lib/db'
 import { comoPlataforma, conEstudio } from '@/lib/contexto-base'
+import { sesionDePruebas } from '@/lib/sesion'
 import {
   actualizarFormatoAnexoBienesUso,
   formatoAnexoDelAnterior,
 } from '@/modules/ejercicios/repository/ejercicio.repository'
 
-const ctx = { estudio: '', sociedad: '', ej2024: '', ej2025: '', contador: '', asistente: '' }
+const ctx = { estudio: '', sociedad: '', ej2024: '', dueno: '', contador: '', asistente: '' }
 
 beforeAll(async () => {
   await comoPlataforma(async () => {
@@ -60,10 +61,23 @@ beforeAll(async () => {
     ctx.contador = contador.id
     ctx.asistente = asistente.id
     // Un dueño, para que el estudio no quede sin dueño (lo exige la base)
-    await db.usuario.create({
+    const dueno = await db.usuario.create({
       data: { estudioId: e, nombre: 'Dueño', email: 'dueno@formato.test', rol: 'DUENO' },
     })
+    ctx.dueno = dueno.id
   })
+})
+
+// Las acciones leen la sesión del pedido: en las pruebas, la de un dueño de este estudio.
+beforeAll(() => {
+  sesionDePruebas(async () => ({
+    usuarioId: ctx.dueno,
+    estudioId: ctx.estudio,
+    rol: 'DUENO',
+    contrasenaProvisoria: false,
+    faltaCodigo: false,
+    codigoConfigurado: true,
+  }))
 })
 
 afterAll(async () => {
@@ -126,8 +140,6 @@ describe('El formato del Anexo de Bienes de Uso en cada balance', () => {
     ).rejects.toThrow(/asistente no puede cambiar el formato del Anexo de Bienes de Uso/)
   })
 
-  // La sesión de las pruebas es la de un dueño del estudio activo más viejo: el de este archivo
-  // (src/test/contexto-pruebas.ts).
   it('desde Apariencia, el dueño lo guarda en un balance abierto', async () => {
     const r = await cambiarFormatoAnexoAction(ctx.ej2024, ctx.sociedad, 'DOS_CUADROS')
     expect(r.ok).toBe(true)
