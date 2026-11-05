@@ -4,6 +4,7 @@
  * en borrador. No recalcula importes.
  */
 
+import { formatCuit } from '@/lib/utils/cuit'
 import { armarNotaUno } from '@/modules/notas/domain/notaUno'
 import { formatFecha } from '@/lib/utils/dates'
 import { modoEfectivo } from '@/modules/ejercicios/domain/ejercicioAnterior'
@@ -34,7 +35,8 @@ export function armarEncabezado(
     partes.push(T.encabezado.ejercicio(ejercicio.numeroEjercicio))
   return {
     razonSocial: sociedad.razonSocial,
-    cuit: sociedad.cuit,
+    // Con guiones, como en la carátula (30-71823319-2), aunque se haya guardado sin ellos
+    cuit: formatCuit(sociedad.cuit),
     linea: partes.join(T.encabezado.separador),
     leyendaMoneda: T.encabezado.leyendaMoneda,
   }

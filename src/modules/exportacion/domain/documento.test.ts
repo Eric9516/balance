@@ -222,6 +222,14 @@ describe('encabezado y firmas', () => {
     expect(enc.leyendaMoneda).toBe('Cifras expresadas en pesos, en moneda homogénea')
   })
 
+  it('muestra el CUIT con guiones en el encabezado, aunque se haya guardado sin ellos', () => {
+    const cierre = { fechaCierre: new Date('2025-12-31T00:00:00.000Z'), numeroEjercicio: 3 }
+    expect(armarEncabezado({ ...sociedadPrueba, cuit: '30712345027' }, cierre).cuit).toBe(
+      '30-71234502-7',
+    )
+    expect(armarEncabezado(sociedadPrueba, cierre).cuit).toBe('30-12345678-9')
+  })
+
   it('usa el texto de firma del auditor línea por línea', () => {
     expect(lineasFirmaAuditor(auditorPrueba)).toEqual([
       'Ana Pérez',
