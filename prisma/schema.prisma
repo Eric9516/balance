@@ -148,6 +148,23 @@ enum SeccionFlujo {
   ACTIVIDADES_FINANCIAMIENTO
 }
 
+/// De dónde sale una línea del flujo que arma la app (las que escribe el contador no tienen origen).
+enum OrigenLineaFlujo {
+  RECPAM
+  COBROS_VENTAS
+  PAGOS_PROVEEDORES
+  PAGOS_PERSONAL
+  PAGOS_IMPUESTOS
+  PAGOS_GANANCIAS
+  VARIACION_ACTIVOS
+  VARIACION_PASIVOS
+  COBROS_BIENES_USO
+  PAGOS_BIENES_USO
+  APORTES
+  PRESTAMOS_RECIBIDOS
+  PRESTAMOS_CANCELADOS
+}
+
 enum TipoMovimientoPN {
   SALDO_INICIO
   AJUSTE_INFLACION
@@ -380,6 +397,7 @@ model Usuario {
   updatedAt     DateTime   @updatedAt @db.Timestamptz(3) @map("updated_at")
 
   estudio Estudio @relation(fields: [estudioId], references: [id], onDelete: Cascade)
+  flujosRecpamRevisados FlujoDeCajaEjercicio[] @relation("RecpamRevisadoPor")
 
   @@index([estudioId])
   @@map("usuarios")
@@ -730,12 +748,20 @@ model FlujoDeCajaEjercicio {
   saldoInicialAnterior      Decimal @default(0) @db.Decimal @map("saldo_inicial_anterior")
   modificacionesEjAntAnt    Decimal @default(0) @db.Decimal @map("modificaciones_ej_ant_ant")
   saldoFinalAnterior        Decimal @default(0) @db.Decimal @map("saldo_final_anterior")
+  // El RECPAM (la diferencia para que el estado cierre) se revisa: el importe revisado, quién y
+  // cuándo (los pone la base desde la sesión; un asistente no lo revisa). Si el RECPAM cambia, ya no
+  // coincide con lo revisado y vuelve a quedar pendiente (migración 20261106120000).
+  recpamRevisado    Decimal?  @db.Decimal @map("recpam_revisado")
+  recpamRevisadoPor String?   @map("recpam_revisado_por") @db.Uuid
+  recpamRevisadoEn  DateTime? @db.Timestamptz(3) @map("recpam_revisado_en")
   createdAt    DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt    DateTime @updatedAt @db.Timestamptz(3) @map("updated_at")
 
   ejercicio EjercicioContable @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
+  revisor   Usuario?          @relation("RecpamRevisadoPor", fields: [recpamRevisadoPor], references: [id], onDelete: Restrict)
   items     FlujoDeCajaItem[]
 
+  @@index([recpamRevisadoPor])
   @@map("flujo_caja_ejercicio")
 }
 
@@ -751,11 +777,14 @@ model FlujoDeCajaItem {
   importeAnterior Decimal      @default(0) @db.Decimal @map("importe_anterior")
   esSubtotal      Boolean      @default(false) @map("es_subtotal")
   orden           Int
+  // null = la escribe el contador; un valor = la arma la app, una sola vez por flujo
+  origen          OrigenLineaFlujo?
   createdAt       DateTime     @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt       DateTime     @updatedAt @db.Timestamptz(3) @map("updated_at")
 
   flujo FlujoDeCajaEjercicio @relation(fields: [flujoId], references: [id], onDelete: Cascade)
 
+  @@unique([flujoId, origen])
   @@index([flujoId])
   @@map("flujo_caja_items")
 }

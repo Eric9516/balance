@@ -118,6 +118,7 @@ export async function armarContextoAutorizacion(
             flujo.anterior && flujo.controlarAnterior && !ajustado
               ? cuadreFlujo(flujo.anterior)
               : null,
+          recpamPendiente: flujo.recpam?.pendiente ? flujo.recpam.importe : null,
         }
       : {
           lineas: 0,

@@ -181,7 +181,7 @@ beforeAll(async () => {
   )
   ctx.itemFlujoId = ok(
     await crearItemFlujoAction(creado.id, sociedad.id, 'ACTIVIDADES_OPERATIVAS', 'Cobros'),
-  ).id
+  )[0]!.id
   const flujo = (await findFlujo(creado.id))!
   ok(
     await guardarFlujoAction(creado.id, sociedad.id, {
@@ -246,10 +246,11 @@ describe('Anterior cargado a mano', () => {
     expect(flujo.guardado.items[0]!.importeAnterior).toBe(100)
     expect(flujo.cargado?.saldoInicialAnterior).toBe(40)
     expect(flujo.editarAnterior).toBe(false)
-    // La columna anterior se ajusta; la del ejercicio actual, no
+    // La columna anterior se ajusta. El efectivo al inicio del ejercicio actual es el del cierre
+    // del anterior ajustado (dueño del producto, 2026-11-06): 1250, no lo cargado (1000).
     expect(flujo.guardado.saldoFinalAnterior).toBe(1250)
-    expect(flujo.guardado.saldoInicial).toBe(1000)
-    expect(flujo.actual.variacionNeta).toBe(-500)
+    expect(flujo.guardado.saldoInicial).toBe(1250)
+    expect(flujo.actual.variacionNeta).toBe(-750)
     expect(flujo.cargado?.saldoFinalAnterior).toBe(1000)
 
     const costo = await cargarCostoVentas(e)

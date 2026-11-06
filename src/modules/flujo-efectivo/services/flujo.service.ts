@@ -33,7 +33,8 @@ export async function cargarFlujo(
     anteriorId ? findFlujo(anteriorId) : Promise.resolve(null),
   ])
   const rubrosEfectivo = new Set(rubros.filter((r) => r.esEfectivo).map((r) => r.id))
-  // El efectivo al inicio de este año es el del anterior sin ajustar.
+  // El efectivo al inicio de este año es el del cierre del anterior AJUSTADO (dueño del producto,
+  // 2026-11-06): sale de la columna anterior del balance. Sin ajustar, solo para "Ver lo cargado".
   const efectivoSinAjustar = estadosData.sspRubrosSinAjustar
     ? efectivoDesdeSSP(estadosData.sspRubrosSinAjustar, rubrosEfectivo).anterior
     : null
@@ -47,7 +48,6 @@ export async function cargarFlujo(
           }
         : null,
     efectivo: efectivoDesdeSSP(estadosData.sspRubros, rubrosEfectivo),
-    efectivoInicial: efectivoSinAjustar,
     modo: modoEfectivo(ejercicio),
     flujoAnterior,
     indices: getIndicesReexpresion(ejercicio),

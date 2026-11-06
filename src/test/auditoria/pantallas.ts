@@ -262,6 +262,17 @@ export async function recorrerPantallas(ctx: Contexto, escenarios: Escenario[], 
               `Error en la consola en el cartel de descuadre: ${e}`,
             )
         }
+        if (esc.id === 'C' && p.nombre === 'Estados contables') {
+          errores = []
+          await probarPropuestaFlujo(ctx, page, esc.id, hecho.ejercicioId)
+          for (const e of new Set(errores))
+            reg.hallazgo(
+              'error',
+              esc.id,
+              area,
+              `Error en la consola en la propuesta del flujo: ${e}`,
+            )
+        }
         if (esc.id === 'B' && p.nombre === 'Notas') {
           await page.screenshot({
             path: join(process.cwd(), 'auditoria', 'informes', 'nota-uno.png'),
@@ -371,6 +382,67 @@ async function probarCartelDescuadre(
     comparaImportes(antes._sum.saldoDeudor, despues._sum.saldoDeudor) &&
       comparaImportes(antes._sum.saldoAcreedor, despues._sum.saldoAcreedor),
     'Después de "Volver sin guardar" cambió el balance: no tenía que guardarse nada.',
+  )
+}
+
+/**
+ * Flujo de efectivo: el RECPAM revisado se ve, y "Proponer desde el balance" abre la propuesta con
+ * las líneas y de dónde sale cada una. Se cierra sin usarla: no cambia nada. Deja una captura.
+ */
+async function probarPropuestaFlujo(
+  ctx: Contexto,
+  page: import('playwright-core').Page,
+  escenario: string,
+  ejercicioId: string,
+) {
+  const { reg } = ctx
+  const area = 'Pantalla Flujo de efectivo'
+  const control = (ok: boolean, falla: string) => {
+    reg.controles++
+    if (!ok) reg.hallazgo('error', escenario, area, falla)
+  }
+  const visible = (l: import('playwright-core').Locator, estado: 'visible' | 'hidden') =>
+    l
+      .waitFor({ state: estado, timeout: 15_000 })
+      .then(() => true)
+      .catch(() => false)
+  const lineas = () =>
+    comoPlataforma(() =>
+      db.flujoDeCajaItem.findMany({
+        where: { flujo: { ejercicioId } },
+        select: { id: true, importe: true },
+        orderBy: { id: 'asc' },
+      }),
+    )
+
+  const antes = await lineas()
+  await page.getByRole('button', { name: 'Flujo de Efectivo', exact: true }).click()
+  control(
+    await visible(page.getByText('RECPAM revisado:'), 'visible'),
+    'No muestra que el RECPAM está revisado.',
+  )
+  await page.getByRole('button', { name: 'Proponer desde el balance' }).click()
+  const dialogo = page.getByRole('dialog', { name: 'Proponer desde el balance' })
+  const abre = await visible(
+    dialogo.getByText('Cobros por ventas de bienes y servicios'),
+    'visible',
+  )
+  control(abre, '"Proponer desde el balance" no muestra la propuesta.')
+  if (abre) {
+    control(
+      (await dialogo.innerText()).includes('Lo que carga el contador'),
+      'La propuesta no pide lo que la app no puede ver (ganancias pagado, préstamos).',
+    )
+    await page.screenshot({
+      path: join(process.cwd(), 'auditoria', 'informes', 'propuesta-flujo.png'),
+    })
+    await dialogo.getByRole('button', { name: 'Cancelar' }).click()
+    control(await visible(dialogo, 'hidden'), '"Cancelar" no cierra la propuesta.')
+  }
+  const despues = await lineas()
+  control(
+    JSON.stringify(antes) === JSON.stringify(despues),
+    'Abrir y cancelar la propuesta cambió el flujo: no tenía que guardarse nada.',
   )
 }
 

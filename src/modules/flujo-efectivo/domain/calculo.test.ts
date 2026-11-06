@@ -35,6 +35,7 @@ function item(id: string, partial: Partial<FlujoItemDTO>): FlujoItemDTO {
     importe: 0,
     importeAnterior: 0,
     orden: 0,
+    origen: null,
     ...partial,
   }
 }

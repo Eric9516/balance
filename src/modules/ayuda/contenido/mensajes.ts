@@ -155,6 +155,19 @@ const MENSAJES: Mensaje[] = [
     relacionados: ['flujo-efectivo'],
   },
   {
+    codigo: 'AUT-053',
+    titulo: 'El RECPAM del flujo está pendiente de revisión',
+    significa:
+      'La app calcula la línea de RECPAM del Estado de Flujo de Efectivo como la diferencia para que el estado cierre. Como es una diferencia, puede esconder un error de otra línea, así que alguien tiene que revisarla antes de confirmar los estados.',
+    solucion: [
+      'Abrí Estados → Flujo de efectivo y revisá las demás líneas.',
+      'Si el RECPAM es razonable, tocá "Revisado" (lo hace el dueño o un contador).',
+      'Si no, corregí la línea que está mal: el RECPAM se recalcula solo.',
+    ],
+    claves: ['recpam', 'pendiente de revision', 'flujo de efectivo', 'revisado'],
+    relacionados: ['flujo-efectivo'],
+  },
+  {
     codigo: 'AUT-052',
     titulo: 'Falta el Estado de Flujo de Efectivo',
     significa: 'No hay ninguna línea en el flujo. Es un estado básico obligatorio.',
@@ -496,6 +509,29 @@ const MENSAJES: Mensaje[] = [
       'editar cuenta',
     ],
     relacionados: ['paso-clasificar'],
+  },
+  {
+    codigo: 'NEG-070',
+    titulo: 'La línea de RECPAM la calcula la app',
+    significa:
+      'La línea "Resultados financieros y por tenencia generados por el efectivo (incluye RECPAM)" es la diferencia para que el Estado de Flujo de Efectivo cierre. No se borra ni se escribe a mano. Si el flujo todavía no tiene líneas, no hay RECPAM que revisar.',
+    solucion: [
+      'Si su importe no es razonable, revisá las demás líneas: el RECPAM se recalcula solo.',
+      'Si el flujo está vacío, agregá una línea o usá "Proponer desde el balance": el RECPAM aparece solo.',
+    ],
+    claves: ['recpam', 'no puedo borrar', 'flujo de efectivo'],
+    relacionados: ['flujo-efectivo'],
+  },
+  {
+    codigo: 'NEG-071',
+    titulo: 'El RECPAM cambió mientras lo revisabas',
+    significa:
+      'Entre que abriste la pantalla y tocaste "Revisado", el RECPAM cambió (otra persona cambió el flujo o el balance). No se dio por revisado, para no confirmar un importe que no viste.',
+    solucion: [
+      'Recargá la página, mirá el RECPAM nuevo y, si está bien, tocá "Revisado" otra vez.',
+    ],
+    claves: ['recpam', 'revisado', 'cambio'],
+    relacionados: ['flujo-efectivo'],
   },
   {
     codigo: 'NEG-064',

@@ -6,7 +6,7 @@ import {
   ThCargado,
 } from '@/modules/comparativo-manual/components/ColumnaCargado'
 import { useState } from 'react'
-import { CheckCircle2, AlertTriangle, History, Plus, Trash2 } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, History, Lock, Plus, Sparkles, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatFecha } from '@/lib/utils/dates'
@@ -18,8 +18,11 @@ import { AvisosArrastre } from '@/components/shared/AvisosArrastre'
 import { useEdicionLote } from '@/components/shared/useEdicionLote'
 import { useGuardarAccion } from '@/components/shared/useGuardarAccion'
 import {
+  conRecpam,
+  estadoRecpam,
   normalizarConcepto,
   totalesFlujo,
+  type EstadoRecpam,
   type FlujoData,
   type TotalesColumna,
 } from '../domain/calculo'
@@ -33,15 +36,22 @@ import {
   type FlujoItemDTO,
   type SeccionFlujo,
 } from '../domain/types'
+import type { EleccionesPropuesta, InsumosPropuesta } from '../domain/propuesta'
+import { PropuestaFlujo } from './PropuestaFlujo'
 import {
+  aplicarPropuestaFlujoAction,
+  cargarPropuestaFlujoAction,
   crearItemFlujoAction,
   eliminarItemFlujoAction,
   guardarFlujoAction,
+  revisarRecpamAction,
   traerConceptosAnteriorAction,
 } from '../actions/flujo.actions'
 
 const ORIGEN_BALANCE =
   'Sale de los rubros de efectivo del Estado de Situación Patrimonial. No se edita acá.'
+const ORIGEN_RECPAM =
+  'La calcula la app: es la diferencia entre la variación del efectivo y las demás líneas, para que el estado cierre. No se edita: si no es razonable, revisá las demás líneas.'
 
 interface Props {
   data: FlujoData
@@ -51,6 +61,8 @@ interface Props {
   fechaCierre: Date
   fechaCierreAnterior: Date | null
   anteriorDenominacion: string | null
+  /** El dueño o un contador da por revisado el RECPAM (un asistente no). */
+  puedeRevisarRecpam: boolean
 }
 
 export function FlujoEfectivoView({
@@ -61,6 +73,7 @@ export function FlujoEfectivoView({
   fechaCierre,
   fechaCierreAnterior,
   anteriorDenominacion,
+  puedeRevisarRecpam,
 }: Props) {
   const { mostrarAnterior, editarAnterior, bloqueo } = data
   const edicion = useEdicionLote<FlujoGuardadoDTO>(
@@ -68,9 +81,12 @@ export function FlujoEfectivoView({
     (borrador) => guardarFlujoAction(ejercicioId, sociedadId, borrador),
     'Flujo de efectivo guardado',
   )
-  const { valor: flujo, editando, actualizar, sincronizar } = edicion
+  const { valor: borrador, editando, actualizar, sincronizar } = edicion
   const { isPending: isPendingAcciones, ejecutar } = useGuardarAccion()
   const isPending = edicion.isPending || isPendingAcciones
+  // El RECPAM es la diferencia para que cierre: se recalcula sobre el borrador mientras se edita.
+  const flujo = conRecpam(borrador)
+  const recpam = estadoRecpam(flujo)
   const { actual, anterior } = totalesFlujo(flujo, mostrarAnterior)
   const [verCargado, setVerCargado] = useState(false)
   const cargado = verCargado ? data.cargado : null
@@ -91,14 +107,54 @@ export function FlujoEfectivoView({
   function agregar(seccion: SeccionFlujo, concepto: string) {
     ejecutar(
       () => crearItemFlujoAction(ejercicioId, sociedadId, seccion, concepto),
-      (nuevo) => sincronizar((prev) => ({ ...prev, items: [...prev.items, nuevo] })),
+      // Con la primera línea llega también la de RECPAM; cambiar líneas pide revisarlo de nuevo.
+      (nuevos) =>
+        sincronizar((prev) => ({
+          ...prev,
+          recpamRevisado: null,
+          items: [...prev.items, ...nuevos],
+        })),
+    )
+  }
+
+  // Lo que la propuesta necesita del balance: se lee al abrirla (null = cerrada).
+  const [insumos, setInsumos] = useState<InsumosPropuesta | null>(null)
+
+  function abrirPropuesta() {
+    ejecutar(() => cargarPropuestaFlujoAction(ejercicioId), setInsumos)
+  }
+
+  /** Pone en el flujo las líneas que arma la app (se guarda de inmediato, fuera del borrador). */
+  function usarPropuesta(elecciones: EleccionesPropuesta) {
+    ejecutar(
+      () => aplicarPropuestaFlujoAction(ejercicioId, sociedadId, elecciones),
+      (nuevo) => {
+        sincronizar((prev) => ({ ...prev, ...nuevo }))
+        setInsumos(null)
+        toastSuccess('Listo: revisá las líneas y el RECPAM')
+      },
+    )
+  }
+
+  function revisarRecpam(importe: number) {
+    ejecutar(
+      () => revisarRecpamAction(ejercicioId, sociedadId, importe),
+      () => {
+        sincronizar((prev) => ({ ...prev, recpamRevisado: importe }))
+        toastSuccess('RECPAM revisado')
+      },
     )
   }
 
   function eliminar(id: string) {
     ejecutar(
       () => eliminarItemFlujoAction(ejercicioId, sociedadId, id),
-      () => sincronizar((prev) => ({ ...prev, items: prev.items.filter((i) => i.id !== id) })),
+      () =>
+        sincronizar((prev) => ({
+          ...prev,
+          recpamRevisado: null,
+          items: prev.items.filter((i) => i.id !== id),
+        })),
     )
   }
 
@@ -144,6 +200,15 @@ export function FlujoEfectivoView({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1 space-y-2">
           <ControlCuadre actual={actual} anterior={data.controlarAnterior ? anterior : null} />
+          {recpam && (
+            <RevisionRecpam
+              recpam={recpam}
+              // Se revisa lo guardado: con cambios sin guardar, primero se guarda.
+              puedeRevisar={puedeRevisarRecpam && !editando && !isPending}
+              editando={editando}
+              onRevisar={() => revisarRecpam(recpam.importe)}
+            />
+          )}
           <AvisosArrastre
             bloqueado={vinculado}
             origen={anteriorDenominacion}
@@ -167,6 +232,16 @@ export function FlujoEfectivoView({
           {data.cargado && (
             <BotonVerCargado visible={verCargado} onToggle={() => setVerCargado((v) => !v)} />
           )}
+          <button
+            type="button"
+            onClick={abrirPropuesta}
+            disabled={editando || isPending}
+            title={editando ? 'Primero guardá o cancelá los cambios' : undefined}
+            className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Proponer desde el balance
+          </button>
           <BotonEditar
             editando={editando}
             onEditar={edicion.iniciarEdicion}
@@ -176,6 +251,13 @@ export function FlujoEfectivoView({
           />
         </div>
       </div>
+
+      <PropuestaFlujo
+        insumos={insumos}
+        aplicando={isPendingAcciones}
+        onClose={() => setInsumos(null)}
+        onUsar={usarPropuesta}
+      />
 
       <section
         className={cn(
@@ -453,7 +535,7 @@ function SeccionFlujoFilas({
       {lineas.map((l) => (
         <tr key={l.id}>
           <td className="celda pl-6">
-            {editando ? (
+            {editando && !l.origen ? (
               <input
                 type="text"
                 value={l.concepto}
@@ -462,20 +544,41 @@ function SeccionFlujoFilas({
                 className="w-full rounded border border-blue-200 bg-white px-1.5 py-0.5 text-tabla text-slate-900 hover:border-blue-300 focus:border-blue-500 focus:outline-none"
               />
             ) : (
-              l.concepto
+              <span className="inline-flex items-center gap-1.5">
+                {l.concepto}
+                {l.origen === 'RECPAM' && (
+                  <Lock
+                    className="h-3 w-3 flex-shrink-0 text-slate-400"
+                    aria-label="La calcula la app"
+                  />
+                )}
+              </span>
             )}
           </td>
           <td className="celda">
-            <CeldaNumero
-              value={l.importe}
-              editando={editando}
-              onSave={(v) => onImporte(l.id, v)}
-              dense
-            />
+            {l.origen === 'RECPAM' ? (
+              <span title={ORIGEN_RECPAM} className="block">
+                <CeldaNumero
+                  value={l.importe}
+                  editando={false}
+                  soloLectura
+                  onSave={() => {}}
+                  dense
+                />
+              </span>
+            ) : (
+              <CeldaNumero
+                value={l.importe}
+                editando={editando}
+                onSave={(v) => onImporte(l.id, v)}
+                dense
+              />
+            )}
           </td>
           {mostrarAnterior && <td className="celda">{celdaAnterior(l)}</td>}
           {cargadoDe && <TdCargado valor={cargadoDe(l.id)} />}
-          {editando && (
+          {editando && l.origen === 'RECPAM' && <td />}
+          {editando && l.origen !== 'RECPAM' && (
             <td className="celda text-center">
               <button
                 type="button"
@@ -613,6 +716,64 @@ function ControlCuadre({
           </span>
         </p>
       ))}
+    </div>
+  )
+}
+
+/**
+ * El RECPAM que calculó la app como diferencia: pendiente de revisión hasta que el dueño o un
+ * contador lo da por bueno. Si después cambia, vuelve a quedar pendiente.
+ */
+function RevisionRecpam({
+  recpam,
+  puedeRevisar,
+  editando,
+  onRevisar,
+}: {
+  recpam: EstadoRecpam
+  puedeRevisar: boolean
+  editando: boolean
+  onRevisar: () => void
+}) {
+  const importe = formatCurrency(recpam.importe, { decimales: 'todos' })
+  // En cero, el control del cuadre ya dice que las actividades explican toda la variación.
+  if (!recpam.pendiente && recpam.revisado === null) return null
+  if (!recpam.pendiente) {
+    return (
+      <p className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs text-emerald-800">
+        <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" />
+        <span>
+          <strong className="font-semibold">RECPAM revisado:</strong> {importe}
+          {recpam.revisadoPor && ` — por ${recpam.revisadoPor}`}
+          {recpam.revisadoEn && ` el ${formatFecha(recpam.revisadoEn)}`}.
+        </span>
+      </p>
+    )
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2 text-xs text-amber-800">
+      <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 text-amber-500" />
+      <span className="min-w-0 flex-1">
+        <strong className="font-semibold">RECPAM pendiente de revisión: {importe}.</strong> La app
+        lo calculó como la diferencia para que el estado cierre, así que puede esconder un error de
+        otra línea. Revisá las demás líneas y, si está bien, dalo por revisado.
+        {editando && ' Primero guardá los cambios.'}
+      </span>
+      <button
+        type="button"
+        onClick={onRevisar}
+        disabled={!puedeRevisar}
+        title={
+          puedeRevisar
+            ? undefined
+            : editando
+              ? 'Primero guardá los cambios'
+              : 'Lo revisa el dueño o un contador'
+        }
+        className="rounded-md bg-amber-600 px-3 py-1 font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+      >
+        Revisado
+      </button>
     </div>
   )
 }

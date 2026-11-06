@@ -51,6 +51,11 @@ export type ContextoAutorizacion = {
     actual: CuadreFlujo
     /** null si no hay columna comparativa */
     anterior: CuadreFlujo | null
+    /**
+     * El RECPAM que calculó la app como diferencia, si está pendiente de revisión (null: revisado, o
+     * el flujo no tiene línea de RECPAM).
+     */
+    recpamPendiente?: number | null
   } | null
 }
 
@@ -242,6 +247,17 @@ export function validarAutorizacionFinal(ctx: ContextoAutorizacion): ResultadoAu
             'CUADRE_BALANCE',
             'ERROR',
             `El Estado de Flujo de Efectivo no cuadra: según el balance el efectivo varió ${pesos(actual.variacionNeta)}, pero las actividades suman ${pesos(actual.sumaActividades)} (diferencia ${pesos(restar(actual.variacionNeta, actual.sumaActividades))}). Revisá las líneas en Estados → Flujo de efectivo.`,
+          ),
+        )
+      }
+      const recpam = ctx.flujo.recpamPendiente
+      if (recpam !== null && recpam !== undefined) {
+        bloqueantes.push(
+          item(
+            'AUT-053',
+            'CUADRE_BALANCE',
+            'ERROR',
+            `El RECPAM del Estado de Flujo de Efectivo está pendiente de revisión: la app lo calculó como la diferencia para que el estado cierre (${pesos(recpam)}), y esa diferencia puede esconder un error de otra línea. Revisalo en Estados → Flujo de efectivo y tocá "Revisado".`,
           ),
         )
       }

@@ -61,6 +61,8 @@ import { claveFilaAnterior } from '@/modules/gastos/domain/filasAnexo'
 import { findCuentasByEjercicio } from '@/modules/importaciones/repository/cuentas.repository'
 import {
   crearItemFlujoAction,
+  eliminarItemFlujoAction,
+  revisarRecpamAction,
   guardarFlujoAction,
   traerConceptosAnteriorAction,
 } from '@/modules/flujo-efectivo/actions/flujo.actions'
@@ -747,12 +749,16 @@ describe('Estado de Flujo de Efectivo', () => {
       }),
     )
     const g = (await findFlujo(ej2025))!
-    expect(g.saldoInicial).toBe(100_000) // caja 2024, sin ajustar: es de este año
+    // El efectivo al inicio es el del cierre del anterior ajustado (dueño del producto, 2026-11-06)
+    expect(g.saldoInicial).toBe(125_000) // caja 2024 100.000 × 1,25
     expect(g.saldoFinal).toBe(150_000)
     expect(g.saldoFinalAnterior).toBe(125_000)
     expect(g.saldoInicialAnterior).toBe(100_000) // inicio 2024 80.000 × 1,25
-    expect(g.items).toHaveLength(1)
+    // La línea del cliente y la de RECPAM, que se agrega sola con la primera
+    expect(g.items.map((i) => i.origen)).toEqual([null, 'RECPAM'])
     expect(g.items[0]!.importeAnterior).toBe(250_000) // 200.000 × 1,25
+    // El RECPAM es la diferencia: variación 25.000 menos 300.000 de cobros
+    expect(g.items[1]!.importe).toBe(-275_000)
     expect(linea((await findFlujo(ej2024))!, 'Cobros por ventas').importe).toBe(200_000)
   })
 
@@ -764,10 +770,10 @@ describe('Estado de Flujo de Efectivo', () => {
     expect(ok(await traerConceptosAnteriorAction(ej2025, soc))).toEqual([])
   })
 
-  it('compuerta: un flujo que no cuadra bloquea los estados pero no el E.E.P.N.', async () => {
-    // Variación 50.000; actividades 300.000 + 0 → no cuadra
+  it('compuerta: el RECPAM pendiente de revisión bloquea los estados pero no el E.E.P.N.', async () => {
+    // Variación 25.000; actividades 300.000 + 0 → el RECPAM (−275.000) queda pendiente
     const r = await confirmarEstadosAction(ej2025, soc)
-    expect(fail(r, 'NEG-030')).toMatch(/Flujo de Efectivo no cuadra/)
+    expect(fail(r, 'NEG-030')).toMatch(/RECPAM .*pendiente de revisión/)
     ok(await confirmarPNAction(ej2025, soc, true))
 
     const f = (await findFlujo(ej2025))!
@@ -779,11 +785,27 @@ describe('Estado de Flujo de Efectivo', () => {
         ),
       }),
     )
+    // Ahora el RECPAM es −25.000: sigue pendiente hasta que alguien lo revisa
+    fail(await confirmarEstadosAction(ej2025, soc), 'NEG-030')
+    // Revisar un importe distinto del que calcula la app no vale (la pantalla quedó vieja)
+    fail(await revisarRecpamAction(ej2025, soc, -275_000), 'NEG-071')
+    ok(await revisarRecpamAction(ej2025, soc, -25_000))
+    const revisado = (await findFlujo(ej2025))!
+    expect(revisado.recpamRevisado).toBe(-25_000)
+    expect(revisado.recpamRevisadoEn).not.toBeNull()
     ok(await confirmarEstadosAction(ej2025, soc))
     // Cualquier cambio posterior en el flujo desconfirma los estados.
     const g = (await findFlujo(ej2025))!
     ok(await guardarFlujoAction(ej2025, soc, { ...g, modificacionesEjAnt: 0 }))
     expect((await findEjercicioById(ej2025))?.estadosConfirmado).toBe(false)
+    // Sin cambios en la columna actual, el RECPAM sigue revisado; con un cambio, vuelve a pendiente
+    expect((await findFlujo(ej2025))!.recpamRevisado).toBe(-25_000)
+    const h = (await findFlujo(ej2025))!
+    ok(await guardarFlujoAction(ej2025, soc, { ...h, modificacionesEjAnt: 1 }))
+    expect((await findFlujo(ej2025))!.recpamRevisado).toBeNull()
+    // La línea de RECPAM no se borra
+    const recpam = h.items.find((i) => i.origen === 'RECPAM')!
+    fail(await eliminarItemFlujoAction(ej2025, soc, recpam.id), 'NEG-070')
   })
 
   it('MANUAL: tocar la columna anterior anula la autorización; la actual no', async () => {

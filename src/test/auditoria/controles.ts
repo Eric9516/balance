@@ -222,10 +222,12 @@ export async function controlar(ctx: Contexto, esc: Escenario, ej: string) {
       flujo.anterior.efectivoCierre,
       ant.rubros['ACT-CTE-01'] ?? 0,
     )
+    // El efectivo al inicio ya es el del cierre del anterior ajustado (dueño del producto,
+    // 2026-11-06): no se vuelve a ajustar.
     igual(
       fe,
-      'Efectivo al inicio, ajustado = cierre del año anterior',
-      ajustado(flujo.actual.efectivoInicio),
+      'Efectivo al inicio = cierre del año anterior ajustado',
+      flujo.actual.efectivoInicio,
       flujo.anterior.efectivoCierre,
     )
     igual(fe, 'Variación del año anterior explicada', flujo.anterior.diferencia, 0)

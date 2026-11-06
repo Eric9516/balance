@@ -196,6 +196,9 @@ export function insumosPrueba(overrides: Partial<InsumosDocumento> = {}): Insumo
       saldoInicialAnterior: 0,
       modificacionesEjAntAnt: 0,
       saldoFinalAnterior: 0,
+      recpamRevisado: null,
+      recpamRevisadoPor: null,
+      recpamRevisadoEn: null,
       items: [
         {
           id: 'it-1',
@@ -204,6 +207,7 @@ export function insumosPrueba(overrides: Partial<InsumosDocumento> = {}): Insumo
           importe: 50,
           importeAnterior: 0,
           orden: 1,
+          origen: null,
         },
       ],
     },

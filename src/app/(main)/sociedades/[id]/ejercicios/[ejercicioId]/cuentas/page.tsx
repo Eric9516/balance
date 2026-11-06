@@ -440,7 +440,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
       ejercicio,
       cuentas,
     )
-    const flujo = await cargarFlujo(ejercicio, estadosData)
+    const [flujo, sesion] = await Promise.all([cargarFlujo(ejercicio, estadosData), exigirSesion()])
     content = (
       <EstadosView
         data={{
@@ -472,6 +472,7 @@ export default async function CuentasPage({ params, searchParams }: Props) {
             fechaCierre={ejercicio.fechaCierre}
             fechaCierreAnterior={fechaCierreAnterior}
             anteriorDenominacion={origenAnterior}
+            puedeRevisarRecpam={sesion.rol !== 'ASISTENTE'}
           />
         }
       />

@@ -226,6 +226,30 @@ describe('compuerta: Estado de Flujo de Efectivo', () => {
     expect(codigos(r.advertencias)).toContain('AUT-051')
   })
 
+  it('el RECPAM pendiente de revisión bloquea y dice el importe completo', () => {
+    const r = validarAutorizacionFinal(
+      ctx({
+        flujo: {
+          lineas: 3,
+          actual: cuadre(25_000, 25_000),
+          anterior: null,
+          recpamPendiente: -1_234.567,
+        },
+      }),
+    )
+    expect(codigos(r.bloqueantes)).toEqual(['AUT-053'])
+    expect(r.bloqueantes[0]?.mensaje).toContain('(1.234,567)')
+  })
+
+  it('el RECPAM revisado no agrega nada', () => {
+    const r = validarAutorizacionFinal(
+      ctx({
+        flujo: { lineas: 3, actual: cuadre(25_000, 25_000), anterior: null, recpamPendiente: null },
+      }),
+    )
+    expect(r.bloqueantes).toEqual([])
+  })
+
   it('cuadrado: no agrega nada', () => {
     const r = validarAutorizacionFinal(
       ctx({ flujo: { lineas: 3, actual: cuadre(25_000, 25_000), anterior: cuadre(5, 5) } }),

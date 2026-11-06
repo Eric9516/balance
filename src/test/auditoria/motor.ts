@@ -53,6 +53,7 @@ import { PN_MOVIMIENTOS, type EvolucionPNInput } from '@/modules/patrimonio-neto
 import { crearAjusteTransicionAction } from '@/modules/transicion-rt54/actions/ajustes.actions'
 import {
   crearItemFlujoAction,
+  revisarRecpamAction,
   guardarFlujoAction,
   traerConceptosAnteriorAction,
 } from '@/modules/flujo-efectivo/actions/flujo.actions'
@@ -848,4 +849,12 @@ async function flujoEfectivo(ctx: Contexto, esc: Escenario, soc: string, ej: str
       items,
     }),
   )
+  // El RECPAM es la diferencia que calcula la app: el contador lo mira y lo da por revisado.
+  const recpam = (await findFlujo(ej))?.items.find((i) => i.origen === 'RECPAM')
+  if (recpam && recpam.importe !== 0) {
+    reg.entrada(id, 'Flujo de efectivo', 'RECPAM calculado por la app', recpam.importe)
+    await accion(ctx, id, 'Flujo: dar por revisado el RECPAM', () =>
+      revisarRecpamAction(ej, soc, recpam.importe),
+    )
+  }
 }

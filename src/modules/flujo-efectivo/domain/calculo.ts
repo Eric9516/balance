@@ -6,9 +6,14 @@
  *    (columna actual). Siempre derivado y bloqueado: el flujo no puede contradecir al balance.
  *  - El efectivo al INICIO es la columna "Ejercicio anterior" de esos mismos rubros, que
  *    ya viene resuelta por el modo del ejercicio anterior (VINCULADO: derivada y
- *    reexpresada; MANUAL: cargada a mano y autorizada). Bloqueado cuando hay comparativo.
- *    En primer ejercicio o modo pendiente queda editable (normalmente 0).
+ *    reexpresada; MANUAL: cargada a mano, autorizada y ajustada). Es decir, el efectivo al cierre
+ *    del anterior AJUSTADO a moneda de cierre, sin volver a ajustarlo (decidido por el dueño del
+ *    producto, 2026-11-06). Bloqueado cuando hay comparativo. En primer ejercicio o modo pendiente
+ *    queda editable (normalmente 0).
  *  - Control: aumento (disminución) neta del efectivo = suma de las tres actividades.
+ *  - La línea de RECPAM ("Resultados financieros y por tenencia generados por el efectivo") la
+ *    calcula la app como la diferencia para que cierre (conRecpam). Queda pendiente de revisión
+ *    hasta que el dueño o un contador la confirme; si después cambia, vuelve a quedar pendiente.
  *  - Columna anterior: VINCULADO → del flujo del anterior, por sección y concepto,
  *    reexpresado; toda la columna queda bloqueada (lo que no tiene fuente va en 0).
  *    MANUAL → a mano; resto → no se muestra.
@@ -86,8 +91,21 @@ export type TotalesColumna = {
   cuadra: boolean
 }
 
+/** La línea de RECPAM y su revisión. */
+export type EstadoRecpam = {
+  itemId: string
+  importe: number
+  revisado: number | null
+  revisadoPor: string | null
+  revisadoEn: Date | null
+  /** Distinto de cero y sin revisar, o lo revisado ya no coincide con lo que calcula la app. */
+  pendiente: boolean
+}
+
 export type FlujoData = {
   guardado: FlujoGuardadoDTO
+  /** null si el flujo no tiene línea de RECPAM (sin líneas). */
+  recpam: EstadoRecpam | null
   mostrarAnterior: boolean
   editarAnterior: boolean
   /** Anterior manual ya ajustado: lo que se había cargado, para mostrarlo al lado. */
@@ -113,7 +131,59 @@ export const FLUJO_VACIO: FlujoGuardadoDTO = {
   saldoInicialAnterior: 0,
   modificacionesEjAntAnt: 0,
   saldoFinalAnterior: 0,
+  recpamRevisado: null,
+  recpamRevisadoPor: null,
+  recpamRevisadoEn: null,
   items: [],
+}
+
+/**
+ * La línea de RECPAM es la diferencia para que el estado cierre: la variación neta del efectivo
+ * menos las demás líneas. La calcula siempre la app, también sobre el borrador de la pantalla.
+ * Solo la columna del ejercicio actual: la anterior sigue su modo (a mano o del flujo anterior).
+ */
+export function conRecpam(f: FlujoGuardadoDTO): FlujoGuardadoDTO {
+  const linea = f.items.find((i) => i.origen === 'RECPAM')
+  if (!linea) return f
+  const variacionNeta = restar(f.saldoFinal, sumar(f.saldoInicial, f.modificacionesEjAnt))
+  const otras = sumarPor(
+    f.items.filter((i) => i.id !== linea.id),
+    (i) => i.importe,
+  )
+  const importe = restar(variacionNeta, otras)
+  return { ...f, items: f.items.map((i) => (i.id === linea.id ? { ...i, importe } : i)) }
+}
+
+/** La línea de RECPAM (ya calculada) y si está pendiente de revisión. */
+export function estadoRecpam(f: FlujoGuardadoDTO): EstadoRecpam | null {
+  const linea = f.items.find((i) => i.origen === 'RECPAM')
+  if (!linea) return null
+  const revisado = f.recpamRevisado
+  return {
+    itemId: linea.id,
+    importe: linea.importe,
+    revisado,
+    revisadoPor: f.recpamRevisadoPor,
+    revisadoEn: f.recpamRevisadoEn,
+    // En cero no hay diferencia que pueda esconder un error: no hay nada que revisar.
+    pendiente: linea.importe !== 0 && (revisado === null || restar(revisado, linea.importe) !== 0),
+  }
+}
+
+/**
+ * ¿Cambió algo de la columna del ejercicio actual? (líneas, importes o modificaciones). Un cambio
+ * así deja el RECPAM pendiente de revisión otra vez, aunque su importe no haya cambiado.
+ */
+export function cambioColumnaActual(antes: FlujoGuardadoDTO, despues: FlujoGuardadoDTO): boolean {
+  const dif = (a: number, b: number) => restar(a, b) !== 0
+  if (dif(antes.saldoInicial, despues.saldoInicial)) return true
+  if (dif(antes.modificacionesEjAnt, despues.modificacionesEjAnt)) return true
+  if (antes.items.length !== despues.items.length) return true
+  const previo = new Map(antes.items.map((i) => [i.id, i]))
+  return despues.items.some((i) => {
+    const p = previo.get(i.id)
+    return !p || dif(p.importe, i.importe) || p.concepto !== i.concepto
+  })
 }
 
 function totales(
@@ -163,8 +233,6 @@ export function armarFlujo(params: {
   indices: IndicesReexpresion
   /** Anterior manual ya ajustado: lo que se había cargado. Bloquea la columna anterior. */
   cargado?: FlujoGuardadoDTO | null
-  /** Si el anterior se ajustó: el efectivo al inicio de este año, que nunca se ajusta. */
-  efectivoInicial?: number | null
 }): FlujoData {
   const { efectivo, modo, flujoAnterior, indices } = params
   const base = params.guardado ?? FLUJO_VACIO
@@ -174,9 +242,8 @@ export function armarFlujo(params: {
 
   // ── Columna actual ────────────────────────────────────────────────────────
   const saldoFinal = efectivo.actual
-  const saldoInicial = mostrarAnterior
-    ? (params.efectivoInicial ?? efectivo.anterior)
-    : base.saldoInicial
+  // El efectivo al cierre del anterior, ya ajustado: no se vuelve a ajustar.
+  const saldoInicial = mostrarAnterior ? efectivo.anterior : base.saldoInicial
 
   // ── Columna anterior ──────────────────────────────────────────────────────
   const lineasAnterior = new Set<string>()
@@ -233,7 +300,7 @@ export function armarFlujo(params: {
     modificacionesEjAntAnt = 0
   }
 
-  const guardado: FlujoGuardadoDTO = {
+  const guardado = conRecpam({
     ...base,
     saldoInicial,
     saldoFinal,
@@ -241,10 +308,11 @@ export function armarFlujo(params: {
     modificacionesEjAntAnt,
     saldoFinalAnterior,
     items,
-  }
+  })
 
   return {
     guardado,
+    recpam: estadoRecpam(guardado),
     mostrarAnterior,
     editarAnterior: editarAnterior && !params.cargado,
     cargado: params.cargado ?? null,
